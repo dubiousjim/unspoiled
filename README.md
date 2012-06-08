@@ -1,7 +1,7 @@
 unspoiled
 =========
 
-Libraries for [http://code.google.com/p/pure-lang](pure-lang).
+Libraries for [pure-lang](http://code.google.com/p/pure-lang/).
 
 At the moment, only includes:
 
