@@ -137,13 +137,13 @@ rmlast t::fulltree = pop_right t !0;
 
 // Note that popped element may be () or a longer tuple.
 popfirst t::fulltree = case pop_left t of
-    child, _, w = '(child, w);
-    // child, _ = '(child, ());
+    child, _, w = '(child, w)
+    // child, _ = '(child, ())
 end;
 
 poplast t::fulltree = case pop_right t of
-    child, _, w = '(child, w);
-    // child, _ = '(child, ());
+    child, _, w = '(child, w)
+    // child, _ = '(child, ())
 end;
 
 
@@ -195,13 +195,13 @@ mrmlast t::fulltree = mpop_right t !0;
 
 // Note that popped element may be () or a longer tuple.
 mpopfirst t::fulltree = case mpop_left t of
-    child, _, w = '(child, w);
-    // child, _ = '(child, ());
+    child, _, w = '(child, w)
+    // child, _ = '(child, ())
 end;
 
 mpoplast t::fulltree = case mpop_right t of
-    child, _, w = '(child, w);
-    // child, _ = '(child, ());
+    child, _, w = '(child, w)
+    // child, _ = '(child, ())
 end;
 
 
@@ -436,8 +436,8 @@ mhgetk t::tree k = get (hash k) k t with
         = get h k r if res == GT2;
     end;
     // reverse [v | u=>v = us; u === k];
-    match [] base = base;
-    match ((u=>v):us) base = match us (if u === k then v:base else base);
+    match _ [] base = base;
+    match k ((u=>v):us) base = match k us (if u === k then v:base else base);
 end;
 
 
@@ -524,7 +524,7 @@ end;
 deletek t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
-    pluck _ u _ = u, [];
+    pluck _ u _ = '(u, []);
 end;
 
 // Note that popped element may be () or a longer tuple.
@@ -533,14 +533,14 @@ popk t::tree k = '(child, v) when
 end with
     handle abort = throw out_of_bounds;
     handle e = throw e;
-    pluck _ u _ = u, [];
+    pluck _ u _ = '(u, []);
 end;
 
 // Delete one specific key=>val pair.
 deletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pluck v u uv = if ~eq v uv then throw abort else u, [];
+    pluck v u uv = if ~eq v uv then throw abort else '(u, []);
 end;
 
 
@@ -562,28 +562,60 @@ public mdelete mdeletek mdeletekv mpopk;
 mdelete t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pluck _ _ (u:us) = u, us;
+    // If elements are discernable but still EQ, note:
+    // We delete the element added most recently, which we can do efficiently.
+    // avltrees on the other hand removes the element added first.
+    pluck _ _ (u:us) = '(u, us);
 end;
 
-mdeletek t k = mdelete t k;
+// To match behavior of avltrees, we have to remove the element added first.
+mdeletek t::tree k = catch handle (pop_key pluck k [] t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    /*
+    pluck _ _ (u:us) = '(u, us);
+    */
+    pluck vs _ [u] = '(u, us) when
+        us = reverse vs;
+    end;
+    pluck vs _ (u:us) = pluck (u:vs) nan us;
+end;
 
 // Note that popped element may be () or a longer tuple.
 mpopk t::tree k = '(child, v) when
-    child, _, (_=>v) = catch handle (pop_key pluck k () t)
+    child, _, (_=>v) = catch handle (pop_key pluck k [] t)
 end with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pluck _ _ (u:us) = u, us;
+    /*
+    pluck _ _ (u:us) = '(u, us);
+    */
+    pluck vs _ [u] = '(u, us) when
+        us = reverse vs
+    end;
+    pluck vs _ (u:us) = pluck (u:vs) nan us;
 end;
 
 mdeletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
+    /*
     pluck _ _ [] = throw abort; // (k=>v) not found
-    pluck v _ (u@(_=>uv):us) = u, us if eq v uv;
-    pluck v x (u:us) = w, u:ws when
+    pluck v _ (u@(_=>uv):us) = '(u, us) if eq v uv;
+    pluck v x (u:us) = '(w, ws) when
         w, ws = pluck v x us;
+        ws = u:ws;
     end;
+    */
+    pluck v _ us = plucklast v [] [] us;
+    plucklast _ _ [] [] = throw abort; // (k=>v) not found
+    plucklast _ miss (h:hs) [] = '(h, us) when
+        us = rev_append hs (reverse miss)
+    end;
+    plucklast v miss hits (u@(_=>uv):us) =
+        plucklast v [] (u:(miss+hits)) us if eq v uv;
+    plucklast v miss hits (u:us) =
+        plucklast v (u:miss) hits us;
 end;
 
 // Delete all members for a given key.
@@ -627,8 +659,9 @@ hdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ 
     handle e = throw e;
     pluck _ _ [] = throw abort; // not found
     pluck k _ (k:us) = nan, us; // use nan as dummy element
-    pluck k _ (u:us) = w, u:ws when
+    pluck k _ (u:us) = '(w, ws) when
         w, ws = pluck k nan us;
+        ws = u:ws;
     end;
 end;
 
@@ -636,9 +669,10 @@ hdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pluck _ _ [] = throw abort; // not found
-    pluck k _ (u@(k=>_):us) = u, us;
-    pluck k _ (u:us) = w, u:ws when
+    pluck k _ (u@(k=>_):us) = '(u, us);
+    pluck k _ (u:us) = '(w, ws) when
         w, ws = pluck k nan us;
+        ws = u:ws;
     end;
 end;
 
@@ -649,9 +683,10 @@ end with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pluck _ _ [] = throw abort; // not found
-    pluck k _ (u@(k=>_):us) = u, us;
-    pluck k _ (u:us) = w, u:ws when
+    pluck k _ (u@(k=>_):us) = '(u, us);
+    pluck k _ (u:us) = '(w, ws) when
         w, ws = pluck k nan us;
+        ws = u:ws;
     end;
 end;
 
@@ -659,9 +694,10 @@ hdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /*
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pluck _ _ [] = throw abort; // not found
-    pluck (k=>v) _ (u@(k=>uv):us) = if eq v uv then u, us else throw abort; // (k=>v) not found
-    pluck old _ (u:us) = w, u:ws when
+    pluck (k=>v) _ (u@(k=>uv):us) = if eq v uv then '(u, us) else throw abort; // (k=>v) not found
+    pluck old _ (u:us) = '(w, ws) when
         w, ws = pluck old nan us;
+        ws = u:ws;
     end;
 end;
 
@@ -682,19 +718,105 @@ end;
 
 public mhdelete mhdeletek mhdeletekv mhpopk;
 
-// the mh* functions just operate on first match
+/*
+// Can the mh* functions just operate on first match?
+
 mhdelete   t y = hdelete   t y;
 mhdeletek  t y = hdeletek  t y;
 mhpopk     t y = hpopk     t y;
+*/
+
+// No, to match behavior of avltrees, we have to remove the element added first.
+
+mhdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    /*
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (k:us) = nan, us; // use nan as dummy element
+    pluck k _ (u:us) = '(w, ws) when
+        w, ws = pluck k nan us;
+        ws = u:ws;
+    end;
+    */
+    pluck k _ us = plucklast k [] [] us;
+    plucklast _ _ [] [] = throw abort; // not found
+    plucklast _ miss (h:hs) [] = '(h, us) when
+        us = rev_append hs (reverse miss)
+    end;
+    plucklast k miss hits (k:us) =
+        plucklast k [] (k:(miss+hits)) us;
+    plucklast k miss hits (u:us) =
+        plucklast k (u:miss) hits us;
+end;
+
+mhdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    /*
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (u@(k=>_):us) = '(u, us);
+    pluck k _ (u:us) = '(w, ws) when
+        w, ws = pluck k nan us;
+        ws = u:ws;
+    end;
+    */
+    pluck k _ us = plucklast k [] [] us;
+    plucklast _ _ [] [] = throw abort; // not found
+    plucklast _ miss (h:hs) [] = '(h, us) when
+        us = rev_append hs (reverse miss)
+    end;
+    plucklast k miss hits (u@(k=>_):us) =
+        plucklast k [] (u:(miss+hits)) us;
+    plucklast k miss hits (u:us) =
+        plucklast k (u:miss) hits us;
+end;
+
+// Note that popped element may be () or a longer tuple.
+mhpopk t::tree k = '(child, v) when
+    child, _, (_=>v) = catch handle (pop_key pluck (hash k) k t)
+end with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    /*
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (u@(k=>_):us) = '(u, us);
+    pluck k _ (u:us) = '(w, ws) when
+        w, ws = pluck k nan us;
+        ws = u:ws;
+    end;
+    */
+    pluck k _ us = plucklast k [] [] us;
+    plucklast _ _ [] [] = throw abort; // not found
+    plucklast _ miss (h:hs) [] = '(h, us) when
+        us = rev_append hs (reverse miss)
+    end;
+    plucklast k miss hits (u@(k=>_):us) =
+        plucklast k [] (u:(miss+hits)) us;
+    plucklast k miss hits (u:us) =
+        plucklast k (u:miss) hits us;
+end;
 
 mhdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
+    /*
     pluck _ _ [] = throw abort; // not found
-    pluck (k=>v) _ (u@(k=>uv):us) = u, us if eq v uv; // else look for further (k=>v)s
-    pluck old x (u:us) = w, u:ws when
+    pluck (k=>v) _ (u@(k=>uv):us) = '(u, us) if eq v uv; // else look for further (k=>v)s
+    pluck old x (u:us) = '(w, ws) when
         w, ws = pluck old x us;
+        ws = u:ws;
     end;
+    */
+    pluck old _ us = plucklast old [] [] us;
+    plucklast _ _ [] [] = throw abort; // not found
+    plucklast _ miss (h:hs) [] = '(h, us) when
+        us = rev_append hs (reverse miss)
+    end;
+    plucklast old@(k=>v) miss hits (u@(k=>uv):us) =
+        plucklast old [] (u:(miss+hits)) us if eq v uv;
+    plucklast old miss hits (u:us) =
+        plucklast old (u:miss) hits us;
 end;
 
 public mhdeletea mhdeleteka;
@@ -861,7 +983,7 @@ cmp1 a b = if a<b then LT else GE;
 
 cmp2 a::string b::string c::string |
 cmp3 a::string b::string c::string =
-    if res>0 then (if res2>0 then GT2 else if res2<0 then LT2 else EQ2 when res2 = __C::strcmp a c end) else if res<0 then LT else EQ when res = __C::strcmp a b end; 
+    if res>0 then (if res2>0 then GT2 else if res2<0 then LT2 else EQ2 when res2 = __C::strcmp a c end) else if res<0 then LT else EQ when res = __C::strcmp a b end;
 cmp2 a::bigint b::bigint c::bigint |
 cmp3 a::bigint b::bigint c::bigint =
     if res > 0 then EQ2 + __C::bigint_cmp a c else res when res = __C::bigint_cmp a b end;
@@ -898,11 +1020,11 @@ tostring t::tree = case t of
     nil = "emptytree";
     _ = (join "\n" (reverse lst)) + "\n";
 end when
-    lst, _, _ = recurse t true true;
+    lst, _, _ = recurse t true true
 end with
     pad_length until width lines = aux (#lines) until lines with
         aux n until lines = if n < until then aux (n+1) until (spaces width : lines)
-                            else lines;
+                            else lines
     end;
     recurse nil _ _ = [], 0, 0;
     recurse (bin left1 k1 right1) istop isleft =
@@ -963,4 +1085,3 @@ end;
 public display;
 using system;
 display t::tree = puts (tostring t) $$ ();
-
