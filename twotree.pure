@@ -28,10 +28,18 @@ namespace twothree;
    unordered tree. */
 
 private nonfix nil abort;
+
 private bin tri;
 
-private /* LE */ LT EQ GT GE LT2 EQ2 GT2 GE2;
-/* const LE = -2; */
+/* Private helper functions. */
+
+private shrink_left shrink_center shrink_right;
+private pop_left pop_right mpop_left mpop_right pop_key ins_key;
+private cmp cmp1 cmp2 cmp3 eq;
+private rev_append map2 map3 spaces center tostring;
+
+private LT EQ GT GE LT2 EQ2 GT2 GE2;
+
 const LT = -1; // s1 < s2
 const EQ = 0;
 const GT = 1; // s1 > s2
@@ -41,12 +49,6 @@ const LT2 = 4; // s1 > s2 && s1 < s3
 const EQ2 = 5; // s1 > s2 && s1 == s3
 const GT2 = 6; // s1 > s2 && s1 > s3
 const GE2 = 7; // s1 >= s2 && ~(s1 < s3)
-
-/* Private helper functions. */
-private shrink_left shrink_center shrink_right;
-private pop_left pop_right mpop_left mpop_right pop_key ins_key;
-private cmp cmp1 cmp2 cmp3 eq;
-private rev_append map2 map3 spaces center tostring;
 
 
 /* Operations to construct an empty tree, and to check for an empty tree.
@@ -61,6 +63,7 @@ null (bin _ _ _) = 0;
 null (tri _ _ _ _ _) = 0;
 
 private tree fulltree;
+
 type tree (bin _ _ _) | tree (tri _ _ _ _ _) | tree nil = 1;
 type tree _ = 0;
 type fulltree (bin _ _ _) | fulltree (tri _ _ _ _ _) = 1;
@@ -127,21 +130,18 @@ end;
 
 // Remove the first and the last member from a tree.
 
-using system;
-
 rmfirst t::fulltree = pop_left t !0;
 
 rmlast t::fulltree = pop_right t !0;
 
 // Note that popped element may be () or a longer tuple.
+
 popfirst t::fulltree = case pop_left t of
     child, _, w = '(child, w)
-    // child, _ = '(child, ())
 end;
 
 poplast t::fulltree = case pop_right t of
     child, _, w = '(child, w)
-    // child, _ = '(child, ())
 end;
 
 
@@ -192,14 +192,13 @@ mrmfirst t::fulltree = mpop_left t !0;
 mrmlast t::fulltree = mpop_right t !0;
 
 // Note that popped element may be () or a longer tuple.
+
 mpopfirst t::fulltree = case mpop_left t of
     child, _, w = '(child, w)
-    // child, _ = '(child, ())
 end;
 
 mpoplast t::fulltree = case mpop_right t of
     child, _, w = '(child, w)
-    // child, _ = '(child, ())
 end;
 
 
@@ -526,6 +525,7 @@ deletek t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ wit
 end;
 
 // Note that popped element may be () or a longer tuple.
+
 popk t::tree k = '(child, v) when
     child, _, (_=>v) = catch handle (pop_key pluck k () t)
 end with
@@ -535,6 +535,7 @@ end with
 end;
 
 // Delete one specific key=>val pair.
+
 deletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
@@ -543,6 +544,7 @@ end;
 
 
 /* Ordered case, multiple values. */
+
 public minsert minsertk;
 
 minsert t::tree new = ins_key fresh stale new () new t !0 with
@@ -566,7 +568,9 @@ mdelete t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ wit
     pluck _ _ (u:us) = '(u, us);
 end;
 
-// To match behavior of avltrees, we have to remove the element added first.
+// To match the behavior of avltrees, the following functions have to remove
+// the element added first.
+
 mdeletek t::tree k = catch handle (pop_key pluck k [] t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
@@ -576,10 +580,11 @@ mdeletek t::tree k = catch handle (pop_key pluck k [] t !0) /* child, _, _ */ wi
     pluck vs _ [u] = '(u, us) when
         us = reverse vs;
     end;
-    pluck vs _ (u:us) = pluck (u:vs) nan us;
+    pluck vs _ (u:us) = pluck (u:vs) nan us; // use nan as dummy element
 end;
 
 // Note that popped element may be () or a longer tuple.
+
 mpopk t::tree k = '(child, v) when
     child, _, (_=>v) = catch handle (pop_key pluck k [] t)
 end with
@@ -591,7 +596,7 @@ end with
     pluck vs _ [u] = '(u, us) when
         us = reverse vs
     end;
-    pluck vs _ (u:us) = pluck (u:vs) nan us;
+    pluck vs _ (u:us) = pluck (u:vs) nan us; // use nan as dummy element
 end;
 
 mdeletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
@@ -600,8 +605,8 @@ mdeletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ 
     /*
     pluck _ _ [] = throw abort; // (k=>v) not found
     pluck v _ (u@(_=>uv):us) = '(u, us) if eq v uv;
-    pluck v x (u:us) = '(w, ws) when
-        w, ws = pluck v x us;
+    pluck v _ (u:us) = '(w, ws) when
+        w, ws = pluck v nan us; // use nan as dummy element
         ws = u:ws;
     end;
     */
@@ -617,6 +622,7 @@ mdeletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ 
 end;
 
 // Delete all members for a given key.
+
 public mdeletea mdeleteka;
 
 mdeletea t k = deletek t k;
@@ -650,6 +656,7 @@ hinsertk t::tree new@(k=>v) = catch handle (ins_key fresh stale (hash k) v new t
 end;
 
 // These are also valid for multi-hashes.
+
 public hdelete hdeletek hdeletekv hpopk;
 
 hdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
@@ -675,6 +682,7 @@ hdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _
 end;
 
 // Note that popped element may be () or a longer tuple.
+
 hpopk t::tree k = '(child, v) when
     child, _, (_=>v) = catch handle (pop_key pluck (hash k) k t)
 end with
@@ -717,23 +725,23 @@ end;
 public mhdelete mhdeletek mhdeletekv mhpopk;
 
 /*
-// Can the mh* functions just operate on first match?
+Can the mh* functions just operate on first match?
 
-mhdelete   t y = hdelete   t y;
-mhdeletek  t y = hdeletek  t y;
-mhpopk     t y = hpopk     t y;
+    mhdelete   t y = hdelete   t y;
+    mhdeletek  t y = hdeletek  t y;
+    mhpopk     t y = hpopk     t y;
+
+No, to match behavior of avltrees, we have to remove the element added first.
 */
-
-// No, to match behavior of avltrees, we have to remove the element added first.
 
 mhdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     /*
     pluck _ _ [] = throw abort; // not found
-    pluck k _ (k:us) = nan, us; // use nan as dummy element
+    pluck k _ (k:us) = '(k, us);
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
     */
@@ -771,6 +779,7 @@ mhdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, 
 end;
 
 // Note that popped element may be () or a longer tuple.
+
 mhpopk t::tree k = '(child, v) when
     child, _, (_=>v) = catch handle (pop_key pluck (hash k) k t)
 end with
@@ -801,8 +810,8 @@ mhdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /
     /*
     pluck _ _ [] = throw abort; // not found
     pluck (k=>v) _ (u@(k=>uv):us) = '(u, us) if eq v uv; // else look for further (k=>v)s
-    pluck old x (u:us) = '(w, ws) when
-        w, ws = pluck old x us;
+    pluck old _ (u:us) = '(w, ws) when
+        w, ws = pluck old nan us; // use nan as dummy element
         ws = u:ws;
     end;
     */
@@ -875,34 +884,43 @@ shrink_right aux (tri l1 y1 c1 z1 r1) = case aux r1 of
 end;
 
 pop_left (bin nil x nil) = nil, '(1, x); // snag height at prev level
+
 pop_left (tri nil y nil z nil) = bin nil z nil, '(0, y);
+
 pop_left cur = shrink_left pop_left cur;
 
 pop_right (bin nil x nil) = nil, '(1, w); // snag height at prev level
+
 pop_right (tri nil y nil z nil) = bin nil y nil, '(0, z);
+
 pop_right cur = shrink_right pop_right cur;
 
 mpop_left (bin nil (xk=>xs) nil) = case xs of
     [x] = nil, '(1, x); // snag height at prev level
     x:xs = bin nil (xk=>xs) nil, '(0, x);
 end;
+
 mpop_left (tri nil (yk=>ys) nil z nil) = case ys of
     [y] = bin nil z nil, '(0, y);
     y:ys = tri nil (yk=>ys) nil z nil, '(0, y);
 end;
+
 mpop_left cur = shrink_left mpop_left cur;
 
 mpop_right (bin nil (xk=>xs) nil) = case xs of
     [x] = nil, '(1, x); // snag height at prev level
     x:xs = bin nil (xk=>xs) nil, '(0, x);
 end;
+
 mpop_right (tri nil y nil (zk=>zs) nil) = case zs of
     [z] = bin nil y nil, '(0, z);
     z:zs = tri nil y nil (zk=>zs) nil, '(0, z);
 end;
+
 mpop_right cur = shrink_right mpop_right cur;
 
 pop_key pluck k v nil = throw abort;
+
 pop_key pluck k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
   res::int
     = shrink_left (pop_key pluck k v) cur if res == LT;
@@ -915,6 +933,7 @@ pop_key pluck k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       end if res == EQ;
     = shrink_right (pop_key pluck k v) cur if res == GT;
 end;
+
 pop_key pluck k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
   res::int
     = shrink_left (pop_key pluck k v) cur if res == LT;
@@ -937,6 +956,7 @@ pop_key pluck k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
 end;
 
 ins_key fresh stale k v new nil = bin nil (fresh k new) nil, true; // bump height at prev level
+
 ins_key fresh stale k v new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
   res::int
     = case ins_key fresh stale k v new l1 of
@@ -949,6 +969,7 @@ ins_key fresh stale k v new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
         bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
       end if res == GT;
 end;
+
 ins_key fresh stale k v new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 k yk zk of
   res::int
     = case ins_key fresh stale k v new l1 of
@@ -969,6 +990,7 @@ end;
 
 
 // Optimised key comparison.
+
 cmp a::string b::string | cmp1 a::string b::string =
     if res<0 then LT else if res>0 then GT else EQ when res = __C::strcmp a b end;
 cmp a::bigint b::bigint | cmp1 a::bigint b::bigint = __C::bigint_cmp a b;
@@ -993,18 +1015,17 @@ cmp3 a b c = if a<b then LT else (if a<c then LE2 else GE2);
 
 
 // Value comparison.
+
 eq u v = case u==v of res::int = res; _ = u===v end;
+
+
+
+
+
+// TODO
 
 rev_append [] base = base;
 rev_append (x:xs) base = rev_append xs (x:base);
-
-
-spaces n = string (cyclen n " ");
-center s width fill =
-    if rem < 1 then s
-    else string (cyclen (rem - rem div 2) fill) + s + string (cyclen (rem div 2) fill) when
-    rem = width - #s
-end;
 
 map2 f [] [] base = base;
 map2 f (x:xs) (y:ys) base = f x y : map2 f xs ys base;
@@ -1013,6 +1034,18 @@ map2 f (x:xs) (y:ys) base = f x y : map2 f xs ys base;
 map3 f [] [] [] base = base;
 map3 f (x:xs) (y:ys) (z:zs) base = f x y z : map3 f xs ys zs base;
 // map3 f xs ys zs base = throw (str (xs,ys,zs,base) + " lists to map3 uneven");
+
+
+
+
+
+spaces n = string (cyclen n " ");
+
+center s width fill =
+    if rem < 1 then s
+    else string (cyclen (rem - rem div 2) fill) + s + string (cyclen (rem div 2) fill) when
+    rem = width - #s
+end;
 
 tostring t::tree = case t of
     nil = "emptytree";
