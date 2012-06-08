@@ -111,16 +111,14 @@ end;
 
 // Get the first and the last member of a tree.
 
-first t::tree = first t with
-    // first nil = unreduced;
+first t::fulltree = first t with
     first (bin nil x _) = x;
     first (bin l _ _) = first l;
     first (tri nil y _ _ _) = y;
     first (tri l _ _ _ _) = first l;
 end;
 
-last t::tree = last t with
-    // last nil = unreduced;
+last t::fulltree = last t with
     last (bin _ x nil) = x;
     last (bin _ _ r) = last r;
     last (tri _ _ _ z nil) = z;
