@@ -1013,30 +1013,25 @@ cmp3 a::int b::int c::int | cmp3 a::double b::double c::double =
 cmp2 a b c = if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
 cmp3 a b c = if a<b then LT else (if a<c then LE2 else GE2);
 
-
 // Value comparison.
 
 eq u v = case u==v of res::int = res; _ = u===v end;
 
 
-
-
-
-// TODO
+// reverse with explicit base
 
 rev_append [] base = base;
 rev_append (x:xs) base = rev_append xs (x:base);
 
+// zipwith with explicit base; we assume lists are of same length
+
 map2 f [] [] base = base;
 map2 f (x:xs) (y:ys) base = f x y : map2 f xs ys base;
-// map2 f xs ys base = throw (str (xs,ys,base) + " lists to map2 uneven");
+
+// zipwith3 with explicit base; we assume lists are of same length
 
 map3 f [] [] [] base = base;
 map3 f (x:xs) (y:ys) (z:zs) base = f x y z : map3 f xs ys zs base;
-// map3 f xs ys zs base = throw (str (xs,ys,zs,base) + " lists to map3 uneven");
-
-
-
 
 
 spaces n = string (cyclen n " ");
