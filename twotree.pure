@@ -660,7 +660,7 @@ hdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ 
     pluck _ _ [] = throw abort; // not found
     pluck k _ (k:us) = nan, us; // use nan as dummy element
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
 end;
@@ -671,7 +671,7 @@ hdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _
     pluck _ _ [] = throw abort; // not found
     pluck k _ (u@(k=>_):us) = '(u, us);
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
 end;
@@ -685,7 +685,7 @@ end with
     pluck _ _ [] = throw abort; // not found
     pluck k _ (u@(k=>_):us) = '(u, us);
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
 end;
@@ -696,7 +696,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /*
     pluck _ _ [] = throw abort; // not found
     pluck (k=>v) _ (u@(k=>uv):us) = if eq v uv then '(u, us) else throw abort; // (k=>v) not found
     pluck old _ (u:us) = '(w, ws) when
-        w, ws = pluck old nan us;
+        w, ws = pluck old nan us; // use nan as dummy element
         ws = u:ws;
     end;
 end;
@@ -757,7 +757,7 @@ mhdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, 
     pluck _ _ [] = throw abort; // not found
     pluck k _ (u@(k=>_):us) = '(u, us);
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
     */
@@ -782,7 +782,7 @@ end with
     pluck _ _ [] = throw abort; // not found
     pluck k _ (u@(k=>_):us) = '(u, us);
     pluck k _ (u:us) = '(w, ws) when
-        w, ws = pluck k nan us;
+        w, ws = pluck k nan us; // use nan as dummy element
         ws = u:ws;
     end;
     */
