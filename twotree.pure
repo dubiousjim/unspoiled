@@ -1,0 +1,966 @@
+/* Generic 2-3-tree data structure for implementing sets, dictionaries,
+   and the like. */
+
+/* NOTE: This module implements just the raw 2,3-tree data structure. The
+   provided operations are fairly low-level and not intended to be used
+   directly in applications. You'd rather want to use the high-level
+   interfaces in dict.pure and set.pure instead. */
+
+namespace twothree;
+
+/* Tree constructors: 'nil' denotes an empty tree, 'bin left x right'
+   an interior node with the given left and right subtrees, and
+   'tri left y center z right' and interior node with the given subtrees.
+   These are shared by all variations of the data structure. Depending on the
+   particular type of data structure, the data element may take the form of a
+   simple key (set-like), a key=>value pair (dictionary-like), or a
+   key=>bucket pair (hash-like). The latter form is also used for multisets
+   and multidicts where multiple elements may be stored under a single key.
+   For hash trees no order of the key elements is assumed, and keys are only
+   compared for syntactical equality. Keys in non-hash trees must be ordered,
+   i.e., at least the comparison predicate '<' must be defined in a consistent
+   fashion on them. In this case keys a and b are considered equal if neither
+   a<b nor b<a holds. Note that in this case, adding b (or b=>value) to a tree
+   that already contains a (or a=>the same value) returns the original tree
+   unaltered. This reduces needless GC activity, but it might not
+   be what you expect if b is nonetheless discernable from a. To work around
+   this optimization, use an ordering that counts a<b or b<a---or use an
+   unordered tree. */
+
+private nonfix nil abort;
+private bin tri;
+
+private /* LE */ LT EQ GT GE LT2 EQ2 GT2 GE2;
+/* const LE = -2; */
+const LT = -1; // s1 < s2
+const EQ = 0;
+const GT = 1; // s1 > s2
+const GE = 2; // ~(s1 < s2)
+const LE2 = 3; // s1 >= s2 && s1 < s3
+const LT2 = 4; // s1 > s2 && s1 < s3
+const EQ2 = 5; // s1 > s2 && s1 == s3
+const GT2 = 6; // s1 > s2 && s1 > s3
+const GE2 = 7; // s1 >= s2 && ~(s1 < s3)
+
+/* Private helper functions. */
+private shrink_left shrink_center shrink_right;
+private pop_left pop_right mpop_left mpop_right pop_key ins_key;
+private cmp cmp1 cmp2 cmp3 eq;
+private rev_append map2 map3 spaces center tostring;
+
+
+/* Operations to construct an empty tree, and to check for an empty tree.
+   These are the same for all variations of the data structure. */
+
+public emptytree null;
+
+emptytree = nil;
+
+null nil = 1;
+null (bin _ _ _) = 0;
+null (tri _ _ _ _ _) = 0;
+
+private tree fulltree;
+type tree (bin _ _ _) | tree (tri _ _ _ _ _) | tree nil = 1;
+type tree _ = 0;
+type fulltree (bin _ _ _) | fulltree (tri _ _ _ _ _) = 1;
+type fulltree _ = 0;
+
+
+/* In the following, different operations are provided for the different kinds
+   of trees, which are designated by corresponding prefixes: m denotes
+   multiple values per key, h stands for hashed trees (m and h may be
+   combined). In addition, the suffix k indicates an operation which is only
+   available for dictionary (key=>value) trees. */
+
+
+/* Basic 2-3-tree operations, single value per key. */
+
+public size members keys vals first last rmfirst rmlast popfirst poplast;
+
+// Compute the size of a tree.
+
+size t::tree = size t with
+    size nil = 0;
+    size (bin l _ r) = size l + size r + 1;
+    size (tri l _ c _ r) = size l + size c + size r + 2;
+end;
+
+// Get the list of all members.
+
+members t::tree = members t [] with
+    members nil base = base;
+    members (bin l x r) base = members l (x : members r base);
+    members (tri l y c z r) base = members l (y : members c (z : members r base));
+end;
+
+// Get the list of all keys and values. This requires a dictionary-like
+// structure with separate key values.
+
+keys t::tree = keys t [] with
+    keys nil base = base;
+    keys (bin l (x=>_) r) base = keys l (x : keys r base);
+    keys (tri l (y=>_) c (z=>_) r) base = keys l (y : keys c (z : keys r base));
+end;
+
+vals t::tree = vals t [] with
+    vals nil base = base;
+    vals (bin l (_=>x) r) base = vals l (x : vals r base);
+    vals (tri l (_=>y) c (_=>z) r) base = vals l (y : vals c (z : vals r base));
+end;
+
+// Get the first and the last member of a tree.
+
+first t::tree = first t with
+    // first nil = unreduced;
+    first (bin nil x _) = x;
+    first (bin l _ _) = first l;
+    first (tri nil y _ _ _) = y;
+    first (tri l _ _ _ _) = first l;
+end;
+
+last t::tree = last t with
+    // last nil = unreduced;
+    last (bin _ x nil) = x;
+    last (bin _ _ r) = last r;
+    last (tri _ _ _ z nil) = z;
+    last (tri _ _ _ _ r) = last r;
+end;
+
+// Remove the first and the last member from a tree.
+
+using system;
+
+rmfirst t::fulltree = pop_left t !0;
+
+rmlast t::fulltree = pop_right t !0;
+
+// Note that popped element may be () or a longer tuple.
+popfirst t::fulltree = case pop_left t of
+    child, _, w = '(child, w);
+    // child, _ = '(child, ());
+end;
+
+poplast t::fulltree = case pop_right t of
+    child, _, w = '(child, w);
+    // child, _ = '(child, ());
+end;
+
+
+/* Basic 2-3-tree operations, multiple values per key. */
+
+public msize mmembers mkeys mvals mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
+
+msize t::tree = size t with
+    size nil = 0;
+    size (bin l (_=>xs) r) = size l + size r + #xs;
+    size (tri l (_=>ys) c (_=>zs) r) = size l + size c + size r + #ys + #zs;
+end;
+
+mmembers t::tree = members t [] with
+    members nil base = base;
+    members (bin l (_=>xs) r) base = members l (rev_append xs (members r base));
+    members (tri l (_=>ys) c (_=>zs) r) base = members l (rev_append ys (members c (rev_append zs (members r base))));
+end;
+
+mkeys t::tree = keys t [] with
+    keys nil base = base;
+    keys (bin l (_=>xs) r) base = keys l (rev_append [x | x=>_ = xs] (keys r base));
+    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (rev_append [y | y=>_ = ys] (keys c (rev_append [z | z=>_ = zs] (keys r base))));
+end;
+
+mvals t::tree = vals t [] with
+    vals nil base = base;
+    vals (bin l (_=>xs) r) base = vals l (rev_append [x | _=>x = xs] (vals r base));
+    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (rev_append [y | _=>y = ys] (vals c (rev_append [z | _=>z = zs] (vals r base))));
+end;
+
+mfirst t::fulltree = first t with
+    first (bin nil (_=>xs) _) = ::last xs;
+    first (bin l _ _) = first l;
+    first (tri nil (_=>ys) _ _ _) = ::last ys;
+    first (tri l _ _ _ _) = first l;
+end;
+
+mlast t::fulltree = last t with
+    last (bin _ (_=>xs) nil) = head xs;
+    last (bin _ _ r) = last r;
+    last (tri _ _ _ (_=>zs) nil) = head zs;
+    last (tri _ _ _ _ r) = last r;
+end;
+
+mrmfirst t::fulltree = mpop_left t !0;
+
+mrmlast t::fulltree = mpop_right t !0;
+
+// Note that popped element may be () or a longer tuple.
+mpopfirst t::fulltree = case mpop_left t of
+    child, _, w = '(child, w);
+    // child, _ = '(child, ());
+end;
+
+mpoplast t::fulltree = case mpop_right t of
+    child, _, w = '(child, w);
+    // child, _ = '(child, ());
+end;
+
+
+/* The above also apply to all kinds of hash trees. For convenience and
+   clarity, we define some corresponding synonyms here. */
+
+public hsize hmembers hkeys hvals hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
+
+hsize t    = msize t;
+hmembers t = mmembers t;
+hkeys t    = mkeys t;
+hvals t    = mvals t;
+hfirst t   = mfirst t;
+hlast t    = mlast t;
+hrmfirst t = mrmfirst t;
+hrmlast t  = mrmlast t;
+hpopfirst t = mpopfirst t;
+hpoplast t  = mpoplast t;
+
+
+/* Membership test for ordered sets and dictionaries. */
+
+public member memberk;
+
+/* To optimize the number of comparisons, we use cmp1 k x, which may
+   only report that k >= x. At that point we save x as a candidate match,
+   and continue recursing. We only check whether the most recent
+   candidate is itself >= k when we reach the bottom of the tree. This
+   can spare us some (possibly-expensive) comparisons, at the expense of
+   perhaps recursing deeper in the tree than necessary. We flag that no
+   candidate match is presently available with `nan`. */
+
+member t::tree k = member k nan t with
+    member k w nil = w ~== nan && (case cmp1 w k of
+      res::int
+        = 1 if res == GE || res == EQ;
+        = 0;
+    end);
+    member k w (bin l x r) = case cmp1 k x of
+      res::int
+        = member k w l if res == LT;
+        = 1 if res == EQ;
+        = member k nan r if res == GT;
+        = member k x r if res == GE; // x may be a match
+    end;
+    member k w (tri l y c z r) = case cmp3 k y z of
+      res::int
+        = member k w l if res == LT;
+        = 1 if res == EQ;
+        = member k y c if res == LE2; // y may be a match
+        = member k nan c if res == LT2;
+        = 1 if res == EQ2;
+        = member k nan r if res == GT2;
+        = member k z r if res == GE2; // z may be a match
+    end;
+end;
+
+memberk t::tree k = member k nan t with
+    member k w nil = w ~== nan && (case cmp1 w k of
+      res::int
+        = 1 if res == GE || res == EQ;
+        = 0;
+    end);
+    member k w (bin l (x=>_) r) = case cmp1 k x of
+      res::int
+        = member k w l if res == LT;
+        = 1 if res == EQ;
+        = member k nan r if res == GT;
+        = member k x r if res == GE; // x may be a match
+    end;
+    member k w (tri l (y=>_) c (z=>_) r) = case cmp3 k y z of
+      res::int
+        = member k w l if res == LT;
+        = 1 if res == EQ;
+        = member k y c if res == LE2; // y may be a match
+        = member k nan c if res == LT2;
+        = 1 if res == EQ2;
+        = member k nan r if res == GT2;
+        = member k z r if res == GE2; // z may be a match
+    end;
+end;
+
+
+/* Membership test for hashed sets and dictionaries. */
+
+public hmember hmemberk;
+
+hmember t::tree k = member (hash k) k t with
+    member _ _ nil = 0;
+    member h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+      res::int
+        = member h k l if res == LT;
+        = any (same k) xs if res == EQ;
+        = member h k r if res == GT;
+    end;
+    member h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+      res::int
+        = member h k l if res == LT;
+        = any (same k) ys if res == EQ;
+        = member h k c if res == LT2;
+        = any (same k) zs if res == EQ2;
+        = member h k r if res == GT2;
+    end;
+end;
+
+hmemberk t::tree k = member (hash k) k t with
+    member _ _ nil = 0;
+    member h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+      res::int
+        = member h k l if res == LT;
+        = any (\(u=>_) -> u === k) xs if res == EQ;
+        = member h k r if res == GT;
+    end;
+    member h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+      res::int
+        = member h k l if res == LT;
+        = any (\(u=>_) -> u === k) ys if res == EQ;
+        = member h k c if res == LT2;
+        = any (\(u=>_) -> u === k) zs if res == EQ2;
+        = member h k r if res == GT2;
+    end;
+end;
+
+
+/* Indexing for ordered dictionaries. An out_of_bounds exception is thrown if
+   the key doesn't exist in the tree. */
+
+public getk;
+
+getk t::tree k = get k nan () t with
+    get k w wv nil = if w === nan then throw out_of_bounds
+    else case cmp1 w k of
+      res::int
+        = wv if res == GE || res == EQ;
+        = throw out_of_bounds;
+    end;
+    get k w wv (bin l (x=>xv) r) = case cmp1 k x of
+      res::int
+        = get k w wv l if res == LT;
+        = xv if res == EQ;
+        = get k nan () r if res == GT;
+        = get k x xv r if res == GE; // x may be a match
+    end;
+    get k w wv (tri l (y=>yv) c (z=>zv) r) = case cmp3 k y z of
+      res::int
+        = get k w wv l if res == LT;
+        = yv if res == EQ;
+        = get k y yv c if res == LE2; // y may be a match
+        = get k nan () c if res == LT2;
+        = zv if res == EQ2;
+        = get k nan () r if res == GT2;
+        = get k z zv r if res == GE2; // z may be a match
+    end;
+end;
+
+/* Indexing for ordered multidicts. This always returns the list of all
+   members for the given key, which may be empty if the key is not in the
+   tree. */
+
+public mgetk;
+
+mgetk t::tree k = get k nan [] t with
+    get k w ws nil = if w === nan then []
+    else case cmp1 w k of
+      res::int
+        = match ws [] if res == GE || res == EQ;
+        = [];
+    end;
+    get k w ws (bin l (x=>xs) r) = case cmp1 k x of
+      res::int
+        = get k w ws l if res == LT;
+        = match xs [] if res == EQ;
+        = get k nan [] r if res == GT;
+        = get k x xs r if res == GE; // x may be a match
+    end;
+    get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
+      res::int
+        = get k w ws l if res == LT;
+        = match ys [] if res == EQ;
+        = get k y ys c if res == LE2; // y may be a match
+        = get k nan [] c if res == LT2;
+        = match zs [] if res == EQ2;
+        = get k nan [] r if res == GT2;
+        = get k z zs r if res == GE2; // z may be a match
+    end;
+    // reverse [v | _=>v = us];
+    match [] base = base;
+    match ((_=>v):us) base = match us (v:base);
+end;
+
+
+/* Indexing for hashed (multi-)dicts. */
+
+public hgetk mhgetk;
+
+hgetk t::tree k = get (hash k) k t with
+    get _ _ nil = throw out_of_bounds;
+    get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+      res::int
+        = get h k l if res == LT;
+        = match k xs if res == EQ;
+        = get h k r if res == GT;
+    end;
+    get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+      res::int
+        = get h k l if res == LT;
+        = match k ys if res == EQ;
+        = get h k c if res == LT2;
+        = match k zs if res == EQ2;
+        = get h k r if res == GT2;
+    end;
+    match k us = case dropwhile (\(u=>_) -> u ~== k) us of
+        (_=>v):_ = v;
+        _ = throw out_of_bounds;
+    end;
+end;
+
+mhgetk t::tree k = get (hash k) k t with
+    get _ _ nil = [];
+    get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+      res::int
+        = get h k l if res == LT;
+        = match k xs [] if res == EQ;
+        = get h k r if res == GT;
+    end;
+    get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+      res::int
+        = get h k l if res == LT;
+        = match k ys [] if res == EQ;
+        = get h k c if res == LT2;
+        = match k zs [] if res == EQ2;
+        = get h k r if res == GT2;
+    end;
+    // reverse [v | u=>v = us; u === k];
+    match [] base = base;
+    match ((u=>v):us) base = match us (if u === k then v:base else base);
+end;
+
+
+/* 2-3-tree insertion and deletion. */
+
+/* Ordered case, single value. */
+
+public insert insertk;
+
+insert t::tree new = catch handle (insert new t !0) with
+    handle abort = t;
+    handle e = throw e;
+    insert new nil = bin nil new nil, true; // bump height at prev level
+    insert new (bin l1 x1 r1) = case cmp new x1 of
+      res::int
+        = case insert new l1 of
+                child, 0 = bin child x1 r1, false;
+                bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
+          end if res == LT;
+        = throw abort if res == EQ; // keep existing tree
+        = case insert new r1 of
+                child, 0 = bin l1 x1 child, false;
+                bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
+          end if res == GT;
+    end;
+    insert new (tri l1 y1 c1 z1 r1) = case cmp2 new y1 z1 of
+      res::int
+        = case insert new l1 of
+                child, 0 = tri child y1 c1 z1 r1, false;
+                child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
+          end if res == LT;
+        = throw abort if res == EQ;
+        = case insert new c1 of
+                child, 0 = tri l1 y1 child z1 r1, false;
+                bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
+          end if res == LT2;
+        = throw abort if res == EQ2;
+        = case insert new r1 of
+                child, 0 = tri l1 y1 c1 z1 child, false;
+                child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
+          end if res == GT2;
+    end;
+end;
+
+insertk t::tree new@(k=>v) = catch handle (ins_key fresh stale k v new t !0) with
+    handle abort = t;
+    handle e = throw e;
+    fresh _ new = new;
+    stale uk v new uv = if eq v uv then throw abort // keep existing tree
+                        else new; // update value
+end;
+
+public delete deletek deletekv popk;
+
+delete t::tree k = catch handle (delete k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds
+    handle e = throw e;
+    delete _ nil = throw abort;
+    delete k cur@(bin l x r) = case cmp k x of
+      res::int
+        = shrink_left (delete k) cur if res == LT;
+        = if r === nil then l, '(1, x)
+          else (shrink_right (\_ -> child, '(snag, x)) (bin l w r) when
+            child, snag, w = pop_left r
+          end) if res == EQ;
+        = shrink_right (delete k) cur if res == GT;
+    end;
+    delete k cur@(tri l y c z r) = case cmp2 k y z of
+      res::int
+        = shrink_left (delete k) cur if res == LT;
+        = if c === nil then bin l z r, '(0, y)
+          else (shrink_center (\_ -> child, '(snag, y)) (tri l w c z r) when
+            child, snag, w = pop_left c
+          end) if res == EQ;
+        = shrink_center (delete k) cur if res == LT2;
+        = if r === nil then bin l y c, '(0, z)
+          else (shrink_right (\_ -> child, '(snag, z)) (tri l y c w r) when
+            child, snag, w = pop_left r
+          end) if res == EQ2;
+        = shrink_right (delete k) cur if res == GT2;
+    end;
+end;
+
+deletek t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds
+    handle e = throw e;
+    pluck _ u _ = u, [];
+end;
+
+// Note that popped element may be () or a longer tuple.
+popk t::tree k = '(child, v) when
+    child, _, (_=>v) = catch handle (pop_key pluck k () t)
+end with
+    handle abort = throw out_of_bounds;
+    handle e = throw e;
+    pluck _ u _ = u, [];
+end;
+
+// Delete one specific key=>val pair.
+deletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck v u uv = if ~eq v uv then throw abort else u, [];
+end;
+
+
+/* Ordered case, multiple values. */
+public minsert minsertk;
+
+minsert t::tree new = ins_key fresh stale new () new t !0 with
+    fresh k new = k=>[new];
+    stale uk _ new us = uk=>new:us;
+end;
+
+minsertk t::tree new@(k=>_) = ins_key fresh stale k () new t !0 with
+    fresh k new = k=>[new];
+    stale uk _ new us = uk=>new:us;
+end;
+
+public mdelete mdeletek mdeletekv mpopk;
+
+mdelete t::tree k = catch handle (pop_key pluck k () t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ (u:us) = u, us;
+end;
+
+mdeletek t k = mdelete t k;
+
+// Note that popped element may be () or a longer tuple.
+mpopk t::tree k = '(child, v) when
+    child, _, (_=>v) = catch handle (pop_key pluck k () t)
+end with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ (u:us) = u, us;
+end;
+
+mdeletekv t::tree (k=>v) = catch handle (pop_key pluck k v t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // (k=>v) not found
+    pluck v _ (u@(_=>uv):us) = u, us if eq v uv;
+    pluck v x (u:us) = w, u:ws when
+        w, ws = pluck v x us;
+    end;
+end;
+
+// Delete all members for a given key.
+public mdeletea mdeleteka;
+
+mdeletea t k = deletek t k;
+
+mdeleteka t k = mdeletea t k;
+
+
+/* Hashed trees, single value. */
+
+public hinsert hinsertk;
+
+hinsert t::tree new = catch handle (ins_key fresh stale (hash new) () new t !0) with
+    handle abort = t;
+    handle e = throw e;
+    fresh h new = h=>[new];
+    stale uh _ new us = uh=>add new us;
+    add new [] = [new];
+    add new (new:_) = throw abort; // keep existing tree
+    add new (u:us) = u:add new us;
+end;
+
+hinsertk t::tree new@(k=>v) = catch handle (ins_key fresh stale (hash k) v new t !0) with
+    handle abort = t;
+    handle e = throw e;
+    fresh h new = h=>[new];
+    stale uh _ new us = uh=>add new us;
+    add new [] = [new];
+    add new@(u=>v) ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
+                                  else new:us; // update value
+    add new (u:us) = u:add new us;
+end;
+
+// These are also valid for multi-hashes.
+public hdelete hdeletek hdeletekv hpopk;
+
+hdelete t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (k:us) = nan, us; // use nan as dummy element
+    pluck k _ (u:us) = w, u:ws when
+        w, ws = pluck k nan us;
+    end;
+end;
+
+hdeletek t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (u@(k=>_):us) = u, us;
+    pluck k _ (u:us) = w, u:ws when
+        w, ws = pluck k nan us;
+    end;
+end;
+
+// Note that popped element may be () or a longer tuple.
+hpopk t::tree k = '(child, v) when
+    child, _, (_=>v) = catch handle (pop_key pluck (hash k) k t)
+end with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // not found
+    pluck k _ (u@(k=>_):us) = u, us;
+    pluck k _ (u:us) = w, u:ws when
+        w, ws = pluck k nan us;
+    end;
+end;
+
+hdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // not found
+    pluck (k=>v) _ (u@(k=>uv):us) = if eq v uv then u, us else throw abort; // (k=>v) not found
+    pluck old _ (u:us) = w, u:ws when
+        w, ws = pluck old nan us;
+    end;
+end;
+
+
+/* Hashed trees, multiple values. */
+
+public mhinsert mhinsertk;
+
+mhinsert t::tree new = ins_key fresh stale (hash new) () new t!0 with
+    fresh h new = h=>[new];
+    stale uh _ new us = uh=>new:us;
+end;
+
+mhinsertk t::tree new@(k=>_) = ins_key fresh stale (hash k) () new t !0 with
+    fresh h new = h=>[new];
+    stale uh _ new us = uh=>new:us;
+end;
+
+public mhdelete mhdeletek mhdeletekv mhpopk;
+
+// the mh* functions just operate on first match
+mhdelete   t y = hdelete   t y;
+mhdeletek  t y = hdeletek  t y;
+mhpopk     t y = hpopk     t y;
+
+mhdeletekv t::tree old@(k=>_) = catch handle (pop_key pluck (hash k) old t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck _ _ [] = throw abort; // not found
+    pluck (k=>v) _ (u@(k=>uv):us) = u, us if eq v uv; // else look for further (k=>v)s
+    pluck old x (u:us) = w, u:ws when
+        w, ws = pluck old x us;
+    end;
+end;
+
+public mhdeletea mhdeleteka;
+
+mhdeletea t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck k _ us = nan, filter (~==k) us; // use nan as dummy element
+end;
+
+mhdeleteka t::tree k = catch handle (pop_key pluck (hash k) k t !0) /* child, _, _ */ with
+    handle abort = t; // throw out_of_bounds;
+    handle e = throw e;
+    pluck k _ us = nan, filter (\(uk=>_) -> uk~==k) us; // use nan as dummy element
+end;
+
+
+/* Private helper functions. */
+
+shrink_left aux (bin l1 x1 r1) = case aux l1 of
+    child, 0, w = bin child x1 r1, '(0, w);
+    child, 1, w = case r1 of
+        bin l2 x2 r2 = tri child x1 l2 x2 r2, '(1, w); // pass snag upwards
+        tri l2 y2 c2 z2 r2 = bin (bin child x1 l2) y2 (bin c2 z2 r2), '(0, w);
+    end;
+end;
+
+shrink_left aux (tri l1 y1 c1 z1 r1) = case aux l1 of
+    child, 0, w = tri child y1 c1 z1 r1, '(0, w);
+    child, 1, w = case c1 of
+        bin l2 x2 r2 = bin (tri child y1 l2 x2 r2) z1 r1, '(0, w);
+        tri l2 y2 c2 z2 r2 = tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1, '(0, w);
+    end;
+end;
+
+shrink_center aux (tri l1 y1 c1 z1 r1) = case aux c1 of
+    child, 0, w = tri l1 y1 child z1 r1, '(0, w);
+    child, 1, w = case l1 of // we arbitrarily chose to decons the left side
+        bin l2 x2 r2 = bin (tri l2 x2 r2 y1 child) z1 r1, '(0, w);
+        tri l2 y2 c2 z2 r2 = tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1, '(0, w);
+    end;
+end;
+
+shrink_right aux (bin l1 x1 r1) = case aux r1 of
+    child, 0, w = bin l1 x1 child, '(0, w);
+    child, 1, w = case l1 of
+        bin l2 x2 r2 = tri l2 x2 r2 x1 child, '(1, w); // pass snag upwards
+        tri l2 y2 c2 z2 r2 = bin (bin l2 y2 c2) z2 (bin r2 x1 child), '(0, w);
+    end;
+end;
+
+shrink_right aux (tri l1 y1 c1 z1 r1) = case aux r1 of
+    child, 0, w = tri l1 y1 c1 z1 child, '(0, w);
+    child, 1, w = case c1 of
+        bin l2 x2 r2 = bin l1 y1 (tri l2 x2 r2 z1 child), '(0, w);
+        tri l2 y2 c2 z2 r2 = tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child), '(0, w);
+    end;
+end;
+
+pop_left (bin nil x nil) = nil, '(1, x); // snag height at prev level
+pop_left (tri nil y nil z nil) = bin nil z nil, '(0, y);
+pop_left cur = shrink_left pop_left cur;
+
+pop_right (bin nil x nil) = nil, '(1, w); // snag height at prev level
+pop_right (tri nil y nil z nil) = bin nil y nil, '(0, z);
+pop_right cur = shrink_right pop_right cur;
+
+mpop_left (bin nil (xk=>xs) nil) = case xs of
+    [x] = nil, '(1, x); // snag height at prev level
+    x:xs = bin nil (xk=>xs) nil, '(0, x);
+end;
+mpop_left (tri nil (yk=>ys) nil z nil) = case ys of
+    [y] = bin nil z nil, '(0, y);
+    y:ys = tri nil (yk=>ys) nil z nil, '(0, y);
+end;
+mpop_left cur = shrink_left mpop_left cur;
+
+mpop_right (bin nil (xk=>xs) nil) = case xs of
+    [x] = nil, '(1, x); // snag height at prev level
+    x:xs = bin nil (xk=>xs) nil, '(0, x);
+end;
+mpop_right (tri nil y nil (zk=>zs) nil) = case zs of
+    [z] = bin nil y nil, '(0, z);
+    z:zs = tri nil y nil (zk=>zs) nil, '(0, z);
+end;
+mpop_right cur = shrink_right mpop_right cur;
+
+pop_key pluck k v nil = throw abort;
+pop_key pluck k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
+  res::int
+    = shrink_left (pop_key pluck k v) cur if res == LT;
+    = case pluck v x xs of
+        x, [] = if r === nil then l, '(1, x)
+                else (shrink_right (\_ -> child, '(snag, x)) (bin l w r) when
+                    child, snag, w = pop_left r
+                end);
+        x, xs = bin l (xk=>xs) r, '(0, x);
+      end if res == EQ;
+    = shrink_right (pop_key pluck k v) cur if res == GT;
+end;
+pop_key pluck k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
+  res::int
+    = shrink_left (pop_key pluck k v) cur if res == LT;
+    = case pluck v y ys of
+        y, [] = if c === nil then bin l z r, '(0, y)
+                else (shrink_center (\_ -> child, '(snag, y)) (tri l w c z r) when
+                    child, snag, w = pop_left c
+                end);
+        y, ys = tri l (yk=>ys) c z r, '(0, y);
+      end if res == EQ;
+    = shrink_center (pop_key pluck k v) cur if res == LT2;
+    = case pluck v z zs of
+        z, [] = if r === nil then bin l y c, '(0, z)
+                else (shrink_right (\_ -> child, '(snag, z)) (tri l y c w r) when
+                    child, snag, w = pop_left r
+                end);
+        z, zs = tri l y c (zk=>zs) r, '(0, z);
+      end if res == EQ2;
+    = shrink_right (pop_key pluck k v) cur if res == GT2;
+end;
+
+ins_key fresh stale k v new nil = bin nil (fresh k new) nil, true; // bump height at prev level
+ins_key fresh stale k v new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
+  res::int
+    = case ins_key fresh stale k v new l1 of
+        child, 0 = bin child x1 r1, false;
+        bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
+      end if res == LT;
+    = bin l1 (stale xk v new xs) r1, false if res == EQ;
+    = case ins_key fresh stale k v new r1 of
+        child, 0 = bin l1 x1 child, false;
+        bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
+      end if res == GT;
+end;
+ins_key fresh stale k v new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 k yk zk of
+  res::int
+    = case ins_key fresh stale k v new l1 of
+            child, 0 = tri child y1 c1 z1 r1, false;
+            child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
+      end if res == LT;
+    = tri l1 (stale yk v new ys) c1 z1 r1, false if res == EQ;
+    = case ins_key fresh stale k v new c1 of
+            child, 0 = tri l1 y1 child z1 r1, false;
+            bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
+      end if res == LT2;
+    = tri l1 y1 c1 (stale zk v new zs) r1, false if res == EQ2;
+    = case ins_key fresh stale k v new r1 of
+        child, 0 = tri l1 y1 c1 z1 child, false;
+        child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
+      end if res == GT2;
+end;
+
+
+// Optimised key comparison.
+cmp a::string b::string | cmp1 a::string b::string =
+    if res<0 then LT else if res>0 then GT else EQ when res = __C::strcmp a b end;
+cmp a::bigint b::bigint | cmp1 a::bigint b::bigint = __C::bigint_cmp a b;
+cmp a::int b::int | cmp a::double b::double |
+cmp1 a::int b::int | cmp1 a::double b::double =
+    if a<b then LT else if b<a then GT else EQ;
+// Other objects. Undefined orderings will throw failed_cond.
+cmp a b = if a<b then LT else if b<a then GT else EQ;
+cmp1 a b = if a<b then LT else GE;
+
+cmp2 a::string b::string c::string |
+cmp3 a::string b::string c::string =
+    if res>0 then (if res2>0 then GT2 else if res2<0 then LT2 else EQ2 when res2 = __C::strcmp a c end) else if res<0 then LT else EQ when res = __C::strcmp a b end; 
+cmp2 a::bigint b::bigint c::bigint |
+cmp3 a::bigint b::bigint c::bigint =
+    if res > 0 then EQ2 + __C::bigint_cmp a c else res when res = __C::bigint_cmp a b end;
+cmp2 a::int b::int c::int | cmp2 a::double b::double c::double |
+cmp3 a::int b::int c::int | cmp3 a::double b::double c::double =
+    if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
+cmp2 a b c = if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
+cmp3 a b c = if a<b then LT else (if a<c then LE2 else GE2);
+
+
+// Value comparison.
+eq u v = case u==v of res::int = res; _ = u===v end;
+
+rev_append [] base = base;
+rev_append (x:xs) base = rev_append xs (x:base);
+
+
+spaces n = string (cyclen n " ");
+center s width fill =
+    if rem < 1 then s
+    else string (cyclen (rem - rem div 2) fill) + s + string (cyclen (rem div 2) fill) when
+    rem = width - #s
+end;
+
+map2 f [] [] base = base;
+map2 f (x:xs) (y:ys) base = f x y : map2 f xs ys base;
+// map2 f xs ys base = throw (str (xs,ys,base) + " lists to map2 uneven");
+
+map3 f [] [] [] base = base;
+map3 f (x:xs) (y:ys) (z:zs) base = f x y z : map3 f xs ys zs base;
+// map3 f xs ys zs base = throw (str (xs,ys,zs,base) + " lists to map3 uneven");
+
+tostring t::tree = case t of
+    nil = "emptytree";
+    _ = (join "\n" (reverse lst)) + "\n";
+end when
+    lst, _, _ = recurse t true true;
+end with
+    pad_length until width lines = aux (#lines) until lines with
+        aux n until lines = if n < until then aux (n+1) until (spaces width : lines)
+                            else lines;
+    end;
+    recurse nil _ _ = [], 0, 0;
+    recurse (bin left1 k1 right1) istop isleft =
+    lines, pos, width when
+        label = str k1;
+        left_lines, left_pos, left_width = recurse left1 false true;
+        right_lines, right_pos, right_width = recurse right1 false false;
+        middle = max 2 (max (1 + right_pos + left_width - left_pos) (#label));
+        pos = (left_pos + middle) div 2;
+        width = (left_pos + middle + right_width) - right_pos;
+        left_lines = pad_length (#right_lines) left_width left_lines;
+        right_lines = pad_length (#left_lines) right_width right_lines;
+        label2 = if 1 == (middle - #label) mod 2 && not istop && isleft &&
+                 #label < middle then label + "." else label;
+        label3 = center label2 middle ".";
+        label3 = if label3!0 == "." then " " + label3!!(1..#label3-1) else label3;
+        label3 = if label3!(#label3-1) == "." then label3!!(0..#label3-2) + " " else label3;
+        a = spaces left_pos + label3 + spaces (right_width - right_pos);
+        d = spaces left_pos + "/" + spaces (middle-2) + "\\" + spaces (right_width - right_pos);
+        lines = map2 (\left_line right_line ->
+                    left_line + spaces (width - left_width - right_width) +
+                    right_line)
+                left_lines right_lines [d, a];
+    end;
+    recurse (tri left2 j2 center2 k2 right2) istop isleft =
+    lines, pos, width when
+        label = str j2 + "-" + str k2;
+        left_lines, left_pos, left_width = recurse left2 false true;
+        center_lines, center_pos, center_width = recurse center2 false true;
+        right_lines, right_pos, right_width = recurse right2 false false;
+        middle = max 2 (max ((2 + right_pos + center_width + left_width) - left_pos) (#label));
+        pos = (left_pos + middle) div 2;
+        width = (left_pos + middle + right_width) - right_pos;
+        center_lines = pad_length (#right_lines) center_width center_lines;
+        right_lines = pad_length (#center_lines) right_width right_lines;
+        left_lines = pad_length (#center_lines) left_width left_lines;
+        center_lines = pad_length (#left_lines) center_width center_lines;
+        right_lines = pad_length (#left_lines) right_width right_lines;
+        label2 = if 1 == (middle - #label) mod 2 && not istop && isleft &&
+                 #label < middle then label + "." else label;
+        label3 = center label2 middle ".";
+        label3 = if label3!0 == "." then " " + label3!!(1..#label3-1) else label3;
+        label3 = if label3!(#label3-1) == "." then label3!!(0..#label3-2) + " " else label3;
+        a = spaces left_pos + label3 + spaces (right_width - right_pos);
+        totalspace = middle - 3;
+        spacer1 = totalspace div 2;
+        d = spaces left_pos + "/" + spaces spacer1 + "|" +
+            spaces (totalspace - spacer1) + "\\" + spaces (right_width - right_pos);
+        totalspace = width - left_width - center_width - right_width;
+        spacer1 = totalspace div 2;
+        lines = map3 (\left_line center_line right_line ->
+                    left_line + spaces spacer1 + center_line +
+                    spaces (totalspace - spacer1) + right_line)
+                left_lines center_lines right_lines [d, a];
+    end;
+end;
+
+public display;
+using system;
+display t::tree = puts (tostring t) $$ ();
+
