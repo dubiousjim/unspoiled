@@ -912,8 +912,8 @@ hinsert t::tree new = catch handle (ins (hash new) new t !0) with
     add new [] = [new];
     add new (new:_) = throw abort; // keep existing tree
     add new (u:us) = u:add new us;
-    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
-    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
@@ -925,7 +925,7 @@ hinsert t::tree new = catch handle (ins (hash new) new t !0) with
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
-    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
@@ -951,8 +951,8 @@ hinsertk t::tree new@(k=>_) = catch handle (ins (hash k) new t !0) with
     add new@(u=>v) ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
                                   else new:us; // update value
     add new (u:us) = u:add new us;
-    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
-    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
@@ -964,7 +964,7 @@ hinsertk t::tree new@(k=>_) = catch handle (ins (hash k) new t !0) with
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
-    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
@@ -993,8 +993,8 @@ hdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
     del _ [] = throw abort; // not found
     del k (k:us) = us;
     del k (u:us) = u:del k us;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k xs of
@@ -1006,7 +1006,7 @@ hdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k ys of
@@ -1037,8 +1037,8 @@ hdeletek t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
         w, ws = del k us;
         ws = u:ws;
     end;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k xs of
@@ -1050,7 +1050,7 @@ hdeletek t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k ys of
@@ -1085,8 +1085,8 @@ end with
         w, ws = del k us;
         ws = u:ws;
     end;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k xs of
@@ -1098,7 +1098,7 @@ end with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k ys of
@@ -1129,8 +1129,8 @@ hdeletekv t::tree old@(k=>_) = catch handle (pop (hash k) old t !0) /* child, _,
         w, ws = del old us;
         ws = u:ws;
     end;
-    pop h old nil = throw abort;
-    pop h old cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int old nil = throw abort;
+    pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old xs of
@@ -1142,7 +1142,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (pop (hash k) old t !0) /* child, _,
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h old cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old ys of
@@ -1170,8 +1170,8 @@ end;
 public mhinsert mhinsertk;
 
 mhinsert t::tree new = ins (hash new) new t!0 with
-    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
-    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
@@ -1183,7 +1183,7 @@ mhinsert t::tree new = ins (hash new) new t!0 with
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
-    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
@@ -1203,8 +1203,8 @@ mhinsert t::tree new = ins (hash new) new t!0 with
 end;
 
 mhinsertk t::tree new@(k=>_) = ins (hash k) new t !0 with
-    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
-    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
@@ -1216,7 +1216,7 @@ mhinsertk t::tree new@(k=>_) = ins (hash k) new t !0 with
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
-    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
@@ -1256,8 +1256,8 @@ mhdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
     end;
     del k miss hits (k:us) = del k [] (k:(miss+hits)) us;
     del k miss hits (u:us) = del k (u:miss) hits us;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] xs of
@@ -1269,7 +1269,7 @@ mhdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] ys of
@@ -1300,8 +1300,8 @@ mhdeletek t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
     end;
     del k miss hits (u@(k=>_):us) = del k [] (u:(miss+hits)) us;
     del k miss hits (u:us) = del k (u:miss) hits us;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] xs of
@@ -1313,7 +1313,7 @@ mhdeletek t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] ys of
@@ -1348,8 +1348,8 @@ end with
     end;
     del k miss hits (u@(k=>_):us) = del k [] (u:(miss+hits)) us;
     del k miss hits (u:us) = del k (u:miss) hits us;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] xs of
@@ -1361,7 +1361,7 @@ end with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] ys of
@@ -1392,8 +1392,8 @@ mhdeletekv t::tree old@(k=>_) = catch handle (pop (hash k) old t !0) /* child, _
     end;
     del old@(k=>v) miss hits (u@(k=>uv):us) = del old [] (u:(miss+hits)) us if eq v uv;
     del old miss hits (u:us) = del old (u:miss) hits us;
-    pop h old nil = throw abort;
-    pop h old cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int old nil = throw abort;
+    pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] [] xs of
@@ -1405,7 +1405,7 @@ mhdeletekv t::tree old@(k=>_) = catch handle (pop (hash k) old t !0) /* child, _
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h old cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] [] ys of
@@ -1432,8 +1432,8 @@ public mhdeletea mhdeleteka;
 mhdeletea t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (~==k) xs of
@@ -1445,7 +1445,7 @@ mhdeletea t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (~==k) ys of
@@ -1470,8 +1470,8 @@ end;
 mhdeleteka t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pop h k nil = throw abort;
-    pop h k cur@(bin l x@(xh=>xs) r) = case cmp h xh of
+    pop h::int k nil = throw abort;
+    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (\(uk=>_) -> uk~==k) xs of
@@ -1483,7 +1483,7 @@ mhdeleteka t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h k cur@(tri l y@(yh=>ys) c z@(zh=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (\(uk=>_) -> uk~==k) ys of
