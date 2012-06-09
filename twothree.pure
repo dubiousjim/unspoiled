@@ -231,28 +231,28 @@ public member memberk;
    perhaps recursing deeper in the tree than necessary. We flag that no
    candidate match is presently available with `nan`. */
 
-member t::tree k = mem k nan t with
-    mem k w nil = w ~== nan && (case cmp1 w k of
+member t::tree old = mem old nan t with
+    mem old w nil = w ~== nan && (case cmp1 w old of
       res::int
         = 1 if res == GE || res == EQ;
         = 0;
     end);
-    mem k w (bin l x r) = case cmp1 k x of
+    mem old w (bin l x r) = case cmp1 old x of
       res::int
-        = mem k w l if res == LT;
+        = mem old w l if res == LT;
         = 1 if res == EQ;
-        = mem k nan r if res == GT;
-        = mem k x r if res == GE; // x may be a match
+        = mem old nan r if res == GT;
+        = mem old x r if res == GE; // x may be a match
     end;
-    mem k w (tri l y c z r) = case cmp3 k y z of
+    mem old w (tri l y c z r) = case cmp3 old y z of
       res::int
-        = mem k w l if res == LT;
+        = mem old w l if res == LT;
         = 1 if res == EQ;
-        = mem k y c if res == LE2; // y may be a match
-        = mem k nan c if res == LT2;
+        = mem old y c if res == LE2; // y may be a match
+        = mem old nan c if res == LT2;
         = 1 if res == EQ2;
-        = mem k nan r if res == GT2;
-        = mem k z r if res == GE2; // z may be a match
+        = mem old nan r if res == GT2;
+        = mem old z r if res == GE2; // z may be a match
     end;
 end;
 
@@ -286,21 +286,21 @@ end;
 
 public hmember hmemberk;
 
-hmember t::tree k = mem (hash k) k t with
+hmember t::tree old = mem (hash old) old t with
     mem _ _ nil = 0;
-    mem h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+    mem h::int old (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
-        = mem h k l if res == LT;
-        = any (=== k) xs if res == EQ;
-        = mem h k r if res == GT;
+        = mem h old l if res == LT;
+        = any (=== old) xs if res == EQ;
+        = mem h old r if res == GT;
     end;
-    mem h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+    mem h::int old (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = mem h k l if res == LT;
-        = any (=== k) ys if res == EQ;
-        = mem h k c if res == LT2;
-        = any (=== k) zs if res == EQ2;
-        = mem h k r if res == GT2;
+        = mem h old l if res == LT;
+        = any (=== old) ys if res == EQ;
+        = mem h old c if res == LT2;
+        = any (=== old) zs if res == EQ2;
+        = mem h old r if res == GT2;
     end;
 end;
 
@@ -987,44 +987,44 @@ end;
 
 public hdelete hdeletek hdeletekv hpopk;
 
-hdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
+hdelete t::tree old = catch handle (pop (hash old) old t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ [] = throw abort; // not found
-    del k (k:us) = us;
-    del k (u:us) = u:del k us;
-    pop h::int k nil = throw abort;
-    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
+    del old (old:us) = us;
+    del old (u:us) = u:del old us;
+    pop h::int old nil = throw abort;
+    pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k xs of
+        = shrink_left (pop h old) cur if res == LT;
+        = case del old xs of
             [] = if r === nil then '(l, 1, x)
                  else (shrink_right (\_ -> '(child, snag, x)) (bin l w r) when
                      child, snag, w = pop_left r
                  end);
             xs = '(bin l (xh=>xs) r, 0, x);
           end if res == EQ;
-        = shrink_right (pop h k) cur if res == GT;
+        = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k ys of
+        = shrink_left (pop h old) cur if res == LT;
+        = case del old ys of
             [] = if c === nil then '(bin l z r, 0, y)
                  else (shrink_center (\_ -> '(child, snag, y)) (tri l w c z r) when
                      child, snag, w = pop_left c
                  end);
             ys = '(tri l (yh=>ys) c z r, 0, y);
           end if res == EQ;
-        = shrink_center (pop h k) cur if res == LT2;
-        = case del k zs of
+        = shrink_center (pop h old) cur if res == LT2;
+        = case del old zs of
             [] = if r === nil then '(bin l y c, 0, z)
                  else (shrink_right (\_ -> '(child, snag, z)) (tri l y c w r) when
                      child, snag, w = pop_left r
                  end);
             zs = '(tri l y c (zh=>zs) r, 0, z);
           end if res == EQ2;
-        = shrink_right (pop h k) cur if res == GT2;
+        = shrink_right (pop h old) cur if res == GT2;
     end;
 end;
 
@@ -1247,47 +1247,47 @@ Can the mh* functions just operate on first match?
 No, to match behavior of avltrees, we have to remove the element added first.
 */
 
-mhdelete t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
+mhdelete t::tree old = catch handle (pop (hash old) old t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] [] = throw abort; // not found
     del _ miss (h:hs) [] = '(h, us) when
         us = rev_append hs (reverse miss)
     end;
-    del k miss hits (k:us) = del k [] (k:(miss+hits)) us;
-    del k miss hits (u:us) = del k (u:miss) hits us;
-    pop h::int k nil = throw abort;
-    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
+    del old miss hits (old:us) = del old [] (old:(miss+hits)) us;
+    del old miss hits (u:us) = del old (u:miss) hits us;
+    pop h::int old nil = throw abort;
+    pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] xs of
+        = shrink_left (pop h old) cur if res == LT;
+        = case del old [] [] xs of
             x, [] = if r === nil then '(l, 1, x)
                     else (shrink_right (\_ -> '(child, snag, x)) (bin l w r) when
                         child, snag, w = pop_left r
                     end);
             x, xs = '(bin l (xh=>xs) r, 0, x);
           end if res == EQ;
-        = shrink_right (pop h k) cur if res == GT;
+        = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] ys of
+        = shrink_left (pop h old) cur if res == LT;
+        = case del old [] [] ys of
             y, [] = if c === nil then '(bin l z r, 0, y)
                     else (shrink_center (\_ -> '(child, snag, y)) (tri l w c z r) when
                         child, snag, w = pop_left c
                     end);
             y, ys = '(tri l (yh=>ys) c z r, 0, y);
           end if res == EQ;
-        = shrink_center (pop h k) cur if res == LT2;
-        = case del k [] [] zs of
+        = shrink_center (pop h old) cur if res == LT2;
+        = case del old [] [] zs of
             z, [] = if r === nil then '(bin l y c, 0, z)
                     else (shrink_right (\_ -> '(child, snag, z)) (tri l y c w r) when
                         child, snag, w = pop_left r
                     end);
             z, zs = '(tri l y c (zh=>zs) r, 0, z);
           end if res == EQ2;
-        = shrink_right (pop h k) cur if res == GT2;
+        = shrink_right (pop h old) cur if res == GT2;
     end;
 end;
 
@@ -1429,41 +1429,41 @@ end;
 
 public mhdeletea mhdeleteka;
 
-mhdeletea t::tree k = catch handle (pop (hash k) k t !0) /* child, _, _ */ with
+mhdeletea t::tree old = catch handle (pop (hash old) old t !0) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pop h::int k nil = throw abort;
-    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
+    pop h::int old nil = throw abort;
+    pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case filter (~==k) xs of
+        = shrink_left (pop h old) cur if res == LT;
+        = case filter (~==old) xs of
             [] = if r === nil then '(l, 1, x)
                  else (shrink_right (\_ -> '(child, snag, x)) (bin l w r) when
                      child, snag, w = pop_left r
                  end);
             xs = '(bin l (xh=>xs) r, 0, x);
           end if res == EQ;
-        = shrink_right (pop h k) cur if res == GT;
+        = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case filter (~==k) ys of
+        = shrink_left (pop h old) cur if res == LT;
+        = case filter (~==old) ys of
             [] = if c === nil then '(bin l z r, 0, y)
                  else (shrink_center (\_ -> '(child, snag, y)) (tri l w c z r) when
                      child, snag, w = pop_left c
                  end);
             ys = '(tri l (yh=>ys) c z r, 0, y);
           end if res == EQ;
-        = shrink_center (pop h k) cur if res == LT2;
-        = case filter (~==k) zs of
+        = shrink_center (pop h old) cur if res == LT2;
+        = case filter (~==old) zs of
             [] = if r === nil then '(bin l y c, 0, z)
                  else (shrink_right (\_ -> '(child, snag, z)) (tri l y c w r) when
                      child, snag, w = pop_left r
                  end);
             zs = '(tri l y c (zh=>zs) r, 0, z);
           end if res == EQ2;
-        = shrink_right (pop h k) cur if res == GT2;
+        = shrink_right (pop h old) cur if res == GT2;
     end;
 end;
 
