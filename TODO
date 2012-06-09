@@ -1,0 +1,49 @@
+Optimizations that might be added/removed from twotrees.pure
+------------------------------------------------------------
+
+1. Can we get a C version of strcmp that pins its results to -1,0,1?
+At least on FreeBSD's libc, the return value can be any byte.
+If libpure.so provided a custom version that just pinned the result to
+that range, the cmp code for strings in this library might conceivably
+be faster.
+
+2. With the various mtrees, I stored
+new data at the front of the list, rather than at the end. This makes
+inserts and lookups faster. But I made sure to mimic avltrees handling
+of deletes, so that it's always the first-added element that gets
+deleted. (I'm not sure I have a view about which element should ideally
+be deleted in that case, and eliminating the element closer to the front
+of the list would be more efficient. But I wanted to exactly match
+avltrees behavior.) So deletes are slower in my implementation.
+
+I could easily reverse this, and store new data at the end of the list,
+as avltrees does. I don't know which would generally be more efficient.
+I guessed that doing it the way I did would be, but there's no
+measurements to back that guess up.
+
+4. One optimization present here is to reduce the number of comparisons on
+lookups, when the objects being compared are ordered but aren't one of the
+primitive datatypes.
+
+5. Another is to abort an insert if the object is already in the tree
+(rather than building a duplicate tree).
+
+Conceivably the small overhead the optimizations introduce might slow things
+down with small trees, but I doubt it.
+
+6. Various functions return multiple results as a tuple, and in some cases one
+of the tuple elements might possibly be (). I handle this by using ...,
+'(prev_element, element_that_might_be_zero_tuple). I'm not sure how much of a
+slowdown that idiom introduces. If any: since we're avoiding some expansions it
+ought to be faster, right? But it may be that this is a source of slowdown, and
+that other techniques here would work better.
+
+7. Currently a bunch of functions build closures for their special behavior and
+call a core set of general functions. (So deletek, deletekv, mdelete,
+mdeletek, mdeletekv, hdelete, hdeletek, hdeletekv, mhdelete, mhdeletek,
+mhdeletekv all call pop_key.) In some cases these closures are recursive and so
+need to be built anyway, but not in all cases. Perhaps copying the core set of
+functions and inlining the distinctive behavior (as the avltrees library
+currently does) would give a speedup. I don't know if LLVM is smart enough yet
+that that kind of tweaking is unnecessary.
+
