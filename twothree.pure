@@ -444,76 +444,76 @@ end;
 
 public insert insertk;
 
-insert t::tree new = catch handle (insert new t !0) with
+insert t::tree new = catch handle (ins new t !0) with
     handle abort = t;
     handle e = throw e;
-    insert new nil = bin nil new nil, true; // bump height at prev level
-    insert new (bin l1 x1 r1) = case cmp new x1 of
+    ins new nil = bin nil new nil, true; // bump height at prev level
+    ins new (bin l1 x1 r1) = case cmp new x1 of
       res::int
-        = case insert new l1 of
+        = case ins new l1 of
                 child, 0 = bin child x1 r1, false;
                 bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = throw abort if res == EQ; // keep existing tree
-        = case insert new r1 of
+        = case ins new r1 of
                 child, 0 = bin l1 x1 child, false;
                 bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
-    insert new (tri l1 y1 c1 z1 r1) = case cmp2 new y1 z1 of
+    ins new (tri l1 y1 c1 z1 r1) = case cmp2 new y1 z1 of
       res::int
-        = case insert new l1 of
+        = case ins new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = throw abort if res == EQ;
-        = case insert new c1 of
+        = case ins new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = throw abort if res == EQ2;
-        = case insert new r1 of
+        = case ins new r1 of
                 child, 0 = tri l1 y1 c1 z1 child, false;
                 child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
     end;
 end;
 
-insertk t::tree new@(k=>v) = catch handle (ins_key k v new t !0) with
+insertk t::tree new@(k=>v) = catch handle (ins k v new t !0) with
     handle abort = t;
     handle e = throw e;
 
-    ins_key k v new nil = bin nil new nil, true; // bump height at prev level
+    ins k v new nil = bin nil new nil, true; // bump height at prev level
 
-    ins_key k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
+    ins k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
       res::int
-        = case ins_key k v new l1 of
+        = case ins k v new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = if eq v xv then throw abort // keep existing tree
           else bin l1 new r1, false if res == EQ;
-        = case ins_key k v new r1 of
+        = case ins k v new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key k v new (tri l1 y1@(yk=>yv) c1 z1@(zk=>zv) r1) = case cmp2 k yk zk of
+    ins k v new (tri l1 y1@(yk=>yv) c1 z1@(zk=>zv) r1) = case cmp2 k yk zk of
       res::int
-        = case ins_key k v new l1 of
+        = case ins k v new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = if eq v yv then throw abort // keep existing tree
           else tri l1 new c1 z1 r1, false if res == EQ;
-        = case ins_key k v new c1 of
+        = case ins k v new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = if eq v zv then throw abort // keep existing tree
           else tri l1 y1 c1 new r1, false if res == EQ2;
-        = case ins_key k v new r1 of
+        = case ins k v new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -665,35 +665,35 @@ end;
 
 public minsert minsertk;
 
-minsert t::tree new = ins_key new t !0 with
-    ins_key new nil = bin nil (new=>[new]) nil, true; // bump height at prev level
+minsert t::tree new = ins new t !0 with
+    ins new nil = bin nil (new=>[new]) nil, true; // bump height at prev level
 
-    ins_key new (bin l1 x1@(xk=>xs) r1) = case cmp new xk of
+    ins new (bin l1 x1@(xk=>xs) r1) = case cmp new xk of
       res::int
-        = case ins_key new l1 of
+        = case ins new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xk=>new:xs) r1, false if res == EQ;
-        = case ins_key new r1 of
+        = case ins new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 new yk zk of
+    ins new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 new yk zk of
       res::int
-        = case ins_key new l1 of
+        = case ins new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yk=>new:ys) c1 z1 r1, false if res == EQ;
-        = case ins_key new c1 of
+        = case ins new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zk=>new:zs) r1, false if res == EQ2;
-        = case ins_key new r1 of
+        = case ins new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -701,35 +701,35 @@ minsert t::tree new = ins_key new t !0 with
 
 end;
 
-minsertk t::tree new@(k=>_) = ins_key k new t !0 with
-    ins_key k new nil = bin nil (k=>[new]) nil, true; // bump height at prev level
+minsertk t::tree new@(k=>_) = ins k new t !0 with
+    ins k new nil = bin nil (k=>[new]) nil, true; // bump height at prev level
 
-    ins_key k new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
+    ins k new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
       res::int
-        = case ins_key k new l1 of
+        = case ins k new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xk=>new:xs) r1, false if res == EQ;
-        = case ins_key k new r1 of
+        = case ins k new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key k new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 k yk zk of
+    ins k new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 k yk zk of
       res::int
-        = case ins_key k new l1 of
+        = case ins k new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yk=>new:ys) c1 z1 r1, false if res == EQ;
-        = case ins_key k new c1 of
+        = case ins k new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zk=>new:zs) r1, false if res == EQ2;
-        = case ins_key k new r1 of
+        = case ins k new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -945,41 +945,41 @@ mdeleteka t k = mdeletea t k;
 
 public hinsert hinsertk;
 
-hinsert t::tree new = catch handle (ins_key (hash new) new t !0) with
+hinsert t::tree new = catch handle (ins (hash new) new t !0) with
     handle abort = t;
     handle e = throw e;
     add new [] = [new];
     add new (new:_) = throw abort; // keep existing tree
     add new (u:us) = u:add new us;
 
-    ins_key h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
 
-    ins_key h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xh=>add new xs) r1, false if res == EQ;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yh=>add new ys) c1 z1 r1, false if res == EQ;
-        = case ins_key h new c1 of
+        = case ins h new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zh=>add new zs) r1, false if res == EQ2;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -987,7 +987,7 @@ hinsert t::tree new = catch handle (ins_key (hash new) new t !0) with
 
 end;
 
-hinsertk t::tree new@(k=>_) = catch handle (ins_key (hash k) new t !0) with
+hinsertk t::tree new@(k=>_) = catch handle (ins (hash k) new t !0) with
     handle abort = t;
     handle e = throw e;
     add new [] = [new];
@@ -995,34 +995,34 @@ hinsertk t::tree new@(k=>_) = catch handle (ins_key (hash k) new t !0) with
                                   else new:us; // update value
     add new (u:us) = u:add new us;
 
-    ins_key h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
 
-    ins_key h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xh=>add new xs) r1, false if res == EQ;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yh=>add new ys) c1 z1 r1, false if res == EQ;
-        = case ins_key h new c1 of
+        = case ins h new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zh=>add new zs) r1, false if res == EQ2;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -1232,35 +1232,35 @@ end;
 
 public mhinsert mhinsertk;
 
-mhinsert t::tree new = ins_key (hash new) new t!0 with
-    ins_key h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+mhinsert t::tree new = ins (hash new) new t!0 with
+    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
 
-    ins_key h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xh=>new:xs) r1, false if res == EQ;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yh=>new:ys) c1 z1 r1, false if res == EQ;
-        = case ins_key h new c1 of
+        = case ins h new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zh=>new:zs) r1, false if res == EQ2;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
@@ -1268,35 +1268,35 @@ mhinsert t::tree new = ins_key (hash new) new t!0 with
 
 end;
 
-mhinsertk t::tree new@(k=>_) = ins_key (hash k) new t !0 with
-    ins_key h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
+mhinsertk t::tree new@(k=>_) = ins (hash k) new t !0 with
+    ins h new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
 
-    ins_key h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
+    ins h new (bin l1 x1@(xh=>xs) r1) = case cmp h xh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
             child, 0 = bin child x1 r1, false;
             bin l2 x2 r2, 1 = tri l2 x2 r2 x1 r1, false;
           end if res == LT;
         = bin l1 (xh=>new:xs) r1, false if res == EQ;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = bin l1 x1 child, false;
             bin l2 x2 r2, 1 = tri l1 x1 l2 x2 r2, false;
           end if res == GT;
     end;
 
-    ins_key h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
+    ins h new (tri l1 y1@(yh=>ys) c1 z1@(zh=>zs) r1) = case cmp2 h yh zh of
       res::int
-        = case ins_key h new l1 of
+        = case ins h new l1 of
                 child, 0 = tri child y1 c1 z1 r1, false;
                 child, 1 = bin child y1 (bin c1 z1 r1), true; // bump height at prev level
           end if res == LT;
         = tri l1 (yh=>new:ys) c1 z1 r1, false if res == EQ;
-        = case ins_key h new c1 of
+        = case ins h new c1 of
                 child, 0 = tri l1 y1 child z1 r1, false;
                 bin l2 x2 r2, 1 = bin (bin l1 y1 l2) x2 (bin r2 z1 r1), true; // bump height at prev level
           end if res == LT2;
         = tri l1 y1 c1 (zh=>new:zs) r1, false if res == EQ2;
-        = case ins_key h new r1 of
+        = case ins h new r1 of
             child, 0 = tri l1 y1 c1 z1 child, false;
             child, 1 = bin (bin l1 y1 c1) z1 child, true; // bump height at prev level
           end if res == GT2;
