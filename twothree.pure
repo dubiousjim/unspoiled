@@ -911,7 +911,7 @@ hinsert t::tree new = catch handle (ins (hash new) new t !0) with
     handle e = throw e;
     add new [] = [new];
     add new (new:_) = throw abort; // keep existing tree
-    add new (u:us) = u:add new us;
+    add new (u:us) = u:add new us; // not tail call
     ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -950,7 +950,7 @@ hinsertk t::tree new@(k=>_) = catch handle (ins (hash k) new t !0) with
     add new [] = [new];
     add new@(u=>v) ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
                                   else new:us; // update value
-    add new (u:us) = u:add new us;
+    add new (u:us) = u:add new us; // not tail call
     ins h::int new nil = bin nil (h=>[new]) nil, true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -992,7 +992,7 @@ hdelete t::tree old = catch handle (pop (hash old) old t !0) /* child, _, _ */ w
     handle e = throw e;
     del _ [] = throw abort; // not found
     del old (old:us) = us;
-    del old (u:us) = u:del old us;
+    del old (u:us) = u:del old us; // not tail call
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
