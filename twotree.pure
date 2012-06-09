@@ -496,8 +496,8 @@ delete t::tree k = catch handle (delete k t !0) /* child, _, _ */ with
     delete k cur@(bin l x r) = case cmp k x of
       res::int
         = shrink_left (delete k) cur if res == LT;
-        = if r === nil then l, '(1, x)
-          else (shrink_right (\_ -> child, '(snag, x)) (bin l w r) when
+        = if r === nil then '(l, 1, x)
+          else (shrink_right (\_ -> '(child, snag, x)) (bin l w r) when
             child, snag, w = pop_left r
           end) if res == EQ;
         = shrink_right (delete k) cur if res == GT;
@@ -505,13 +505,13 @@ delete t::tree k = catch handle (delete k t !0) /* child, _, _ */ with
     delete k cur@(tri l y c z r) = case cmp2 k y z of
       res::int
         = shrink_left (delete k) cur if res == LT;
-        = if c === nil then bin l z r, '(0, y)
-          else (shrink_center (\_ -> child, '(snag, y)) (tri l w c z r) when
+        = if c === nil then '(bin l z r, 0, y)
+          else (shrink_center (\_ -> '(child, snag, y)) (tri l w c z r) when
             child, snag, w = pop_left c
           end) if res == EQ;
         = shrink_center (delete k) cur if res == LT2;
-        = if r === nil then bin l y c, '(0, z)
-          else (shrink_right (\_ -> child, '(snag, z)) (tri l y c w r) when
+        = if r === nil then '(bin l y c, 0, z)
+          else (shrink_right (\_ -> '(child, snag, z)) (tri l y c w r) when
             child, snag, w = pop_left r
           end) if res == EQ2;
         = shrink_right (delete k) cur if res == GT2;
@@ -844,77 +844,77 @@ end;
 /* Private helper functions. */
 
 shrink_left aux (bin l1 x1 r1) = case aux l1 of
-    child, 0, w = bin child x1 r1, '(0, w);
+    child, 0, w = '(bin child x1 r1, 0, w);
     child, 1, w = case r1 of
-        bin l2 x2 r2 = tri child x1 l2 x2 r2, '(1, w); // pass snag upwards
-        tri l2 y2 c2 z2 r2 = bin (bin child x1 l2) y2 (bin c2 z2 r2), '(0, w);
+        bin l2 x2 r2 = '(tri child x1 l2 x2 r2, 1, w); // pass snag upwards
+        tri l2 y2 c2 z2 r2 = '(bin (bin child x1 l2) y2 (bin c2 z2 r2), 0, w);
     end;
 end;
 
 shrink_left aux (tri l1 y1 c1 z1 r1) = case aux l1 of
-    child, 0, w = tri child y1 c1 z1 r1, '(0, w);
+    child, 0, w = '(tri child y1 c1 z1 r1, 0, w);
     child, 1, w = case c1 of
-        bin l2 x2 r2 = bin (tri child y1 l2 x2 r2) z1 r1, '(0, w);
-        tri l2 y2 c2 z2 r2 = tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1, '(0, w);
+        bin l2 x2 r2 = '(bin (tri child y1 l2 x2 r2) z1 r1, 0, w);
+        tri l2 y2 c2 z2 r2 = '(tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1, 0, w);
     end;
 end;
 
 shrink_center aux (tri l1 y1 c1 z1 r1) = case aux c1 of
-    child, 0, w = tri l1 y1 child z1 r1, '(0, w);
+    child, 0, w = '(tri l1 y1 child z1 r1, 0, w);
     child, 1, w = case l1 of // we arbitrarily chose to decons the left side
-        bin l2 x2 r2 = bin (tri l2 x2 r2 y1 child) z1 r1, '(0, w);
-        tri l2 y2 c2 z2 r2 = tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1, '(0, w);
+        bin l2 x2 r2 = '(bin (tri l2 x2 r2 y1 child) z1 r1, 0, w);
+        tri l2 y2 c2 z2 r2 = '(tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1, 0, w);
     end;
 end;
 
 shrink_right aux (bin l1 x1 r1) = case aux r1 of
-    child, 0, w = bin l1 x1 child, '(0, w);
+    child, 0, w = '(bin l1 x1 child, 0, w);
     child, 1, w = case l1 of
-        bin l2 x2 r2 = tri l2 x2 r2 x1 child, '(1, w); // pass snag upwards
-        tri l2 y2 c2 z2 r2 = bin (bin l2 y2 c2) z2 (bin r2 x1 child), '(0, w);
+        bin l2 x2 r2 = '(tri l2 x2 r2 x1 child, 1, w); // pass snag upwards
+        tri l2 y2 c2 z2 r2 = '(bin (bin l2 y2 c2) z2 (bin r2 x1 child), 0, w);
     end;
 end;
 
 shrink_right aux (tri l1 y1 c1 z1 r1) = case aux r1 of
-    child, 0, w = tri l1 y1 c1 z1 child, '(0, w);
+    child, 0, w = '(tri l1 y1 c1 z1 child, 0, w);
     child, 1, w = case c1 of
-        bin l2 x2 r2 = bin l1 y1 (tri l2 x2 r2 z1 child), '(0, w);
-        tri l2 y2 c2 z2 r2 = tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child), '(0, w);
+        bin l2 x2 r2 = '(bin l1 y1 (tri l2 x2 r2 z1 child), 0, w);
+        tri l2 y2 c2 z2 r2 = '(tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child), 0, w);
     end;
 end;
 
-pop_left (bin nil x nil) = nil, '(1, x); // snag height at prev level
+pop_left (bin nil x nil) = '(nil, 1, x); // snag height at prev level
 
-pop_left (tri nil y nil z nil) = bin nil z nil, '(0, y);
+pop_left (tri nil y nil z nil) = '(bin nil z nil, 0, y);
 
 pop_left cur = shrink_left pop_left cur;
 
-pop_right (bin nil x nil) = nil, '(1, w); // snag height at prev level
+pop_right (bin nil x nil) = '(nil, 1, w); // snag height at prev level
 
-pop_right (tri nil y nil z nil) = bin nil y nil, '(0, z);
+pop_right (tri nil y nil z nil) = '(bin nil y nil, 0, z);
 
 pop_right cur = shrink_right pop_right cur;
 
 mpop_left (bin nil (xk=>xs) nil) = case xs of
-    [x] = nil, '(1, x); // snag height at prev level
-    x:xs = bin nil (xk=>xs) nil, '(0, x);
+    [x] = '(nil, 1, x); // snag height at prev level
+    x:xs = '(bin nil (xk=>xs) nil, 0, x);
 end;
 
 mpop_left (tri nil (yk=>ys) nil z nil) = case ys of
-    [y] = bin nil z nil, '(0, y);
-    y:ys = tri nil (yk=>ys) nil z nil, '(0, y);
+    [y] = '(bin nil z nil, 0, y);
+    y:ys = '(tri nil (yk=>ys) nil z nil, 0, y);
 end;
 
 mpop_left cur = shrink_left mpop_left cur;
 
 mpop_right (bin nil (xk=>xs) nil) = case xs of
-    [x] = nil, '(1, x); // snag height at prev level
-    x:xs = bin nil (xk=>xs) nil, '(0, x);
+    [x] = '(nil, 1, x); // snag height at prev level
+    x:xs = '(bin nil (xk=>xs) nil, 0, x);
 end;
 
 mpop_right (tri nil y nil (zk=>zs) nil) = case zs of
-    [z] = bin nil y nil, '(0, z);
-    z:zs = tri nil y nil (zk=>zs) nil, '(0, z);
+    [z] = '(bin nil y nil, 0, z);
+    z:zs = '(tri nil y nil (zk=>zs) nil, 0, z);
 end;
 
 mpop_right cur = shrink_right mpop_right cur;
@@ -925,11 +925,11 @@ pop_key pluck k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
   res::int
     = shrink_left (pop_key pluck k v) cur if res == LT;
     = case pluck v x xs of
-        x, [] = if r === nil then l, '(1, x)
-                else (shrink_right (\_ -> child, '(snag, x)) (bin l w r) when
+        x, [] = if r === nil then '(l, 1, x)
+                else (shrink_right (\_ -> '(child, snag, x)) (bin l w r) when
                     child, snag, w = pop_left r
                 end);
-        x, xs = bin l (xk=>xs) r, '(0, x);
+        x, xs = '(bin l (xk=>xs) r, 0, x);
       end if res == EQ;
     = shrink_right (pop_key pluck k v) cur if res == GT;
 end;
@@ -938,19 +938,19 @@ pop_key pluck k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
   res::int
     = shrink_left (pop_key pluck k v) cur if res == LT;
     = case pluck v y ys of
-        y, [] = if c === nil then bin l z r, '(0, y)
-                else (shrink_center (\_ -> child, '(snag, y)) (tri l w c z r) when
+        y, [] = if c === nil then '(bin l z r, 0, y)
+                else (shrink_center (\_ -> '(child, snag, y)) (tri l w c z r) when
                     child, snag, w = pop_left c
                 end);
-        y, ys = tri l (yk=>ys) c z r, '(0, y);
+        y, ys = '(tri l (yk=>ys) c z r, 0, y);
       end if res == EQ;
     = shrink_center (pop_key pluck k v) cur if res == LT2;
     = case pluck v z zs of
-        z, [] = if r === nil then bin l y c, '(0, z)
-                else (shrink_right (\_ -> child, '(snag, z)) (tri l y c w r) when
+        z, [] = if r === nil then '(bin l y c, 0, z)
+                else (shrink_right (\_ -> '(child, snag, z)) (tri l y c w r) when
                     child, snag, w = pop_left r
                 end);
-        z, zs = tri l y c (zk=>zs) r, '(0, z);
+        z, zs = '(tri l y c (zk=>zs) r, 0, z);
       end if res == EQ2;
     = shrink_right (pop_key pluck k v) cur if res == GT2;
 end;
