@@ -231,53 +231,53 @@ public member memberk;
    perhaps recursing deeper in the tree than necessary. We flag that no
    candidate match is presently available with `nan`. */
 
-member t::tree k = member k nan t with
-    member k w nil = w ~== nan && (case cmp1 w k of
+member t::tree k = mem k nan t with
+    mem k w nil = w ~== nan && (case cmp1 w k of
       res::int
         = 1 if res == GE || res == EQ;
         = 0;
     end);
-    member k w (bin l x r) = case cmp1 k x of
+    mem k w (bin l x r) = case cmp1 k x of
       res::int
-        = member k w l if res == LT;
+        = mem k w l if res == LT;
         = 1 if res == EQ;
-        = member k nan r if res == GT;
-        = member k x r if res == GE; // x may be a match
+        = mem k nan r if res == GT;
+        = mem k x r if res == GE; // x may be a match
     end;
-    member k w (tri l y c z r) = case cmp3 k y z of
+    mem k w (tri l y c z r) = case cmp3 k y z of
       res::int
-        = member k w l if res == LT;
+        = mem k w l if res == LT;
         = 1 if res == EQ;
-        = member k y c if res == LE2; // y may be a match
-        = member k nan c if res == LT2;
+        = mem k y c if res == LE2; // y may be a match
+        = mem k nan c if res == LT2;
         = 1 if res == EQ2;
-        = member k nan r if res == GT2;
-        = member k z r if res == GE2; // z may be a match
+        = mem k nan r if res == GT2;
+        = mem k z r if res == GE2; // z may be a match
     end;
 end;
 
-memberk t::tree k = member k nan t with
-    member k w nil = w ~== nan && (case cmp1 w k of
+memberk t::tree k = mem k nan t with
+    mem k w nil = w ~== nan && (case cmp1 w k of
       res::int
         = 1 if res == GE || res == EQ;
         = 0;
     end);
-    member k w (bin l (x=>_) r) = case cmp1 k x of
+    mem k w (bin l (x=>_) r) = case cmp1 k x of
       res::int
-        = member k w l if res == LT;
+        = mem k w l if res == LT;
         = 1 if res == EQ;
-        = member k nan r if res == GT;
-        = member k x r if res == GE; // x may be a match
+        = mem k nan r if res == GT;
+        = mem k x r if res == GE; // x may be a match
     end;
-    member k w (tri l (y=>_) c (z=>_) r) = case cmp3 k y z of
+    mem k w (tri l (y=>_) c (z=>_) r) = case cmp3 k y z of
       res::int
-        = member k w l if res == LT;
+        = mem k w l if res == LT;
         = 1 if res == EQ;
-        = member k y c if res == LE2; // y may be a match
-        = member k nan c if res == LT2;
+        = mem k y c if res == LE2; // y may be a match
+        = mem k nan c if res == LT2;
         = 1 if res == EQ2;
-        = member k nan r if res == GT2;
-        = member k z r if res == GE2; // z may be a match
+        = mem k nan r if res == GT2;
+        = mem k z r if res == GE2; // z may be a match
     end;
 end;
 
@@ -286,39 +286,39 @@ end;
 
 public hmember hmemberk;
 
-hmember t::tree k = member (hash k) k t with
-    member _ _ nil = 0;
-    member h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+hmember t::tree k = mem (hash k) k t with
+    mem _ _ nil = 0;
+    mem h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
-        = member h k l if res == LT;
+        = mem h k l if res == LT;
         = any (=== k) xs if res == EQ;
-        = member h k r if res == GT;
+        = mem h k r if res == GT;
     end;
-    member h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+    mem h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = member h k l if res == LT;
+        = mem h k l if res == LT;
         = any (=== k) ys if res == EQ;
-        = member h k c if res == LT2;
+        = mem h k c if res == LT2;
         = any (=== k) zs if res == EQ2;
-        = member h k r if res == GT2;
+        = mem h k r if res == GT2;
     end;
 end;
 
-hmemberk t::tree k = member (hash k) k t with
-    member _ _ nil = 0;
-    member h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
+hmemberk t::tree k = mem (hash k) k t with
+    mem _ _ nil = 0;
+    mem h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
-        = member h k l if res == LT;
+        = mem h k l if res == LT;
         = any (\(u=>_) -> u === k) xs if res == EQ;
-        = member h k r if res == GT;
+        = mem h k r if res == GT;
     end;
-    member h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+    mem h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
-        = member h k l if res == LT;
+        = mem h k l if res == LT;
         = any (\(u=>_) -> u === k) ys if res == EQ;
-        = member h k c if res == LT2;
+        = mem h k c if res == LT2;
         = any (\(u=>_) -> u === k) zs if res == EQ2;
-        = member h k r if res == GT2;
+        = mem h k r if res == GT2;
     end;
 end;
 
