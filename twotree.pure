@@ -291,15 +291,15 @@ hmember t::tree k = member (hash k) k t with
     member h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = member h k l if res == LT;
-        = any (same k) xs if res == EQ;
+        = any (=== k) xs if res == EQ;
         = member h k r if res == GT;
     end;
     member h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = member h k l if res == LT;
-        = any (same k) ys if res == EQ;
+        = any (=== k) ys if res == EQ;
         = member h k c if res == LT2;
-        = any (same k) zs if res == EQ2;
+        = any (=== k) zs if res == EQ2;
         = member h k r if res == GT2;
     end;
 end;
