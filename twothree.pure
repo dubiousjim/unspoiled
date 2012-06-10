@@ -1863,11 +1863,11 @@ map3 f [] [] [] base = base;
 map3 f (x:xs) (y:ys) (z:zs) base = f x y z : map3 f xs ys zs base;
 
 
-spaces n = string (cyclen n " ");
+spaces n = string (repeatn n " ");
 
 center s width fill =
     if rem < 1 then s
-    else string (cyclen (rem - rem div 2) fill) + s + string (cyclen (rem div 2) fill) when
+    else string (repeatn (rem - rem div 2) fill) + s + string (repeatn (rem div 2) fill) when
     rem = width - #s
 end;
 
