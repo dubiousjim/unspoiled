@@ -36,7 +36,7 @@ private bin tri;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private rev_append map2 map3 promote spaces center tostring;
+private revapp map2 map3 promote spaces center tostring;
 
 private LT EQ GT GE LT2 EQ2 GT2 GE2;
 
@@ -159,20 +159,20 @@ end;
 
 mmembers t::tree = members t [] with
     members nil base = base;
-    members (bin l (_=>xs) r) base = members l (rev_append xs (members r base));
-    members (tri l (_=>ys) c (_=>zs) r) base = members l (rev_append ys (members c (rev_append zs (members r base))));
+    members (bin l (_=>xs) r) base = members l (revapp xs (members r base));
+    members (tri l (_=>ys) c (_=>zs) r) base = members l (revapp ys (members c (revapp zs (members r base))));
 end;
 
 mkeys t::tree = keys t [] with
     keys nil base = base;
-    keys (bin l (_=>xs) r) base = keys l (rev_append [x | x=>_ = xs] (keys r base));
-    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (rev_append [y | y=>_ = ys] (keys c (rev_append [z | z=>_ = zs] (keys r base))));
+    keys (bin l (_=>xs) r) base = keys l (revapp [x | x=>_ = xs] (keys r base));
+    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (revapp [y | y=>_ = ys] (keys c (revapp [z | z=>_ = zs] (keys r base))));
 end;
 
 mvals t::tree = vals t [] with
     vals nil base = base;
-    vals (bin l (_=>xs) r) base = vals l (rev_append [x | _=>x = xs] (vals r base));
-    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (rev_append [y | _=>y = ys] (vals c (rev_append [z | _=>z = zs] (vals r base))));
+    vals (bin l (_=>xs) r) base = vals l (revapp [x | _=>x = xs] (vals r base));
+    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (revapp [y | _=>y = ys] (vals c (revapp [z | _=>z = zs] (vals r base))));
 end;
 
 mfirst t::fulltree = first t with
@@ -1839,8 +1839,8 @@ eq u v = case u==v of res::int = res; _ = u===v end;
 
 // reverse with explicit base
 
-rev_append [] base = base;
-rev_append (x:xs) base = rev_append xs (x:base);
+revapp [] base = base;
+revapp (x:xs) base = revapp xs (x:base);
 
 // converts ([xn..x1, ... wn..w1], (match:yn..y1), (zn..z1))
 //        -->(match, (w1..wn)+(x1..xn)+(y1..yn)+(z1..zn))
