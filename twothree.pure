@@ -38,13 +38,13 @@ private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
 private revapp map2 map3 promote spaces center tostring;
 
-private LT EQ GT GE LT2 EQ2 GT2 GE2;
+private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
 const LT = -1; // s1 < s2
 const EQ = 0;
 const GT = 1; // s1 > s2
 const GE = 2; // ~(s1 < s2)
-const LE2 = 3; // s1 >= s2 && s1 < s3
+const MID = 3; // s1 >= s2 && s1 < s3
 const LT2 = 4; // s1 > s2 && s1 < s3
 const EQ2 = 5; // s1 > s2 && s1 == s3
 const GT2 = 6; // s1 > s2 && s1 > s3
@@ -252,7 +252,7 @@ member t::tree old = mem old unavail t with
       res::int
         = mem old w l if res == LT;
         = 1 if res == EQ;
-        = mem old y c if res == LE2; // y may be a match
+        = mem old y c if res == MID; // y may be a match
         = mem old unavail c if res == LT2;
         = 1 if res == EQ2;
         = mem old unavail r if res == GT2;
@@ -277,7 +277,7 @@ memberk t::tree k = mem k unavail t with
       res::int
         = mem k w l if res == LT;
         = 1 if res == EQ;
-        = mem k y c if res == LE2; // y may be a match
+        = mem k y c if res == MID; // y may be a match
         = mem k unavail c if res == LT2;
         = 1 if res == EQ2;
         = mem k unavail r if res == GT2;
@@ -350,7 +350,7 @@ getk t::tree k = get k unavail () t with
       res::int
         = get k w wv l if res == LT;
         = yv if res == EQ;
-        = get k y yv c if res == LE2; // y may be a match
+        = get k y yv c if res == MID; // y may be a match
         = get k unavail () c if res == LT2;
         = zv if res == EQ2;
         = get k unavail () r if res == GT2;
@@ -385,7 +385,7 @@ mgetk t::tree k = get k unavail [] t with
       res::int
         = get k w ws l if res == LT;
         = match ys [] if res == EQ;
-        = get k y ys c if res == LE2; // y may be a match
+        = get k y ys c if res == MID; // y may be a match
         = get k unavail [] c if res == LT2;
         = match zs [] if res == EQ2;
         = get k unavail [] r if res == GT2;
@@ -414,7 +414,7 @@ mgetko t::tree k = get k unavail [] t with
       res::int
         = get k w ws l if res == LT;
         = ::last ys if res == EQ;
-        = get k y ys c if res == LE2; // y may be a match
+        = get k y ys c if res == MID; // y may be a match
         = get k unavail [] c if res == LT2;
         = ::last zs if res == EQ2;
         = get k unavail [] r if res == GT2;
@@ -440,7 +440,7 @@ mgetkn t::tree k = get k unavail [] t with
       res::int
         = get k w ws l if res == LT;
         = ::head zs if res == EQ;
-        = get k y ys c if res == LE2; // y may be a match
+        = get k y ys c if res == MID; // y may be a match
         = get k unavail [] c if res == LT2;
         = ::head zs if res == EQ2;
         = get k unavail [] r if res == GT2;
@@ -1830,7 +1830,7 @@ cmp2 a::int b::int c::int | cmp2 a::double b::double c::double |
 cmp3 a::int b::int c::int | cmp3 a::double b::double c::double =
     if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
 cmp2 a b c = if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
-cmp3 a b c = if a<b then LT else (if a<c then LE2 else GE2);
+cmp3 a b c = if a<b then LT else (if a<c then MID else GE2);
 
 // Value comparison.
 
