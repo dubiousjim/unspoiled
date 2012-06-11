@@ -1127,9 +1127,9 @@ public hinsert hinsertk;
 hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
     handle abort = t;
     handle e = throw e;
-    add new [] = [new];
-    add new (new:_) = throw abort; // keep existing tree
-    add new (u:us) = u:add new us; // not tail call
+    add new ws [] = new:ws; // adding new to front of list is less presure on GC
+    add new _ (new:_) = throw abort; // keep existing tree
+    add new ws (u:us) = add new ws us;
     ins h::int new nil = two (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -1137,7 +1137,7 @@ hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
             two child 0 = two (bin child x1 r1) false;
             two (bin l2 x2 r2) 1 = two (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = two (bin l1 (xh=>add new xs) r1) false if res == EQ;
+        = two (bin l1 (xh=>add new xs xs) r1) false if res == EQ;
         = case ins h new r1 of
             two child 0 = two (bin l1 x1 child) false;
             two (bin l2 x2 r2) 1 = two (tri l1 x1 l2 x2 r2) false;
@@ -1149,12 +1149,12 @@ hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
                 two child 0 = two (tri child y1 c1 z1 r1) false;
                 two child 1 = two (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = two (tri l1 (yh=>add new ys) c1 z1 r1) false if res == EQ;
+        = two (tri l1 (yh=>add new ys ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 two child 0 = two (tri l1 y1 child z1 r1) false;
                 two (bin l2 x2 r2) 1 = two (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = two (tri l1 y1 c1 (zh=>add new zs) r1) false if res == EQ2;
+        = two (tri l1 y1 c1 (zh=>add new zs zs) r1) false if res == EQ2;
         = case ins h new r1 of
             two child 0 = two (tri l1 y1 c1 z1 child) false;
             two child 1 = two (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
@@ -1165,10 +1165,10 @@ end;
 hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
     handle abort = t;
     handle e = throw e;
-    add new [] = [new];
-    add new@(u=>v) ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
-                                  else new:us; // update value
-    add new (u:us) = u:add new us; // not tail call
+    add new ws [] = new:ws; // adding new to front of list is less pressure on GC
+    add new@(u=>v) ws ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
+                                     else new:revapp ws us; // update value
+    add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = two (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -1176,7 +1176,7 @@ hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
             two child 0 = two (bin child x1 r1) false;
             two (bin l2 x2 r2) 1 = two (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = two (bin l1 (xh=>add new xs) r1) false if res == EQ;
+        = two (bin l1 (xh=>add new [] xs) r1) false if res == EQ;
         = case ins h new r1 of
             two child 0 = two (bin l1 x1 child) false;
             two (bin l2 x2 r2) 1 = two (tri l1 x1 l2 x2 r2) false;
@@ -1188,12 +1188,12 @@ hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
                 two child 0 = two (tri child y1 c1 z1 r1) false;
                 two child 1 = two (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = two (tri l1 (yh=>add new ys) c1 z1 r1) false if res == EQ;
+        = two (tri l1 (yh=>add new [] ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 two child 0 = two (tri l1 y1 child z1 r1) false;
                 two (bin l2 x2 r2) 1 = two (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = two (tri l1 y1 c1 (zh=>add new zs) r1) false if res == EQ2;
+        = two (tri l1 y1 c1 (zh=>add new [] zs) r1) false if res == EQ2;
         = case ins h new r1 of
             two child 0 = two (tri l1 y1 c1 z1 child) false;
             two child 1 = two (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
@@ -1208,14 +1208,14 @@ public hdelete hdeletek hdeletekv hpopk;
 hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ [] = throw abort; // not found
-    del old (old:us) = us;
-    del old (u:us) = u:del old us; // not tail call
+    del _ _ [] = throw abort; // not found
+    del old ws (old:us) = revapp ws us;
+    del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old xs of
+        = case del old [] xs of
             [] = if r===nil then three l 1 x
                  else (shrink_right (\_ -> three child snag x) (bin l w r) when
                      three child snag w = pop_left r
@@ -1227,7 +1227,7 @@ hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ *
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old ys of
+        = case del old [] ys of
             [] = if c===nil then three (bin l z r) 0 y
                  else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                      three child snag w = pop_left c
@@ -1235,7 +1235,7 @@ hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ *
             ys = three (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old zs of
+        = case del old [] zs of
             [] = if r===nil then three (bin l y c) 0 z
                  else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                      three child snag w = pop_left r
