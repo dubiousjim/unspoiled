@@ -1067,16 +1067,14 @@ end;
 mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del v [] = throw abort; // (k=>v) not found
-    del v us@(u@(_=>uv):_) = us if eq v uv;
-    del v (u:us) = w:u:ws when
-        w:ws = del v us;
-    end;
+    del v _ [] = throw abort; // (k=>v) not found
+    del v ws (u@(_=>uv):us) = u:revapp ws us if eq v uv;
+    del v ws (u:us) = del v (u:ws) us;
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v xs of
+        = case del v [] xs of
             [x]  = if r===nil then three l 1 x
                    else (shrink_right (\_ -> three child snag x) (bin l w r) when
                        three child snag w = pop_left r
@@ -1088,7 +1086,7 @@ mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
     pop k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v ys of
+        = case del v [] ys of
             [y]  = if c===nil then three (bin l z r) 0 y
                    else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                        three child snag w = pop_left c
@@ -1096,7 +1094,7 @@ mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
             y:ys = three (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = case del v zs of
+        = case del v [] zs of
             [z]  = if r===nil then three (bin l y c) 0 z
                    else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                        three child snag w = pop_left r
@@ -1251,16 +1249,14 @@ end;
 hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ [] = throw abort; // not found
-    del k us@(u@(k=>_):_) = us;
-    del k (u:us) = w:u:ws when
-        w:ws = del k us;
-    end;
+    del _ _ [] = throw abort; // not found
+    del k ws (u@(k=>_):us) = u:revapp ws us;
+    del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k xs of
+        = case del k [] xs of
             [x]  = if r===nil then three l 1 x
                    else (shrink_right (\_ -> three child snag x) (bin l w r) when
                        three child snag w = pop_left r
@@ -1272,7 +1268,7 @@ hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ wit
     pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k ys of
+        = case del k [] ys of
             [y]  = if c===nil then three (bin l z r) 0 y
                    else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                        three child snag w = pop_left c
@@ -1280,7 +1276,7 @@ hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ wit
             y:ys = three (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
-        = case del k zs of
+        = case del k [] zs of
             [z]  = if r===nil then three (bin l y c) 0 z
                    else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                        three child snag w = pop_left r
@@ -1298,16 +1294,14 @@ hpopk t::tree k = '(child, v) when
 end with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ [] = throw abort; // not found
-    del k us@(u@(k=>_):_) = us;
-    del k (u:us) = w:u:ws when
-        w:ws = del k us;
-    end;
+    del _ _ [] = throw abort; // not found
+    del k ws (u@(k=>_):us) = u:revapp ws us;
+    del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k xs of
+        = case del k [] xs of
             [x]  = if r===nil then three l 1 x
                    else (shrink_right (\_ -> three child snag x) (bin l w r) when
                        three child snag w = pop_left r
@@ -1319,7 +1313,7 @@ end with
     pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k ys of
+        = case del k [] ys of
             [y]  = if c===nil then three (bin l z r) 0 y
                    else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                        three child snag w = pop_left c
@@ -1327,7 +1321,7 @@ end with
             y:ys = three (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
-        = case del k zs of
+        = case del k [] zs of
             [z]  = if r===nil then three (bin l y c) 0 z
                    else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                        three child snag w = pop_left r
@@ -1341,16 +1335,14 @@ end;
 hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ [] = throw abort; // not found
-    del (k=>v) us@(u@(k=>uv):_) = if eq v uv then us else throw abort; // (k=>v) not found
-    del old (u:us) = w:u:ws when
-        w:ws = del old us;
-    end;
+    del _ _ [] = throw abort; // not found
+    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:revapp ws us else throw abort; // (k=>v) not found
+    del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old xs of
+        = case del old [] xs of
             [x]  = if r===nil then three l 1 x
                    else (shrink_right (\_ -> three child snag x) (bin l w r) when
                        three child snag w = pop_left r
@@ -1362,7 +1354,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child,
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old ys of
+        = case del old [] ys of
             [y]  = if c===nil then three (bin l z r) 0 y
                    else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                        three child snag w = pop_left c
@@ -1370,7 +1362,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child,
             y:ys = three (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old zs of
+        = case del old [] zs of
             [z]  = if r===nil then three (bin l y c) 0 z
                    else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                        three child snag w = pop_left r
@@ -1466,16 +1458,14 @@ mhpopkn        t k   = hpopk     t k;
 mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ [] = throw abort; // not found
-    del (k=>v) us@(u@(k=>uv):_) = us if eq v uv; // else (unlike hdeletekv) we continue searching
-    del old (u:us) = w:u:ws when
-        w:ws = del old us;
-    end;
+    del _ _ [] = throw abort; // not found
+    del (k=>v) ws (u@(k=>uv):us) = u:revapp ws us if eq v uv; // else (unlike hdeletekv) we continue searching
+    del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old xs of
+        = case del old [] xs of
             [x]  = if r===nil then three l 1 x
                    else (shrink_right (\_ -> three child snag x) (bin l w r) when
                        three child snag w = pop_left r
@@ -1487,7 +1477,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old ys of
+        = case del old [] ys of
             [y]  = if c===nil then three (bin l z r) 0 y
                    else (shrink_center (\_ -> three child snag y) (tri l w c z r) when
                        three child snag w = pop_left c
@@ -1495,7 +1485,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
             y:ys = three (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old zs of
+        = case del old [] zs of
             [z]  = if r===nil then three (bin l y c) 0 z
                    else (shrink_right (\_ -> three child snag z) (tri l y c w r) when
                        three child snag w = pop_left r
