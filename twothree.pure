@@ -1,7 +1,7 @@
 /* Generic 2-3-tree data structure for implementing sets, dictionaries,
    and the like.
 
-   NOTE: This module implements just the raw 2,3-tree data structure. The
+   NOTE: This module implements just the raw 2-3-tree data structure. The
    provided operations are fairly low-level and not intended to be used
    directly in applications. You'd rather want to use the high-level
    interfaces in dict.pure and set.pure instead.
