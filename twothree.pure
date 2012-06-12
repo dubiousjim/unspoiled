@@ -681,11 +681,9 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 popk t::tree k = '(child, v) when
-    triple child _ (_=>v) = catch handle (pop k t)
+    triple child _ (_=>v) = pop k t
 end with
-    handle abort = throw out_of_bounds;
-    handle e = throw e;
-    pop k nil = throw abort;
+    pop k nil = throw out_of_bounds;
     pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -902,13 +900,11 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 mpopko t::tree k = '(child, v) when
-    triple child _ (_=>v) = catch handle (pop k t)
+    triple child _ (_=>v) = pop k t
 end with
-    handle abort = t; // throw out_of_bounds;
-    handle e = throw e;
     del [u] vs = u:reverse vs;
     del (u:us) vs = del us (u:vs);
-    pop k nil = throw abort;
+    pop k nil = throw out_of_bounds;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -1025,11 +1021,9 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 mpopkn t::tree k = '(child, v) when
-    triple child _ (_=>v) = catch handle (pop k t)
+    triple child _ (_=>v) = pop k t
 end with
-    handle abort = t; // throw out_of_bounds;
-    handle e = throw e;
-    pop k nil = throw abort;
+    pop k nil = throw out_of_bounds;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -1290,11 +1284,9 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 hpopk t::tree k = '(child, v) when
-    triple child _ (_=>v) = catch handle (pop (hash k) k t)
+    triple child _ (_=>v) = pop (hash k) k t
 end with
-    handle abort = t; // throw out_of_bounds;
-    handle e = throw e;
-    del _ _ [] = throw abort; // not found
+    del _ _ [] = throw out_of_bounds;
     del k ws (u@(k=>_):us) = u:revapp ws us;
     del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
@@ -1544,7 +1536,7 @@ end;
 mhpopko t::tree k = '(child, v) when
     triple child _ (_=>v) = catch handle (pop (hash k) k t)
 end with
-    handle abort = t; // throw out_of_bounds;
+    handle abort = throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
     del k hss hs ms (u@(k=>_):us) = del k (hs:hss) (u:ms) [] us;
