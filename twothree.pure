@@ -1793,6 +1793,8 @@ mpop_right cur = shrink_right mpop_right cur;
 // Optimised key comparison.
 
 cmp a::string b::string | cmp1 a::string b::string =
+    // from http://graphics.stanford.edu/~seander/bithacks.html
+    // sign = (v > 0) - (v < 0); // -1, 0, or +1
     if res<0 then LT else if res>0 then GT else EQ when res = __C::strcmp a b end;
 cmp a::bigint b::bigint | cmp1 a::bigint b::bigint = __C::bigint_cmp a b;
 cmp a::int b::int | cmp a::double b::double |
