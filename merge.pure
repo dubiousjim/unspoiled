@@ -1,0 +1,71 @@
+using math;
+rand n = random31 mod n;
+data top len = map (\i -> rand top,i) ("a".."a"+len-1);
+
+(a,_) < (b,_) = a < b;
+(b,j) >= (a,i) = b > a || (b==a && j >= i);
+ordered [] = true;
+ordered (b:bs) = aux b bs with
+    aux _ [] = true;
+    aux a (b:bs) = b >= a && aux b bs;
+end;
+
+/* "Natural" or "adaptive" bottom-up merge sort
+   Exploits existing runs of ascending/descending elements.
+   Consumes at most O(log n) levels in zss stack.
+   Minimizes number of times already-sorted runs need to be reversed.
+   Inspired by http://www.drmaciver.com/tag/timsort/.
+*/
+
+revapp [] base = base;
+revapp (x:xs) base = revapp xs (x:base);
+
+msort [] = [];
+msort (x:xs) = step xs x [] 1 (-1) true [] with
+    // ya = are these ys strictly ascending?
+    // ia = would these ys "ideally" be strictly ascending?
+    step (x:xs) y ys 1 _ ia zss
+        = step xs x (y:ys) 2 (x<y) ia zss;
+    step (x:xs) y ys yn ya ia zss
+        = step xs x (y:ys) (succ yn) ya ia zss if (x<y) == ya;
+    step (x:xs) y ys yn ya ia zss = case zss of
+        // to keep the zss stack small, we merge ys with its top layer
+        // whenever #ys > half the size of the top zs
+        (_,zn,_):_ = step xs x [] 1 (-1)
+                     (~ia) (merge1 (y:ys) yn ya ia zss) if yn*2 > zn;
+        // else just push these ys onto zss
+        // next set of ys will "ideally" be in the reverse order
+        zss = step xs x [] 1 (-1) (~ia) ((y:ys,yn,ya):zss);
+    end;
+    // we've finished stepping through original list
+    // note: at this point yn can be 1
+    step [] y ys yn ya ia zss = mergen (y:ys) yn ya ia zss;
+
+    // now keep merge1-ing until zss stack is empty
+    // when done, if final ys aren't strictly ascending, reverse them
+    mergen ys _ ya ia [] = if ya then ys else reverse ys;
+    mergen ys yn ya ia zss = case merge1 ys yn ya ia zss of
+        (zs,zn,za):zss = mergen zs zn za (~ia) zss;
+    end;
+
+    merge1 ys yn ya ia ((zs,zn,za):zss) =
+        // ws = the merge of ys and zs
+        // wa = are the ws strictly ascending?
+        (ws, yn+zn, wa):zss
+    when
+        ys = if yn>1 && ya~=ia && za==ia then reverse ys else ys;
+        zs = if yn>1 && ya==ia && za~=ia then reverse zs else zs;
+        wa = if yn==1 then ~za else if ya~=ia && za~=ia then ia else ~ia;
+        ws = merge wa ys zs [];
+    end;
+
+    merge _ us [] ws | merge _ [] us ws = revapp us ws;
+    merge wa (yy@(y:ys)) (zz@(z:zs)) ws =
+        if (y<z) == wa then
+            merge wa yy zs (z:ws)
+        else
+            merge wa ys zz (y:ws);
+end;
+
+// test
+// all id [ordered $ msort (data j 26) | i=1..300;j=2..8];
