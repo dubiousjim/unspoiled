@@ -1,10 +1,29 @@
 /* Generic 2-3-tree data structure for implementing sets, dictionaries,
-   and the like. */
+   and the like.
 
-/* NOTE: This module implements just the raw 2,3-tree data structure. The
+   NOTE: This module implements just the raw 2,3-tree data structure. The
    provided operations are fairly low-level and not intended to be used
    directly in applications. You'd rather want to use the high-level
-   interfaces in dict.pure and set.pure instead. */
+   interfaces in dict.pure and set.pure instead.
+
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   [Add explanation about licensing, or link to
+   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+
+   API and some portions from
+   http://code.google.com/p/pure-lang/source/browse/pure/lib/avltrees.pure
+   Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>
+   and (c) 2008-2012 by Jiri Spitz <jiri.spitz@bluetone.cz>.
+
+   Based on descriptions of AA-trees, which are binary emulations of
+   2-3-trees. See:
+   A. Andersson. Balanced search trees made simple. <http://user.it.uu.se/~arnea/abs/simp.html>
+   http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_andersson.aspx
+   http://thomaswilburn.net/typedefs/index.php/tree/aa/aa_trees.html
+   http://en.wikipedia.org/wiki/AA_tree
+   http://demakov.com/snippets/aatree.html
+*/
+
 
 namespace twothree;
 
@@ -233,8 +252,11 @@ public member memberk;
    and continue recursing. We only check whether the most recent
    candidate is itself >= k when we reach the bottom of the tree. This
    can spare us some (possibly-expensive) comparisons, at the expense of
-   perhaps recursing deeper in the tree than necessary. We flag that no
-   candidate match is presently available with `unavail`. */
+   perhaps recursing deeper in the tree than necessary.
+
+   This technique from http://user.it.uu.se/~arnea/abs/searchproc.html
+
+   We flag that no candidate match is presently available with `unavail`. */
 
 member t::tree old = mem old unavail t with
     mem old w nil = w~==unavail && (case cmp1 w old of
