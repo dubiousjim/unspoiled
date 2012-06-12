@@ -1758,7 +1758,7 @@ pop_left (tri nil y nil z nil) = triple (bin nil z nil) false y;
 
 pop_left cur = shrink_left pop_left cur;
 
-pop_right (bin nil x nil) = triple nil true w; // snag height at prev level
+pop_right (bin nil x nil) = triple nil true x; // snag height at prev level
 
 pop_right (tri nil y nil z nil) = triple (bin nil y nil) false z;
 
