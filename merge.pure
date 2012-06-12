@@ -1,30 +1,26 @@
-using math;
-rand n = random31 mod n;
-data top len = map (\i -> rand top,i) ("a".."a"+len-1);
+/*
+"Natural" or "adaptive" bottom-up merge sort.
 
-// We test with tuples, for which we provide a definition of <.
-// The second alphabetic element tracks where the tuple occurred in the
-// original list, so we can verify the stability of the sort.
-// < is blind to the presence of the alphabetic element.
-// We also define a >= which does take account of the alphabetic element.
-// This isn't used in the sort algorithm, but only when verifying whether
-// its results are stably sorted.
+Sort is stable, and has O(n log n) avg and worst-case behavior.
+Optimized to exploit existing runs of ascending/descending elements,
+to consume at most O(log n) levels of its working stack,
+and to be mostly tail-recursive, while minimizing how often
+sorted and merged runs need to be reversed.
 
-(a,_) < (b,_) = a < b;
-(b,j) >= (a,i) = b > a || (b==a && j >= i);
-sorted [] = true;
-sorted (b:bs) = aux b bs with
-    aux _ [] = true;
-    aux a (b:bs) = b >= a && aux b bs;
-end;
+Inspired by http://www.drmaciver.com/tag/timsort/.
 
-/* "Natural" or "adaptive" bottom-up merge sort
-   Exploits existing runs of ascending/descending elements.
-   Consumes at most O(log n) levels in zss stack.
-   Doesn't reverse already-sorted runs more than necessary.
-   Inspired by http://www.drmaciver.com/tag/timsort/.
+Copyright (c) 2012, Dubiousjim <dubiousjim@gmail.com>.
+See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
+
+This implementation operates only on lists, and requires < to be defined on
+their elements. It could easily be extended to permit the caller to supply an
+ordering relation, or to operate on other immutable structures.
 */
 
+
+// "reverse and append"
+// used in the definition of append but not (yet) exposed
+// in prelude.pure
 revapp [] base = base;
 revapp (x:xs) base = revapp xs (x:base);
 
@@ -56,6 +52,7 @@ msort (x:xs) = step xs x [] 1 (-1) true [] with
         (zs,zn,za):zss = mergen zs zn za (~ia) zss;
     end;
 
+    // won't be tail called
     merge1 ys yn ya ia ((zs,zn,za):zss) =
         // ws = the merge of ys and zs
         // wa = are the ws strictly ascending?
@@ -75,5 +72,29 @@ msort (x:xs) = step xs x [] 1 (-1) true [] with
             merge wa ys zz (y:ws);
 end;
 
-// test
-// all id [sorted $ msort (data j 26) | i=1..300;j=2..8];
+
+
+// We test with tuples, for which we provide a definition of <.
+// The second alphabetic element tracks where the tuple occurred in the
+// original list, so we can verify the stability of the sort.
+// < is blind to the presence of the alphabetic element.
+// We also define a >= which does take account of the alphabetic element.
+// This isn't used in the sort algorithm, but only when verifying whether
+// its results are stably sorted.
+
+(a,_) < (b,_) = a < b;
+(b,j) >= (a,i) = b > a || (b==a && j >= i);
+sorted [] = true;
+sorted (b:bs) = aux b bs with
+    aux _ [] = true;
+    aux a (b:bs) = b >= a && aux b bs;
+end;
+
+// generate random test tuples
+using math;
+rand n = random31 mod n;
+data top len = map (\i -> rand top,i) ("a".."a"+len-1);
+
+// To test:
+// > all id [sorted $ msort (data j 26) | i=1..300;j=2..8];
+// 1
