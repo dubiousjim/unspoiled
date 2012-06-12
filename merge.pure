@@ -53,16 +53,21 @@ msort (x:xs) = step xs x [] 1 (-1) true [] with
     end;
 
     // won't be tail called
-    merge1 ys yn ya ia ((zs,zn,za):zss) =
-        // ws = the merge of ys and zs
-        // wa = are the ws strictly ascending?
-        (ws, yn+zn, wa):zss
-    when
-        ys = if yn>1 && ya~=ia && za==ia then reverse ys else ys;
-        zs = if yn>1 && ya==ia && za~=ia then reverse zs else zs;
-        wa = if yn==1 then ~za else if ya~=ia && za~=ia then ia else ~ia;
-        ws = merge wa ys zs [];
-    end;
+    merge1 ys@(y:_) yn ya ia ((zs@(z:_),zn,za):zss) =
+        if ya && ~za && ~(y < z) then
+            (revapp ys zs, yn+zn, 0):zss
+        else if ~ya && za && (y < z) then
+            (revapp zs ys, yn+zn, 0):zss
+        else if yn == 1 then
+            (merge (~za) ys zs [], yn+zn, ~za):zss
+        else ((ws, yn+zn, wa):zss when
+            // ws = the merge of ys and zs
+            // wa = are the ws strictly ascending?
+            ys = if ya~=ia && za==ia then reverse ys else ys;
+            zs = if ya==ia && za~=ia then reverse zs else zs;
+            wa = if ya~=ia && za~=ia then ia else ~ia;
+            ws = merge wa ys zs [];
+        end);
 
     merge _ us [] ws | merge _ [] us ws = revapp us ws;
     merge wa (yy@(y:ys)) (zz@(z:zs)) ws =
