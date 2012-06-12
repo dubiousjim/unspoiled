@@ -2,10 +2,18 @@ using math;
 rand n = random31 mod n;
 data top len = map (\i -> rand top,i) ("a".."a"+len-1);
 
+// We test with tuples, for which we provide a definition of <.
+// The second alphabetic element tracks where the tuple occurred in the
+// original list, so we can verify the stability of the sort.
+// < is blind to the presence of the alphabetic element.
+// We also define a >= which does take account of the alphabetic element.
+// This isn't used in the sort algorithm, but only when verifying whether
+// its results are stably sorted.
+
 (a,_) < (b,_) = a < b;
 (b,j) >= (a,i) = b > a || (b==a && j >= i);
-ordered [] = true;
-ordered (b:bs) = aux b bs with
+sorted [] = true;
+sorted (b:bs) = aux b bs with
     aux _ [] = true;
     aux a (b:bs) = b >= a && aux b bs;
 end;
@@ -13,7 +21,7 @@ end;
 /* "Natural" or "adaptive" bottom-up merge sort
    Exploits existing runs of ascending/descending elements.
    Consumes at most O(log n) levels in zss stack.
-   Minimizes number of times already-sorted runs need to be reversed.
+   Doesn't reverse already-sorted runs more than necessary.
    Inspired by http://www.drmaciver.com/tag/timsort/.
 */
 
@@ -68,4 +76,4 @@ msort (x:xs) = step xs x [] 1 (-1) true [] with
 end;
 
 // test
-// all id [ordered $ msort (data j 26) | i=1..300;j=2..8];
+// all id [sorted $ msort (data j 26) | i=1..300;j=2..8];
