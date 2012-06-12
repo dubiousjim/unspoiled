@@ -1874,6 +1874,11 @@ map3 f [] [] [] base = base;
 map3 f (x:xs) (y:ys) (z:zs) base = f x y z : map3 f xs ys zs base;
 
 
+// I derived the following display code from someone else, and have since
+// ported it a number of times in my personal libraries. I *think* the
+// original source is this Scheme display code by Marc Feeley:
+// ftp://ftp.cs.indiana.edu/pub/scheme-repository/code/struct/tree.scm
+
 spaces n = string (repeatn n " ");
 
 center s width fill =
