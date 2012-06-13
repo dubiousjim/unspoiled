@@ -9,8 +9,7 @@ sorted and merged runs need to be reversed.
 Inspired by http://www.drmaciver.com/tag/timsort/.
 
 Sort is stable, and *should* have O(n log n) avg and worst-case behavior.
-
-However, currently this implementation is flawed. Empirical testing
+However, currently this implementation is flawed: empirical testing
 shows it to have O(n^2) avg time. Will continue looking into why.
 
 On avg, generates about 4 cells per list element. Takes about 10s to sort
@@ -30,9 +29,6 @@ lists. It could easily be extended to operate on other immutable structures.
 // in prelude.pure
 revapp [] base = base;
 revapp (x:xs) base = revapp xs (x:base);
-
-const CALLSTACK = 64; // we permit ourselves this many call stack levels,
-                      // so we can reverse lists less often
 
 msort _ [] = [];
 msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
@@ -66,28 +62,16 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             (revapp ys zs, yn+zn, 0):zss
         else if ~ya && za && (lt y z) then
             (revapp zs ys, yn+zn, 0):zss
-        else if zn > CALLSTACK || yn > CALLSTACK then
-            if yn == 1 then
-                (merge lt (~za) ys zs [], yn+zn, ~za):zss
-            else ((ws, yn+zn, wa):zss when
-                // ws = the merge of ys and zs
-                // wa = are the ws strictly ascending?
-                wa, ys, zs = if ya == za then ~za, ys, zs
-                             else if zn < yn then za, ys, reverse zs
-                             else ya, reverse ys, zs;
-                ws = merge lt wa ys zs [];
-            end)
-        else
-            // ys and zs are smaller than CALLSTACK,
-            // so we permit ourselves non-tail calls
-            if yn == 1 then
-                (merge2 lt za ys zs, yn+zn, za):zss
-            else ((ws, yn+zn, wa):zss when
-                wa, ys, zs = if ya == za then za, ys, zs
-                             else if zn < yn then ya, ys, reverse zs
-                             else za, reverse ys, zs;
-                ws = merge2 lt wa ys zs;
-            end);
+        else if yn == 1 then
+            (merge lt (~za) ys zs [], yn+zn, ~za):zss
+        else ((ws, yn+zn, wa):zss when
+            // ws = the merge of ys and zs
+            // wa = are the ws strictly ascending?
+            wa, ys, zs = if ya == za then ~za, ys, zs
+                         else if zn < yn then za, ys, reverse zs
+                         else ya, reverse ys, zs;
+            ws = merge lt wa ys zs [];
+        end);
 
     merge _ _ us [] ws | merge _ _ [] us ws = revapp us ws;
     merge lt wa (yy@(y:ys)) (zz@(z:zs)) ws =
@@ -95,14 +79,6 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             merge lt wa ys zz (y:ws)
         else
             merge lt wa yy zs (z:ws);
-
-    // non-tail call merge, avoids reversing small lists
-    merge2 _ _ us [] | merge2 _ _ [] us = us;
-    merge2 lt wa (yy@(y:ys)) (zz@(z:zs)) =
-        if (lt y z) == wa then
-            y:merge2 lt wa ys zz
-        else
-            z:merge2 lt wa yy zs;
 
 end;
 
