@@ -125,6 +125,8 @@ type even x::nat = ~odd x;
 odd x = typep odd x; // turns type tag into type predicate
 even x = typep even x; // could also do: `even = typep ('even)`, quoting needed to prevent looping
 
+
+// from http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogLookup
 namespace __C;
 %<
 extern int floorlog2 (unsigned int v) {
