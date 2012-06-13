@@ -9,10 +9,13 @@ sorted and merged runs need to be reversed.
 Inspired by http://www.drmaciver.com/tag/timsort/.
 
 Sort is stable, and has O(n log n) avg and worst-case behavior.
-Generates about 5 cells per list element, and takes about 30s to
-sort a list of 1 million ints. By comparison, the C-implemented
-sort is 12-20x faster, and generates about 2 cells per list element.
-(But the latter is not stable.)
+Is 5-10% faster on random data than the naive mergesort in
+pure/examples/sortalgos.pure; should be even faster on less random data.
+Generates about 5 cells per list element, and takes about 30s to sort a list of
+1 million ints.
+
+By comparison, the C-implemented sort (which uses qsort) is, although
+not stable, 12-20x faster; and generates about 2 cells per list element.
 
 Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
