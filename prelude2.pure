@@ -42,6 +42,7 @@ def either3 e default = either3 e with
     either nothing = default;
 end;
 
+def assert condition fmt args = if condition === 0 then throw (sprintf ("assertion failed: "+fmt) args) else condition;
 
 public member;
 public reverse_onto map_onto zip_onto zip3_onto;
