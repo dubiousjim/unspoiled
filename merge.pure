@@ -14,7 +14,8 @@ shows it to have O(n^2) avg time. Will continue looking into why.
 
 On avg, generates about 4 cells per list element. Takes about 10s to sort
 10k elements. By comparison, the C-implemented sort takes .01s and generates
-about 2 cells per list element.
+about 2 cells per list element. (If I could reduce time from O(n^2)
+to O(n log n), they should therefore be comparable.)
 
 Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
