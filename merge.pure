@@ -22,6 +22,10 @@ See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
 
 This implementation accepts (<) as its first argument, and operates only on
 lists. It could easily be extended to operate on other immutable structures.
+
+Supplying (<=) as the comparison predicate will reverse-stably sort: that is,
+of elements that are mutually <=, the later-occurring one will occur earlier in
+the result. This may sometimes be useful.
 */
 
 
