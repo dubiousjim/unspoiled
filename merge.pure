@@ -1,7 +1,6 @@
 /*
 "Natural" or "adaptive" bottom-up merge sort.
 
-Sort is stable, and has O(n log n) avg and worst-case behavior.
 Optimized to exploit existing runs of ascending/descending elements,
 to consume at most O(log n) levels of its working stack,
 and to be mostly tail-recursive, while minimizing how often
@@ -9,12 +8,20 @@ sorted and merged runs need to be reversed.
 
 Inspired by http://www.drmaciver.com/tag/timsort/.
 
+Sort is stable, and *should* have O(n log n) avg and worst-case behavior.
+
+However, currently this implementation is flawed. Empirical testing
+shows it to have O(n^2) avg time. Will continue looking into why.
+
+On avg, generates about 4 cells per list element. Takes about 10s to sort
+10k elements. By comparison, the C-implemented sort takes .01s and generates
+about 2 cells per list element.
+
 Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
 
-This implementation operates only on lists, and requires < to be defined on
-their elements. It could easily be extended to permit the caller to supply an
-ordering relation, or to operate on other immutable structures.
+This implementation accepts (<) as its first argument, and operates only on
+lists. It could easily be extended to operate on other immutable structures.
 */
 
 
@@ -24,57 +31,79 @@ ordering relation, or to operate on other immutable structures.
 revapp [] base = base;
 revapp (x:xs) base = revapp xs (x:base);
 
-msort [] = [];
-msort (x:xs) = step xs x [] 1 (-1) true [] with
+const CALLSTACK = 64; // we permit ourselves this many call stack levels,
+                      // so we can reverse lists less often
+
+msort _ [] = [];
+msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
     // ya = are these ys strictly ascending?
-    // ia = would these ys "ideally" be strictly ascending?
-    step (x:xs) y ys 1 _ ia zss
-        = step xs x (y:ys) 2 (x<y) ia zss;
-    step (x:xs) y ys yn ya ia zss
-        = step xs x (y:ys) (succ yn) ya ia zss if (x<y) == ya;
-    step (x:xs) y ys yn ya ia zss = case zss of
+    step lt (x:xs) y ys 1 _ zss
+        = step lt xs x (y:ys) 2 (lt x y) zss;
+    step lt (x:xs) y ys yn ya zss
+        = step lt xs x (y:ys) (succ yn) ya zss if (lt x y) == ya;
+    step lt (x:xs) y ys yn ya zss = case zss of
         // to keep the zss stack small, we merge ys with its top layer
         // whenever #ys > half the size of the top zs
-        (_,zn,_):_ = step xs x [] 1 (-1)
-                     (~ia) (merge1 (y:ys) yn ya ia zss) if yn*2 > zn;
+        (_,zn,_):_ = step lt xs x [] 1 (-1)
+                     (merge1 lt (y:ys) yn ya zss) if yn*2 > zn;
         // else just push these ys onto zss
-        // next set of ys will "ideally" be in the reverse order
-        zss = step xs x [] 1 (-1) (~ia) ((y:ys,yn,ya):zss);
+        zss = step lt xs x [] 1 (-1) ((y:ys,yn,ya):zss);
     end;
     // we've finished stepping through original list
     // note: at this point yn can be 1
-    step [] y ys yn ya ia zss = mergen (y:ys) yn ya ia zss;
+    step lt [] y ys yn ya zss = mergen lt (y:ys) yn ya zss;
 
     // now keep merge1-ing until zss stack is empty
     // when done, if final ys aren't strictly ascending, reverse them
-    mergen ys _ ya ia [] = if ya then ys else reverse ys;
-    mergen ys yn ya ia zss = case merge1 ys yn ya ia zss of
-        (zs,zn,za):zss = mergen zs zn za (~ia) zss;
+    mergen _ ys _ ya [] = if ya then ys else reverse ys;
+    mergen lt ys yn ya zss = case merge1 lt ys yn ya zss of
+        (zs,zn,za):zss = mergen lt zs zn za zss;
     end;
 
     // won't be tail called
-    merge1 ys@(y:_) yn ya ia ((zs@(z:_),zn,za):zss) =
-        if ya && ~za && ~(y < z) then
+    merge1 lt ys@(y:_) yn ya ((zs@(z:_),zn,za):zss) =
+        if ya && ~za && ~(lt y z) then
             (revapp ys zs, yn+zn, 0):zss
-        else if ~ya && za && (y < z) then
+        else if ~ya && za && (lt y z) then
             (revapp zs ys, yn+zn, 0):zss
-        else if yn == 1 then
-            (merge (~za) ys zs [], yn+zn, ~za):zss
-        else ((ws, yn+zn, wa):zss when
-            // ws = the merge of ys and zs
-            // wa = are the ws strictly ascending?
-            ys = if ya~=ia && za==ia then reverse ys else ys;
-            zs = if ya==ia && za~=ia then reverse zs else zs;
-            wa = if ya~=ia && za~=ia then ia else ~ia;
-            ws = merge wa ys zs [];
-        end);
-
-    merge _ us [] ws | merge _ [] us ws = revapp us ws;
-    merge wa (yy@(y:ys)) (zz@(z:zs)) ws =
-        if (y<z) == wa then
-            merge wa yy zs (z:ws)
+        else if zn > CALLSTACK || yn > CALLSTACK then
+            if yn == 1 then
+                (merge lt (~za) ys zs [], yn+zn, ~za):zss
+            else ((ws, yn+zn, wa):zss when
+                // ws = the merge of ys and zs
+                // wa = are the ws strictly ascending?
+                wa, ys, zs = if ya == za then ~za, ys, zs
+                             else if zn < yn then za, ys, reverse zs
+                             else ya, reverse ys, zs;
+                ws = merge lt wa ys zs [];
+            end)
         else
-            merge wa ys zz (y:ws);
+            // ys and zs are smaller than CALLSTACK,
+            // so we permit ourselves non-tail calls
+            if yn == 1 then
+                (merge2 lt za ys zs, yn+zn, za):zss
+            else ((ws, yn+zn, wa):zss when
+                wa, ys, zs = if ya == za then za, ys, zs
+                             else if zn < yn then ya, ys, reverse zs
+                             else za, reverse ys, zs;
+                ws = merge2 lt wa ys zs;
+            end);
+
+    merge _ _ us [] ws | merge _ _ [] us ws = revapp us ws;
+    merge lt wa (yy@(y:ys)) (zz@(z:zs)) ws =
+        if (lt y z) ~= wa then
+            merge lt wa ys zz (y:ws)
+        else
+            merge lt wa yy zs (z:ws);
+
+    // non-tail call merge, avoids reversing small lists
+    merge2 _ _ us [] | merge2 _ _ [] us = us;
+    merge2 lt wa (yy@(y:ys)) (zz@(z:zs)) =
+        if (lt y z) == wa then
+            y:merge2 lt wa ys zz
+        else
+            z:merge2 lt wa yy zs;
+
 end;
 
 
@@ -101,5 +130,5 @@ rand n = random31 mod n;
 data top len = map (\i -> rand top,i) ("a".."a"+len-1);
 
 // To test:
-// > all id [sorted $ msort (data j 26) | i=1..300;j=2..8];
+// > all id [sorted $ msort (<) (data j 26) | i=1..300;j=2..8];
 // 1
