@@ -46,6 +46,7 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
     // note: at this point yn,ya may still be 1,-1
     step lt [] y ys yn ya zss = case merge1 lt (y:ys) 0 ya zss of
         [(ys,0,ya)] = if ya then ys else reverse ys;
+        0 = if ya then y:ys else reverse (y:ys);
     end;
 
     merge1 lt ys yn ya [] = 0;
