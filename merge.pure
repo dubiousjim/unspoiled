@@ -10,12 +10,12 @@ Inspired by http://www.drmaciver.com/tag/timsort/.
 
 Sort is stable, and has O(n log n) avg and worst-case behavior.
 Is 5-10% faster on random data than the naive mergesort in
-pure/examples/sortalgos.pure; should be even faster on less random data.
-Generates about 5 cells per list element, and takes about 30s to sort a list of
-1 million ints.
+pure/examples/sortalgos.pure; and should be even faster on less random data.
+Also it won't overflow your stack. It generates about 5 cells per list element,
+and takes about 30s to sort a list of 1 million ints.
 
 By comparison, the C-implemented sort (which uses qsort) is, although
-not stable, 12-20x faster; and generates about 2 cells per list element.
+not stable, 8-20x faster; and generates about 2 cells per list element.
 
 Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
@@ -43,7 +43,7 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
         zss = step lt xs x [] 1 (-1) zss; // we merged ys with top layer of zss
     end;
     // we've finished stepping through original list
-    // note: at this point yn can be 1
+    // note: at this point yn,ya may still be 1,-1
     step lt [] y ys yn ya zss = case merge1 lt (y:ys) 0 ya zss of
         [(ys,0,ya)] = if ya then ys else reverse ys;
     end;
