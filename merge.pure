@@ -8,14 +8,11 @@ sorted and merged runs need to be reversed.
 
 Inspired by http://www.drmaciver.com/tag/timsort/.
 
-Sort is stable, and *should* have O(n log n) avg and worst-case behavior.
-However, currently this implementation is flawed: empirical testing
-shows it to have O(n^2) avg time. Will continue looking into why.
-
-On avg, generates about 4 cells per list element. Takes about 10s to sort
-10k elements. By comparison, the C-implemented sort takes .01s and generates
-about 2 cells per list element. (If I could reduce time from O(n^2)
-to O(n log n), they should therefore be comparable.)
+Sort is stable, and has O(n log n) avg and worst-case behavior.
+Generates about 5 cells per list element, and takes about 30s to
+sort a list of 1 million ints. By comparison, the C-implemented
+sort is 12-20x faster, and generates about 2 cells per list element.
+(But the latter is not stable.)
 
 Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 See license at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
@@ -38,41 +35,41 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
         = step lt xs x (y:ys) 2 (lt x y) zss;
     step lt (x:xs) y ys yn ya zss
         = step lt xs x (y:ys) (succ yn) ya zss if (lt x y) == ya;
-    step lt (x:xs) y ys yn ya zss = case zss of
-        // to keep the zss stack small, we merge ys with its top layer
-        // whenever #ys > half the size of the top zs
-        (_,zn,_):_ = step lt xs x [] 1 (-1)
-                     (merge1 lt (y:ys) yn ya zss) if yn*2 > zn;
-        // else just push these ys onto zss
-        zss = step lt xs x [] 1 (-1) ((y:ys,yn,ya):zss);
+    step lt (x:xs) y ys yn ya zss = case merge1 lt (y:ys) yn ya zss of
+        0 = step lt xs x [] 1 (-1) ((y:ys,yn,ya):zss);
+        zss = step lt xs x [] 1 (-1) zss; // we merged ys with top layer of zss
     end;
     // we've finished stepping through original list
     // note: at this point yn can be 1
-    step lt [] y ys yn ya zss = mergen lt (y:ys) yn ya zss;
-
-    // now keep merge1-ing until zss stack is empty
-    // when done, if final ys aren't strictly ascending, reverse them
-    mergen _ ys _ ya [] = if ya then ys else reverse ys;
-    mergen lt ys yn ya zss = case merge1 lt ys yn ya zss of
-        (zs,zn,za):zss = mergen lt zs zn za zss;
+    step lt [] y ys yn ya zss = case merge1 lt (y:ys) 0 ya zss of
+        [(ys,0,ya)] = if ya then ys else reverse ys;
     end;
 
-    // won't be tail called
+    merge1 lt ys yn ya [] = 0;
     merge1 lt ys@(y:_) yn ya ((zs@(z:_),zn,za):zss) =
-        if ya && ~za && ~(lt y z) then
-            (revapp ys zs, yn+zn, 0):zss
-        else if ~ya && za && (lt y z) then
-            (revapp zs ys, yn+zn, 0):zss
-        else if yn == 1 then
-            (merge lt (~za) ys zs [], yn+zn, ~za):zss
-        else ((ws, yn+zn, wa):zss when
-            // ws = the merge of ys and zs
-            // wa = are the ws strictly ascending?
-            wa, ys, zs = if ya == za then ~za, ys, zs
-                         else if zn < yn then za, ys, reverse zs
-                         else ya, reverse ys, zs;
-            ws = merge lt wa ys zs [];
-        end);
+        // yn = 0 forces collapse of stack
+        if yn > 0 && yn*2 <= zn then 0
+        else (
+            // merge ys with top layer of zss
+            // then check if we need to merge further
+            if more === 0 then (ws,wn,wa):zss else more
+            when
+                wn = if yn > 0 then yn + zn else yn;
+                ws, wa = if ya && ~za && ~(lt y z) then
+                            revapp ys zs, 0
+                         else if ~ya && za && (lt y z) then
+                            revapp zs ys, 0
+                         else if ya < 0 then
+                            // ys has only one member
+                            merge lt (~za) ys zs [], ~za
+                         else case (if ya == za then ~za, ys, zs
+                                    else if zn < yn then za, ys, reverse zs
+                                    else ya, reverse ys, zs) of
+                                wa, ys, zs = merge lt wa ys zs [], wa;
+                         end;
+                more = merge1 lt ws wn wa zss;
+            end
+        );
 
     merge _ _ us [] ws | merge _ _ [] us ws = revapp us ws;
     merge lt wa (yy@(y:ys)) (zz@(z:zs)) ws =
