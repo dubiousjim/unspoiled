@@ -1,14 +1,12 @@
-/* declare as constants for pattern-matching */
+/*
+ Dubiousjim's prelude2
+*/
+
+// permit pattern-matching on these
 nonfix false true NULL inf nan;
 
-
-public nothing single pair triple quad fst snd trd;
-nonfix nothing;
-
-type maybe (single _) | maybe (pair _ _)
-    | maybe (triple _ _ _) | maybe (quad _ _ _ _) = 1;
-type maybe nothing = 1;
-// implicitly excludes everything else
+public single pair triple quad fst snd trd;
+// we use the existing () nonfix for `nothing`
 
 fst (single x) = x;
 fst (pair x _) = x;
@@ -20,29 +18,40 @@ snd (quad _ x _ _) = x;
 trd (triple _ _ x) = x;
 trd (quad _ _ x _) = x;
 
-// these are short-circuiting
+// not sure how useful this type will be, since generally a caller will expect
+// only some of the sizes
+type maybe () | maybe (single _) | maybe (pair _ _)
+   | maybe (triple _ _ _) | maybe (quad _ _ _ _) = 1;
+// implicitly excludes everything else
+
+// defined only on (long-enough) maybes
+// extract the 1st, 2nd, or 3rd elements, or use default if ()
+// these are macros so that the default position can be short-circuited
 def either e default = either e with
     either (single x) = x;
     either (pair x _) = x;
     either (triple x _ _) = x;
     either (quad x _ _ _) = x;
-    either nothing = default;
+    either () = default;
 end;
 
 def either2 e default = either2 e with
     either2 (pair _ x) = x;
     either2 (triple _ x _) = x;
     either2 (quad _ x _ _) = x;
-    either nothing = default;
+    either2 () = default;
 end;
 
 def either3 e default = either3 e with
     either3 (triple _ _ x) = x;
     either3 (quad _ _ x _) = x;
-    either nothing = default;
+    either3 () = default;
 end;
 
-def assert condition fmt args = if condition === 0 then throw (sprintf ("assertion failed: "+fmt) args) else condition;
+def assert condition fmt args
+    = if condition === 0 then throw (sprintf ("assertion failed: "+fmt) args)
+      else condition;
+
 
 public member;
 public reverse_onto map_onto zip_onto zip3_onto;
