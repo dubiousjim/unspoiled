@@ -6,7 +6,41 @@
 nonfix false true NULL inf nan;
 
 public single pair triple quad fst snd trd;
-// we use the existing () nonfix for `nothing`
+/*
+  Using the existing () nonfix for `nothing`.
+
+  I'm now tempted to just use '{x}, '{x,y} etc for single x, pair x y.
+  One downside: currently pattern-matching on {} crashes
+                have to use `m::matrix = ... if null m` instead
+  Another: should the nothing be {}---which would be continuous with '{x} and so on?
+           or should it be ()---the result of void and so on?  <=====
+  Another: printf and friends expect their argv sequences as tuples   <=====
+           anything else in the stdlibs?
+  Another: '{M,N} is a bit slower than pair M N
+  Also:  you probably want the M and N expressions to be evaluated first
+         as Albert's (: :) suggestion does:
+              outfix (: :);
+              x,(:y:) = '(x,y);
+              (:x:),y = '(x,y);
+            This works surpringly well:
+              > 1,(:2,3:),4;
+              1,(2,3),4
+              > 1,(:2,(:3,4,5:),6:),7;
+              1,(2,(3,4,5),6),7
+            Of course, you still don't have any real 1-tuples:
+              > 1,(:2:),3;
+              1,2,3
+            Which, as I explained earlier, implies that you can't have any nested
+            tuples in the last component either:
+              > 1,(:2,3:);
+              1,2,3
+        Use something like:
+            (: x :) = '{x} when x = x end;
+            (: x,y :) = ...
+  Why '{x,y} is any better than '(x,y)?
+     we have a nesting single: {x} ~= x, '{{x}} ~= {x}
+     contiguously allocated
+*/
 
 fst (single x) = x;
 fst (pair x _) = x;
