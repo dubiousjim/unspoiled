@@ -1,3 +1,107 @@
+/*
+ ML-style functors (module-constructors) in Pure
+
+ Here is some OCaml:
+
+    module type COMPARABLE = sig
+        type t
+        val (<) : t -> t -> bool
+    end;;
+
+    module type SET = sig
+        type element
+        type set
+        val empty : set
+        val insert : set -> element -> set
+        val member : set -> element -> bool
+    end;;
+
+    module MakeSet = functor(Elt: COMPARABLE) -> struct
+      type element = Elt.t
+      type set = element list
+      let empty = []
+      let rec insert s x = match s with
+            | [] -> [x]
+            | y::ys -> if Elt.(<) x y then x :: s (* x is smaller than every y *)
+                       else if Elt.(<) y x then y :: insert ys x
+                       else s (* x is already in s *)
+      let rec member s x = match s with
+            | [] -> false
+            | y::ys -> if Elt.(<) x y then false (* x is smaller than every y *)
+                       else if Elt.(<) y x then member ys x
+                       else true
+    end : SET with type element = Elt.t;;
+
+
+    (* here is a case-sensitive set of strings *)
+    module PlainStrings = struct
+        type t = string
+        let (<) x y = x < y
+    end;;
+    module StringSet = MakeSet (PlainStrings);;
+    StringSet.member "bar" (StringSet.add "Bar" StringSet.empty);;
+    (* result is: false *)
+
+    (* here is a case-insensitive set of strings *)
+    module CaselessStrings = struct
+        type t = string
+        let (<) x y = (String.lowercase x) < (String.lowercase y)
+    end;;
+    module CaselessStringSet = MakeSet (CaselessStrings);;
+    CaselessStringSet.member "bar" (CaselessStringSet.add "Bar" CaselessStringSet.empty);;
+    (* result is: true *)
+
+ (This ability to parameterize on a single type in multiple ways is an
+ advantage that ML-style functors have over Haskell's typeclasses.)
+
+
+ Here's how to do the same in Pure
+ ---------------------------------
+ // OCaml's sig/module type corresponds to Pure interfaces
+ // OCaml's struct/module corresponds to Pure namespaces
+
+ interface Comparable with
+    x::Comparable < y::Comparable;
+ end;
+
+ functor MakeSet(t=>Comparable with
+    // the following use type t and function (<) from the namespace
+    // they're parameterized on
+    empty = []; // unfortunately const and let don't work here
+    insert [] x::t = [x];
+    insert (y:ys) x::t = x:y:ys if x < y;
+                       = y:insert ys x otherwise;
+    member [] x::t = false;
+    member (y:ys) x::t = member ys x if y < x;
+                       = ~(x < y) otherwise;
+ end);
+
+ namespace PlainStrings with
+    type t = string;
+ end;
+
+ namespace CaselessStrings with
+    type t = string;
+    extern char tolower(char);
+    private lowercase;
+    lowercase s = foldl1 (+) $ map (\c -> chr $ tolower $ ord c) s;
+    infix (::<) <;
+    x < y = lowercase x ::< lowercase y;
+ end;
+
+ MakeSet StringSet PlainStrings; // evaluates to:
+        // namespace StringSet with
+        //   type t v = typep Comparable v && typep PlainStrings::t v;
+        //   using namespace PlainStrings;
+        //   insert [] x::t = [x];
+        //   ...
+        // end;
+ MakeSet CaselessStringSet CaselessStrings;
+
+ StringSet::member (StringSet::insert StringSet::empty "Bar") "bar" // false
+ CaselessStringSet::member (CaselessStringSet::insert CaselessStringSet::empty "Bar") "bar" // true
+*/
+
 #! --quoteargs functor
 def functor name::var (ts __with__ body) = eval m when
     type_decls = types ts;
@@ -9,36 +113,3 @@ end with
     types (t@(_=>_)),ts = type1 t : types ts;
     types t@(_=>_) = [type1 t];
 end;
-
-
-// Use like this:
-interface comparable with
-    x::comparable < y::comparable;
-end;
-
-namespace intsub with
-    type t = int;
-    lt = (<);
-end;
-
-functor makeset (t=>comparable, () with
-    ins1 [] (x::t) = [x];
-    ins1 (y:ys) (x::t) = x:y:ys if lt x y;
-                       = y:ins1 ys x otherwise;
-    mem1 [] (x::t) = 0;
-    mem1 (y:ys) (x::t) = mem1 ys x if lt y x;
-                       = ~(lt x y) otherwise;
-end);
-
-makeset intset intsub;
-/*  // will eval:
-    namespace intset with
-        type t v = typep comparable v && typep intsub::t v;
-        using namespace intsub;
-        ins1 [] (x::t) = [x];
-        ...
-    end;
-*/
-
-using namespace intset;
-let x = ins1 [] 1;
