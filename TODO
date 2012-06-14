@@ -1,5 +1,9 @@
-Optimizations that might be added/removed from twotrees.pure
+Optimizations that might be added/removed from twothrees.pure
 ------------------------------------------------------------
+
+(Some of these comments refer to earlier in-progress versions of twothree.pure.
+The issues they describe are still relevant, but what they say about how that file "currently" looks are out-of-date.)
+
 
 1. Can we get a C version of strcmp that pins its results to -1,0,1?
 At least on FreeBSD's libc, the return value can be any byte.
