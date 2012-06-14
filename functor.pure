@@ -62,6 +62,13 @@
 
  interface Comparable with
     x::Comparable < y::Comparable;
+    // The way I'm using interfaces is broken!
+    // I wanted this to be a pattern that different implementations of (<) might satisfy
+    // but instead the interface declaration seems to interpret (<) statically:
+    //   interface Comparable with x::Comparable < y::Comparable; end;
+    //   namespace I with type t (pair _ _::string) = 1; infix (::<) <; (pair _ x) < (pair _ y) = x ::< y; end;
+    //   using namespace I;
+    //   typep Comparable (pair 1 "J"); // want this to be true, but instead it's false
  end;
 
  functor MakeSet(t=>Comparable with
