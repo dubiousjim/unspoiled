@@ -1,0 +1,44 @@
+#! --quoteargs functor
+def functor name::var (ts __with__ body) = eval m when
+    type_decls = types ts;
+    body = __str__ $ '(0 __with__ body);
+    n = sprintf "namespace %%s with %s using namespace %%s; %s; end;" (join " " type_decls, body!!(7..#body-5));
+    m = sprintf "def %s M::var S::var = eval (sprintf %s (str M, %s, str S));" (str name, str n, join ", " (repeatn (#type_decls) "str S"));
+end with
+    type1 (t=>iface) = sprintf "type %s v = typep %s v && typep %%s::%s v;" (str t, str iface, str t);
+    types (t@(_=>_)),ts = type1 t : types ts;
+    types t@(_=>_) = [type1 t];
+end;
+
+
+// Use like this:
+interface comparable with
+    x::comparable < y::comparable;
+end;
+
+namespace intsub with
+    type t = int;
+    lt = (<);
+end;
+
+functor makeset (t=>comparable, () with
+    ins1 [] (x::t) = [x];
+    ins1 (y:ys) (x::t) = x:y:ys if lt x y;
+                       = y:ins1 ys x otherwise;
+    mem1 [] (x::t) = 0;
+    mem1 (y:ys) (x::t) = mem1 ys x if lt y x;
+                       = ~(lt x y) otherwise;
+end);
+
+makeset intset intsub;
+/*  // will eval:
+    namespace intset with
+        type t v = typep comparable v && typep intsub::t v;
+        using namespace intsub;
+        ins1 [] (x::t) = [x];
+        ...
+    end;
+*/
+
+using namespace intset;
+let x = ins1 [] 1;
