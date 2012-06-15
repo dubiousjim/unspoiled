@@ -53,7 +53,7 @@ private bin tri;
 
 /* Private helper functions. */
 
-private head2, head3;
+private head2 head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
