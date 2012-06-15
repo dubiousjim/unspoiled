@@ -53,7 +53,7 @@ private bin tri;
 
 /* Private helper functions. */
 
-private fst;
+private head2, head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
@@ -151,9 +151,9 @@ end;
 
 // Remove the first and the last member from a tree.
 
-rmfirst t::fulltree = fst3 $ pop_left t;
+rmfirst t::fulltree = head3 $ pop_left t;
 
-rmlast t::fulltree = fst3 $ pop_right t;
+rmlast t::fulltree = head3 $ pop_right t;
 
 // Note that popped element may be () or a longer tuple.
 
@@ -212,9 +212,9 @@ mlast t::fulltree = last t with
     last (tri _ _ _ _ r) = last r;
 end;
 
-mrmfirst t::fulltree = fst3 $ mpop_left t;
+mrmfirst t::fulltree = head3 $ mpop_left t;
 
-mrmlast t::fulltree = fst3 $ mpop_right t;
+mrmlast t::fulltree = head3 $ mpop_right t;
 
 // Note that popped element may be () or a longer tuple.
 
@@ -568,7 +568,7 @@ end;
 
 public insert insertk;
 
-insert t::tree new = catch handle (fst $ ins new t) with
+insert t::tree new = catch handle (head2 $ ins new t) with
     handle abort = t;
     handle e = throw e;
     ins new nil = (bin nil new nil) true; // bump height at prev level
@@ -603,7 +603,7 @@ insert t::tree new = catch handle (fst $ ins new t) with
     end;
 end;
 
-insertk t::tree new@(k=>v) = catch handle (fst $ ins k v new t) with
+insertk t::tree new@(k=>v) = catch handle (head2 $ ins k v new t) with
     handle abort = t;
     handle e = throw e;
     ins k v new nil = (bin nil new nil) true; // bump height at prev level
@@ -643,7 +643,7 @@ end;
 
 public delete deletek deletekv popk;
 
-delete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
+delete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
     pop _ nil = throw abort;
@@ -672,7 +672,7 @@ delete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
     end;
 end;
 
-deletek t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
+deletek t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
     pop k nil = throw abort;
@@ -734,7 +734,7 @@ end;
 
 // Delete one specific key=>val pair.
 
-deletekv t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
+deletekv t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop k v nil = throw abort;
@@ -771,7 +771,7 @@ end;
 
 public minsert minsertk;
 
-minsert t::tree new = fst $ ins new t with
+minsert t::tree new = head2 $ ins new t with
     ins new nil = (bin nil (new=>[new]) nil) true; // bump height at prev level
     ins new (bin l1 x1@(xk=>xs) r1) = case cmp new xk of
       res::int
@@ -804,7 +804,7 @@ minsert t::tree new = fst $ ins new t with
     end;
 end;
 
-minsertk t::tree new@(k=>_) = fst $ ins k new t with
+minsertk t::tree new@(k=>_) = head2 $ ins k new t with
     ins k new nil = (bin nil (k=>[new]) nil) true; // bump height at prev level
     ins k new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
       res::int
@@ -839,7 +839,7 @@ end;
 
 public mdelete mdeleteko mdeletekn mdeletekvo mdeletekvn mpopko mpopkn;
 
-mdelete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
+mdelete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     // If elements are discernable but still EQ, note:
@@ -880,7 +880,7 @@ mdelete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
     end;
 end;
 
-mdeleteko t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
+mdeleteko t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del [u] vs = u:reverse vs;
@@ -962,7 +962,7 @@ end with
     end;
 end;
 
-mdeletekvo t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
+mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -1003,7 +1003,7 @@ mdeletekvo t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ wi
     end;
 end;
 
-mdeletekn t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
+mdeletekn t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop k nil = throw abort;
@@ -1081,7 +1081,7 @@ end with
     end;
 end;
 
-mdeletekvn t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
+mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del v _ [] = throw abort; // (k=>v) not found
@@ -1141,7 +1141,7 @@ mdeleteka t k = mdeletea t k;
 
 public hinsert hinsertk;
 
-hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
+hinsert t::tree new = catch handle (head2 $ ins (hash new) new t) with
     handle abort = t;
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less presure on GC
@@ -1179,7 +1179,7 @@ hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
     end;
 end;
 
-hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
+hinsertk t::tree new@(k=>_) = catch handle (head2 $ ins (hash k) new t) with
     handle abort = t;
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less pressure on GC
@@ -1222,7 +1222,7 @@ end;
 
 public hdelete hdeletek hdeletekv hpopk;
 
-hdelete t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ */ with
+hdelete t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1263,7 +1263,7 @@ hdelete t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ 
     end;
 end;
 
-hdeletek t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
+hdeletek t::tree k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1347,7 +1347,7 @@ end with
     end;
 end;
 
-hdeletekv t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
+hdeletekv t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1393,7 +1393,7 @@ end;
 
 public mhinsert mhinsertk;
 
-mhinsert t::tree new = fst $ ins (hash new) new t with
+mhinsert t::tree new = head2 $ ins (hash new) new t with
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -1426,7 +1426,7 @@ mhinsert t::tree new = fst $ ins (hash new) new t with
     end;
 end;
 
-mhinsertk t::tree new@(k=>_) = fst $ ins (hash k) new t with
+mhinsertk t::tree new@(k=>_) = head2 $ ins (hash k) new t with
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
@@ -1470,7 +1470,7 @@ mhdelete        t old = hdelete   t old;
 mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
-mhdeletekvn t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvn t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1513,7 +1513,7 @@ end;
 
 // The mh*o functions pop the last (oldest) match.
 
-mhdeleteko t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
+mhdeleteko t::tree k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -1599,7 +1599,7 @@ end with
     end;
 end;
 
-mhdeletekvo t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvo t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -1648,7 +1648,7 @@ mhdeletekv t old = mhdeletekvo t old;
 
 public mhdeletea mhdeleteka;
 
-mhdeletea t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ */ with
+mhdeletea t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop h::int old nil = throw abort;
@@ -1686,7 +1686,7 @@ mhdeletea t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, 
     end;
 end;
 
-mhdeleteka t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
+mhdeleteka t::tree k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop h::int k nil = throw abort;
@@ -1843,10 +1843,10 @@ eq u v = case u==v of res::int = res; _ = u===v end;
 
 
 // extract head from ins pairs
-fst (t@_ _) = t;
+head2 (t@_ _) = t;
 
 // extract head from the pop/shrink triples
-fst3 (t@_ _ _) = t;
+head3 (t@_ _ _) = t;
 
 // reverse with explicit base
 
