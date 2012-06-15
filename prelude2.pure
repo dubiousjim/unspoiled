@@ -51,10 +51,13 @@ end;
 
 
 // accepts non-int conditions
+// note that msg is supplied by name, so it can be e.g. (sprintf fmt args...)
+// and won't be invoked until the assertion fails
 using system;
-def assert condition fmt args
-    = if condition === 0 then throw (sprintf ("assertion failed: "+fmt) args)
-      else condition;
+nonfix failed_assert;
+def assert condition msg
+    = if c === 0 then throw (failed_assert (msg)) else c
+      when c = condition end;
 
 
 public member;
