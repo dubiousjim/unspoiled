@@ -28,23 +28,8 @@ nonfix false true NULL inf nan;
     [1,2,3] is 9 cells
 */
 
-namespace __aux__ with
-    def __vector__ v (x,xs) = __vector__ {v,'{x}} xs when x=x end;
-    def __vector__ v x = {v,'{x}} when x=x end;
-end;
-def __vector__ xs = __aux__::__vector__ {} xs;
-/*
-namespace __aux__ with
-    def __vector__ v [] = v;
-    def __vector__ v (x:xs) = __vector__ {v,'{x}} xs when x=x end;
-end;
-def __vector__ xs = __aux__::__vector__ {} (__list__ xs);
-*/
-
-// non-splicing vector constructor
-nonfix {||}; def {||} = {}; // note that {| |} won't be accepted
-outfix {| |}; def {| xs |} = __vector__ xs;
-
+using lists;
+using nonsplicing;
 
 public either either2 either3;
 // contrast: e || alt, which requires e to be an int
