@@ -28,24 +28,38 @@ nonfix false true NULL inf nan;
     [1,2,3] is 9 cells
 */
 
+// non-splicing vector constructor
+outfix {: :};
+#! --quoteargs __aux__::__vector__
+namespace __aux__ with
+    def __vector__ v [] = v;
+    def __vector__ (v __when__ bs) (x:xs) = __vector__ ({v,'{y}} __when__ ((y-->x):bs)) xs when y=x end;
+end;
+def {: x,xs :} = __aux__::__vector__ ('{x} when x=x end) $ __list__ xs;
+def {: x :} = '{x} when x=x end;
+
+
 public either either2 either3;
-// combines unboxing and short-circuiting of alternate argument
-// contrast: e || default, which requires e to be an int
-// and: e ~== 0 || default, which coerces e to 0 or 1
-// `either` expects e to be boxed in a vector (see also assert, below)
+// contrast: e || alt, which requires e to be an int
+// and: e ~== 0 || alt, which coerces e to 0 or 1
+// infixr (||) |||
+// def exp ||| alt = if c === 0 then alt else c when c = exp end;
+
+// `either` expects e to be boxed in a vector
+// combines unboxing and short-circuiting of alternate
 // all of these are defined only on (long-enough) vectors and {}
-def either e default = fst e with
-    fst v::matrix = default if null v;
+def either e alt = fst e with
+    fst v::matrix = alt if null v;
                   = v!0;
 end;
 
-def either2 e default = snd e with
-    snd v::matrix = default if null v;
+def either2 e alt = snd e with
+    snd v::matrix = alt if null v;
                   = v!1 if #v >= 2;
 end;
 
-def either3 e default = trd e with
-    trd v::matrix = default if null v;
+def either3 e alt = trd e with
+    trd v::matrix = alt if null v;
                   = v!2 if #v >= 3;
 end;
 
@@ -55,9 +69,17 @@ end;
 // and won't be invoked until the assertion fails
 using system;
 nonfix failed_assert;
-def assert condition msg
+def assert exp msg
     = if c === 0 then throw (failed_assert (msg)) else c
-      when c = condition end;
+      when c = exp end;
+
+/* From getopt: A macro to evaluate a series of terms and return the result of the first
+   term which doesn't throw an exception. This is handy if we have to match a
+   number of different expressions against corresponding patterns. Maybe this
+   should go into the prelude. */
+def try [x] = x;
+def try (x:xs) = catch (\_->try xs) x;
+
 
 
 public member;
