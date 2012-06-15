@@ -52,12 +52,12 @@ private bin tri;
 
 /* Private helper functions. */
 
+private fst;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
 private revapp map2 map3 promote spaces center tostring;
 
-private pair triple fst snd trd;
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
 const LT = -1; // s1 < s2
@@ -150,18 +150,18 @@ end;
 
 // Remove the first and the last member from a tree.
 
-rmfirst t::fulltree = fst $ pop_left t;
+rmfirst t::fulltree = fst3 $ pop_left t;
 
-rmlast t::fulltree = fst $ pop_right t;
+rmlast t::fulltree = fst3 $ pop_right t;
 
 // Note that popped element may be () or a longer tuple.
 
 popfirst t::fulltree = case pop_left t of
-    triple child _ w = '(child, w)
+    child@_ _ w = '(child, w)
 end;
 
 poplast t::fulltree = case pop_right t of
-    triple child _ w = '(child, w)
+    child@_ _ w = '(child, w)
 end;
 
 
@@ -211,18 +211,18 @@ mlast t::fulltree = last t with
     last (tri _ _ _ _ r) = last r;
 end;
 
-mrmfirst t::fulltree = fst $ mpop_left t;
+mrmfirst t::fulltree = fst3 $ mpop_left t;
 
-mrmlast t::fulltree = fst $ mpop_right t;
+mrmlast t::fulltree = fst3 $ mpop_right t;
 
 // Note that popped element may be () or a longer tuple.
 
 mpopfirst t::fulltree = case mpop_left t of
-    triple child _ w = '(child, w)
+    child@_ _ w = '(child, w)
 end;
 
 mpoplast t::fulltree = case mpop_right t of
-    triple child _ w = '(child, w)
+    child@_ _ w = '(child, w)
 end;
 
 
@@ -570,34 +570,34 @@ public insert insertk;
 insert t::tree new = catch handle (fst $ ins new t) with
     handle abort = t;
     handle e = throw e;
-    ins new nil = pair (bin nil new nil) true; // bump height at prev level
+    ins new nil = (bin nil new nil) true; // bump height at prev level
     ins new (bin l1 x1 r1) = case cmp new x1 of
       res::int
         = case ins new l1 of
-                pair child 0 = pair (bin child x1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+                child@_ 0 = (bin child x1 r1) false;
+                (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
         = throw abort if res == EQ; // keep existing tree
         = case ins new r1 of
-                pair child 0 = pair (bin l1 x1 child) false;
-                pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+                child@_ 0 = (bin l1 x1 child) false;
+                (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins new (tri l1 y1 c1 z1 r1) = case cmp2 new y1 z1 of
       res::int
         = case ins new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
         = throw abort if res == EQ;
         = case ins new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
         = throw abort if res == EQ2;
         = case ins new r1 of
-                pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-                pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 c1 z1 child) false;
+                child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
@@ -605,96 +605,96 @@ end;
 insertk t::tree new@(k=>v) = catch handle (fst $ ins k v new t) with
     handle abort = t;
     handle e = throw e;
-    ins k v new nil = pair (bin nil new nil) true; // bump height at prev level
+    ins k v new nil = (bin nil new nil) true; // bump height at prev level
     ins k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
       res::int
         = case ins k v new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
         = if eq v xv then throw abort // keep existing tree
-          else pair (bin l1 new r1) false if res == EQ;
+          else (bin l1 new r1) false if res == EQ;
         = case ins k v new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins k v new (tri l1 y1@(yk=>yv) c1 z1@(zk=>zv) r1) = case cmp2 k yk zk of
       res::int
         = case ins k v new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
         = if eq v yv then throw abort // keep existing tree
-          else pair (tri l1 new c1 z1 r1) false if res == EQ;
+          else (tri l1 new c1 z1 r1) false if res == EQ;
         = case ins k v new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
         = if eq v zv then throw abort // keep existing tree
-          else pair (tri l1 y1 c1 new r1) false if res == EQ2;
+          else (tri l1 y1 c1 new r1) false if res == EQ2;
         = case ins k v new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
 
 public delete deletek deletekv popk;
 
-delete t::tree old = catch handle (fst $ pop old t) /* child, _, _ */ with
+delete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
     pop _ nil = throw abort;
     pop old cur@(bin l x r) = case cmp old x of
       res::int
         = shrink_left (pop old) cur if res == LT;
-        = if r===nil then triple l 1 x
-          else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-            triple child snag w = pop_left r
+        = if r===nil then l 1 x
+          else (shrink_right (\_ -> child snag x) (bin l w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ;
         = shrink_right (pop old) cur if res == GT;
     end;
     pop old cur@(tri l y c z r) = case cmp2 old y z of
       res::int
         = shrink_left (pop old) cur if res == LT;
-        = if c===nil then triple (bin l z r) 0 y
-          else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-            triple child snag w = pop_left c
+        = if c===nil then (bin l z r) 0 y
+          else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+            child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop old) cur if res == LT2;
-        = if r===nil then triple (bin l y c) 0 z
-          else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-            triple child snag w = pop_left r
+        = if r===nil then (bin l y c) 0 z
+          else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ2;
         = shrink_right (pop old) cur if res == GT2;
     end;
 end;
 
-deletek t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
+deletek t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
     pop k nil = throw abort;
     pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = if r===nil then triple l 1 x
-          else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-            triple child snag w = pop_left r
+        = if r===nil then l 1 x
+          else (shrink_right (\_ -> child snag x) (bin l w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
     pop k cur@(tri l y@(yk=>_) c z@(zk=>_) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = if c===nil then triple (bin l z r) 0 y
-          else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-            triple child snag w = pop_left c
+        = if c===nil then (bin l z r) 0 y
+          else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+            child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
-        = if r===nil then triple (bin l y c) 0 z
-          else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-            triple child snag w = pop_left r
+        = if r===nil then (bin l y c) 0 z
+          else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
@@ -703,29 +703,29 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 popk t::tree k = '(child, v) when
-    triple child _ (_=>v) = pop k t
+    child@_ _ (_=>v) = pop k t
 end with
     pop k nil = throw out_of_bounds;
     pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = if r===nil then triple l 1 x
-          else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-            triple child snag w = pop_left r
+        = if r===nil then l 1 x
+          else (shrink_right (\_ -> child snag x) (bin l w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
     pop k cur@(tri l y@(yk=>_) c z@(zk=>_) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = if c===nil then triple (bin l z r) 0 y
-          else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-            triple child snag w = pop_left c
+        = if c===nil then (bin l z r) 0 y
+          else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+            child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
-        = if r===nil then triple (bin l y c) 0 z
-          else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-            triple child snag w = pop_left r
+        = if r===nil then (bin l y c) 0 z
+          else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
@@ -733,7 +733,7 @@ end;
 
 // Delete one specific key=>val pair.
 
-deletekv t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
+deletekv t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop k v nil = throw abort;
@@ -741,9 +741,9 @@ deletekv t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = if ~eq v xv then throw abort
-          else if r===nil then triple l 1 x
-          else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-            triple child snag w = pop_left r
+          else if r===nil then l 1 x
+          else (shrink_right (\_ -> child snag x) (bin l w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ;
         = shrink_right (pop k v) cur if res == GT;
     end;
@@ -751,15 +751,15 @@ deletekv t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = if ~eq v yv then throw abort
-          else if c===nil then triple (bin l z r) 0 y
-          else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-            triple child snag w = pop_left c
+          else if c===nil then (bin l z r) 0 y
+          else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+            child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
         = if ~eq v zv then throw abort
-          else if r===nil then triple (bin l y c) 0 z
-          else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-            triple child snag w = pop_left r
+          else if r===nil then (bin l y c) 0 z
+          else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+            child@_ snag w = pop_left r
           end) if res == EQ2;
         = shrink_right (pop k v) cur if res == GT2;
     end;
@@ -771,74 +771,74 @@ end;
 public minsert minsertk;
 
 minsert t::tree new = fst $ ins new t with
-    ins new nil = pair (bin nil (new=>[new]) nil) true; // bump height at prev level
+    ins new nil = (bin nil (new=>[new]) nil) true; // bump height at prev level
     ins new (bin l1 x1@(xk=>xs) r1) = case cmp new xk of
       res::int
         = case ins new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xk=>new:xs) r1) false if res == EQ;
+        = (bin l1 (xk=>new:xs) r1) false if res == EQ;
         = case ins new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 new yk zk of
       res::int
         = case ins new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
         = case ins new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
 
 minsertk t::tree new@(k=>_) = fst $ ins k new t with
-    ins k new nil = pair (bin nil (k=>[new]) nil) true; // bump height at prev level
+    ins k new nil = (bin nil (k=>[new]) nil) true; // bump height at prev level
     ins k new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
       res::int
         = case ins k new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xk=>new:xs) r1) false if res == EQ;
+        = (bin l1 (xk=>new:xs) r1) false if res == EQ;
         = case ins k new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins k new (tri l1 y1@(yk=>ys) c1 z1@(zk=>zs) r1) = case cmp2 k yk zk of
       res::int
         = case ins k new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins k new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
         = case ins k new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
 
 public mdelete mdeleteko mdeletekn mdeletekvo mdeletekvn mpopko mpopkn;
 
-mdelete t::tree old = catch handle (fst $ pop old t) /* child, _, _ */ with
+mdelete t::tree old = catch handle (fst3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     // If elements are discernable but still EQ, note:
@@ -849,11 +849,11 @@ mdelete t::tree old = catch handle (fst $ pop old t) /* child, _, _ */ with
       res::int
         = shrink_left (pop old) cur if res == LT;
         = case xs of
-            [x] = if r===nil then triple l 1 x
-                  else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                    triple child snag w = pop_left r
+            [x] = if r===nil then l 1 x
+                  else (shrink_right (\_ -> child snag x) (bin l w r) when
+                    child@_ snag w = pop_left r
                   end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop old) cur if res == GT;
     end;
@@ -861,25 +861,25 @@ mdelete t::tree old = catch handle (fst $ pop old t) /* child, _, _ */ with
       res::int
         = shrink_left (pop old) cur if res == LT;
         = case ys of
-            [y] = if c===nil then triple (bin l z r) 0 y
-                  else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                    triple child snag w = pop_left c
+            [y] = if c===nil then (bin l z r) 0 y
+                  else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                    child@_ snag w = pop_left c
                   end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop old) cur if res == LT2;
         = case zs of
-            [z] = if r===nil then triple (bin l y c) 0 z
-                  else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                    triple child snag w = pop_left r
+            [z] = if r===nil then (bin l y c) 0 z
+                  else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                    child@_ snag w = pop_left r
                   end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop old) cur if res == GT2;
     end;
 end;
 
-mdeleteko t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
+mdeleteko t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del [u] vs = u:reverse vs;
@@ -889,11 +889,11 @@ mdeleteko t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case del xs [] of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                        triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                        child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
@@ -901,19 +901,19 @@ mdeleteko t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case del ys [] of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                        triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                        child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
         = case del zs [] of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                        triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                        child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
@@ -922,7 +922,7 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 mpopko t::tree k = '(child, v) when
-    triple child _ (_=>v) = pop k t
+    child@_ _ (_=>v) = pop k t
 end with
     del [u] vs = u:reverse vs;
     del (u:us) vs = del us (u:vs);
@@ -931,11 +931,11 @@ end with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case del xs [] of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                        triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                        child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
@@ -943,25 +943,25 @@ end with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case del ys [] of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                        triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                        child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
         = case del zs [] of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                        triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                        child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
 end;
 
-mdeletekvo t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
+mdeletekvo t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -972,11 +972,11 @@ mdeletekvo t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = case del v [] [] [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                        triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                        child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k v) cur if res == GT;
     end;
@@ -984,25 +984,25 @@ mdeletekvo t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = case del v [] [] [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                        triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                        child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
         = case del v [] [] [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                        triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                        child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k v) cur if res == GT2;
     end;
 end;
 
-mdeletekn t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
+mdeletekn t::tree k = catch handle (fst3 $ pop k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop k nil = throw abort;
@@ -1010,11 +1010,11 @@ mdeletekn t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                        triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                        child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
@@ -1022,19 +1022,19 @@ mdeletekn t::tree k = catch handle (fst $ pop k t) /* child, _, _ */ with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                        triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                        child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
         = case zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                        triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                        child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
@@ -1043,18 +1043,18 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 mpopkn t::tree k = '(child, v) when
-    triple child _ (_=>v) = pop k t
+    child@_ _ (_=>v) = pop k t
 end with
     pop k nil = throw out_of_bounds;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                        triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                        child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k) cur if res == GT;
     end;
@@ -1062,25 +1062,25 @@ end with
       res::int
         = shrink_left (pop k) cur if res == LT;
         = case ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                        triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                        child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
         = case zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                        triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                        child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
 end;
 
-mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ with
+mdeletekvn t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del v _ [] = throw abort; // (k=>v) not found
@@ -1091,11 +1091,11 @@ mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = case del v [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xk=>xs) r) 0 x;
+            x:xs = (bin l (xk=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop k v) cur if res == GT;
     end;
@@ -1103,19 +1103,19 @@ mdeletekvn t::tree (k=>v) = catch handle (fst $ pop k v t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop k v) cur if res == LT;
         = case del v [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yk=>ys) c z r) 0 y;
+            y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
         = case del v [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zk=>zs) r) 0 z;
+            z:zs = (tri l y c (zk=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop k v) cur if res == GT2;
     end;
@@ -1146,34 +1146,34 @@ hinsert t::tree new = catch handle (fst $ ins (hash new) new t) with
     add new ws [] = new:ws; // adding new to front of list is less presure on GC
     add new _ (new:_) = throw abort; // keep existing tree
     add new ws (u:us) = add new ws us;
-    ins h::int new nil = pair (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xh=>add new xs xs) r1) false if res == EQ;
+        = (bin l1 (xh=>add new xs xs) r1) false if res == EQ;
         = case ins h new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yh=>add new ys ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yh=>add new ys ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zh=>add new zs zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zh=>add new zs zs) r1) false if res == EQ2;
         = case ins h new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
@@ -1185,34 +1185,34 @@ hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
     add new@(u=>v) ws ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
                                      else new:revapp ws us; // update value
     add new ws (u:us) = add new (u:ws) us;
-    ins h::int new nil = pair (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xh=>add new [] xs) r1) false if res == EQ;
+        = (bin l1 (xh=>add new [] xs) r1) false if res == EQ;
         = case ins h new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yh=>add new [] ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yh=>add new [] ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zh=>add new [] zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zh=>add new [] zs) r1) false if res == EQ2;
         = case ins h new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
@@ -1221,7 +1221,7 @@ end;
 
 public hdelete hdeletek hdeletekv hpopk;
 
-hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ */ with
+hdelete t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1232,11 +1232,11 @@ hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ *
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] xs of
-            [] = if r===nil then triple l 1 x
-                 else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then l 1 x
+                 else (shrink_right (\_ -> child snag x) (bin l w r) when
+                     child@_ snag w = pop_left r
                  end);
-            xs = triple (bin l (xh=>xs) r) 0 x;
+            xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
@@ -1244,25 +1244,25 @@ hdelete t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ *
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] ys of
-            [] = if c===nil then triple (bin l z r) 0 y
-                 else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                     triple child snag w = pop_left c
+            [] = if c===nil then (bin l z r) 0 y
+                 else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                     child@_ snag w = pop_left c
                  end);
-            ys = triple (tri l (yh=>ys) c z r) 0 y;
+            ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
         = case del old [] zs of
-            [] = if r===nil then triple (bin l y c) 0 z
-                 else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then (bin l y c) 0 z
+                 else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                     child@_ snag w = pop_left r
                  end);
-            zs = triple (tri l y c (zh=>zs) r) 0 z;
+            zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h old) cur if res == GT2;
     end;
 end;
 
-hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ with
+hdeletek t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1273,11 +1273,11 @@ hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
@@ -1285,19 +1285,19 @@ hdeletek t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ wit
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
         = case del k [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h k) cur if res == GT2;
     end;
@@ -1306,7 +1306,7 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 hpopk t::tree k = '(child, v) when
-    triple child _ (_=>v) = pop (hash k) k t
+    child@_ _ (_=>v) = pop (hash k) k t
 end with
     del _ _ [] = throw out_of_bounds;
     del k ws (u@(k=>_):us) = u:revapp ws us;
@@ -1316,11 +1316,11 @@ end with
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
@@ -1328,25 +1328,25 @@ end with
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
         = case del k [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h k) cur if res == GT2;
     end;
 end;
 
-hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child, _, _ */ with
+hdeletekv t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1357,11 +1357,11 @@ hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child,
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
@@ -1369,19 +1369,19 @@ hdeletekv t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child,
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
         = case del old [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h old) cur if res == GT2;
     end;
@@ -1393,67 +1393,67 @@ end;
 public mhinsert mhinsertk;
 
 mhinsert t::tree new = fst $ ins (hash new) new t with
-    ins h::int new nil = pair (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xh=>new:xs) r1) false if res == EQ;
+        = (bin l1 (xh=>new:xs) r1) false if res == EQ;
         = case ins h new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
         = case ins h new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
 
 mhinsertk t::tree new@(k=>_) = fst $ ins (hash k) new t with
-    ins h::int new nil = pair (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
-            pair child 0 = pair (bin child x1 r1) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l2 x2 r2 x1 r1) false;
+            child@_ 0 = (bin child x1 r1) false;
+            (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = pair (bin l1 (xh=>new:xs) r1) false if res == EQ;
+        = (bin l1 (xh=>new:xs) r1) false if res == EQ;
         = case ins h new r1 of
-            pair child 0 = pair (bin l1 x1 child) false;
-            pair (bin l2 x2 r2) 1 = pair (tri l1 x1 l2 x2 r2) false;
+            child@_ 0 = (bin l1 x1 child) false;
+            (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
     ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
-                pair child 0 = pair (tri child y1 c1 z1 r1) false;
-                pair child 1 = pair (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri child y1 c1 z1 r1) false;
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = pair (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
+        = (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
-                pair child 0 = pair (tri l1 y1 child z1 r1) false;
-                pair (bin l2 x2 r2) 1 = pair (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                child@_ 0 = (tri l1 y1 child z1 r1) false;
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = pair (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
+        = (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
         = case ins h new r1 of
-            pair child 0 = pair (tri l1 y1 c1 z1 child) false;
-            pair child 1 = pair (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 0 = (tri l1 y1 c1 z1 child) false;
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
           end if res == GT2;
     end;
 end;
@@ -1469,7 +1469,7 @@ mhdelete        t old = hdelete   t old;
 mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
-mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvn t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
@@ -1480,11 +1480,11 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
@@ -1492,19 +1492,19 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
         = case del old [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h old) cur if res == GT2;
     end;
@@ -1512,7 +1512,7 @@ end;
 
 // The mh*o functions pop the last (oldest) match.
 
-mhdeleteko t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ with
+mhdeleteko t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -1523,11 +1523,11 @@ mhdeleteko t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ w
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
@@ -1535,19 +1535,19 @@ mhdeleteko t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ w
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
         = case del k [] [] [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h k) cur if res == GT2;
     end;
@@ -1556,7 +1556,7 @@ end;
 // Note that popped element may be () or a longer tuple.
 
 mhpopko t::tree k = '(child, v) when
-    triple child _ (_=>v) = catch handle (pop (hash k) k t)
+    child@_ _ (_=>v) = catch handle (pop (hash k) k t)
 end with
     handle abort = throw out_of_bounds;
     handle e = throw e;
@@ -1568,11 +1568,11 @@ end with
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
@@ -1580,25 +1580,25 @@ end with
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k [] [] [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
         = case del k [] [] [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h k) cur if res == GT2;
     end;
 end;
 
-mhdeletekvo t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvo t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
@@ -1609,11 +1609,11 @@ mhdeletekvo t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] [] [] xs of
-            [x]  = if r===nil then triple l 1 x
-                   else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                       triple child snag w = pop_left r
+            [x]  = if r===nil then l 1 x
+                   else (shrink_right (\_ -> child snag x) (bin l w r) when
+                       child@_ snag w = pop_left r
                    end);
-            x:xs = triple (bin l (xh=>xs) r) 0 x;
+            x:xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
@@ -1621,19 +1621,19 @@ mhdeletekvo t::tree old@(k=>_) = catch handle (fst $ pop (hash k) old t) /* chil
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] [] [] ys of
-            [y]  = if c===nil then triple (bin l z r) 0 y
-                   else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                       triple child snag w = pop_left c
+            [y]  = if c===nil then (bin l z r) 0 y
+                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                       child@_ snag w = pop_left c
                    end);
-            y:ys = triple (tri l (yh=>ys) c z r) 0 y;
+            y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
         = case del old [] [] [] zs of
-            [z]  = if r===nil then triple (bin l y c) 0 z
-                   else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                       triple child snag w = pop_left r
+            [z]  = if r===nil then (bin l y c) 0 z
+                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                       child@_ snag w = pop_left r
                    end);
-            z:zs = triple (tri l y c (zh=>zs) r) 0 z;
+            z:zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h old) cur if res == GT2;
     end;
@@ -1647,7 +1647,7 @@ mhdeletekv t old = mhdeletekvo t old;
 
 public mhdeletea mhdeleteka;
 
-mhdeletea t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _ */ with
+mhdeletea t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop h::int old nil = throw abort;
@@ -1655,11 +1655,11 @@ mhdeletea t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case filter (~==old) xs of
-            [] = if r===nil then triple l 1 x
-                 else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then l 1 x
+                 else (shrink_right (\_ -> child snag x) (bin l w r) when
+                     child@_ snag w = pop_left r
                  end);
-            xs = triple (bin l (xh=>xs) r) 0 x;
+            xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
@@ -1667,25 +1667,25 @@ mhdeletea t::tree old = catch handle (fst $ pop (hash old) old t) /* child, _, _
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case filter (~==old) ys of
-            [] = if c===nil then triple (bin l z r) 0 y
-                 else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                     triple child snag w = pop_left c
+            [] = if c===nil then (bin l z r) 0 y
+                 else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                     child@_ snag w = pop_left c
                  end);
-            ys = triple (tri l (yh=>ys) c z r) 0 y;
+            ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
         = case filter (~==old) zs of
-            [] = if r===nil then triple (bin l y c) 0 z
-                 else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then (bin l y c) 0 z
+                 else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                     child@_ snag w = pop_left r
                  end);
-            zs = triple (tri l y c (zh=>zs) r) 0 z;
+            zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h old) cur if res == GT2;
     end;
 end;
 
-mhdeleteka t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ with
+mhdeleteka t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     pop h::int k nil = throw abort;
@@ -1693,11 +1693,11 @@ mhdeleteka t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ w
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (\(uk=>_) -> uk~==k) xs of
-            [] = if r===nil then triple l 1 x
-                 else (shrink_right (\_ -> triple child snag x) (bin l w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then l 1 x
+                 else (shrink_right (\_ -> child snag x) (bin l w r) when
+                     child@_ snag w = pop_left r
                  end);
-            xs = triple (bin l (xh=>xs) r) 0 x;
+            xs = (bin l (xh=>xs) r) 0 x;
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
@@ -1705,19 +1705,19 @@ mhdeleteka t::tree k = catch handle (fst $ pop (hash k) k t) /* child, _, _ */ w
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (\(uk=>_) -> uk~==k) ys of
-            [] = if c===nil then triple (bin l z r) 0 y
-                 else (shrink_center (\_ -> triple child snag y) (tri l w c z r) when
-                     triple child snag w = pop_left c
+            [] = if c===nil then (bin l z r) 0 y
+                 else (shrink_center (\_ -> child snag y) (tri l w c z r) when
+                     child@_ snag w = pop_left c
                  end);
-            ys = triple (tri l (yh=>ys) c z r) 0 y;
+            ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
         = case filter (\(uk=>_) -> uk~==k) zs of
-            [] = if r===nil then triple (bin l y c) 0 z
-                 else (shrink_right (\_ -> triple child snag z) (tri l y c w r) when
-                     triple child snag w = pop_left r
+            [] = if r===nil then (bin l y c) 0 z
+                 else (shrink_right (\_ -> child snag z) (tri l y c w r) when
+                     child@_ snag w = pop_left r
                  end);
-            zs = triple (tri l y c (zh=>zs) r) 0 z;
+            zs = (tri l y c (zh=>zs) r) 0 z;
           end if res == EQ2;
         = shrink_right (pop h k) cur if res == GT2;
     end;
@@ -1727,77 +1727,77 @@ end;
 /* Private helper functions. */
 
 shrink_left aux (bin l1 x1 r1) = case aux l1 of
-    triple child 0 w = triple (bin child x1 r1) false w;
-    triple child 1 w = case r1 of
-        bin l2 x2 r2 = triple (tri child x1 l2 x2 r2) true w; // pass snag upwards
-        tri l2 y2 c2 z2 r2 = triple (bin (bin child x1 l2) y2 (bin c2 z2 r2)) false w;
+    child@_ 0 w = (bin child x1 r1) false w;
+    child@_ 1 w = case r1 of
+        bin l2 x2 r2 = (tri child x1 l2 x2 r2) true w; // pass snag upwards
+        tri l2 y2 c2 z2 r2 = (bin (bin child x1 l2) y2 (bin c2 z2 r2)) false w;
     end;
 end;
 
 shrink_left aux (tri l1 y1 c1 z1 r1) = case aux l1 of
-    triple child 0 w = triple (tri child y1 c1 z1 r1) false w;
-    triple child 1 w = case c1 of
-        bin l2 x2 r2 = triple (bin (tri child y1 l2 x2 r2) z1 r1) false w;
-        tri l2 y2 c2 z2 r2 = triple (tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1) false w;
+    child@_ 0 w = (tri child y1 c1 z1 r1) false w;
+    child@_ 1 w = case c1 of
+        bin l2 x2 r2 = (bin (tri child y1 l2 x2 r2) z1 r1) false w;
+        tri l2 y2 c2 z2 r2 = (tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1) false w;
     end;
 end;
 
 shrink_center aux (tri l1 y1 c1 z1 r1) = case aux c1 of
-    triple child 0 w = triple (tri l1 y1 child z1 r1) false w;
-    triple child 1 w = case l1 of // we arbitrarily chose to decons the left side
-        bin l2 x2 r2 = triple (bin (tri l2 x2 r2 y1 child) z1 r1) false w;
-        tri l2 y2 c2 z2 r2 = triple (tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1) false w;
+    child@_ 0 w = (tri l1 y1 child z1 r1) false w;
+    child@_ 1 w = case l1 of // we arbitrarily chose to decons the left side
+        bin l2 x2 r2 = (bin (tri l2 x2 r2 y1 child) z1 r1) false w;
+        tri l2 y2 c2 z2 r2 = (tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1) false w;
     end;
 end;
 
 shrink_right aux (bin l1 x1 r1) = case aux r1 of
-    triple child 0 w = triple (bin l1 x1 child) false w;
-    triple child 1 w = case l1 of
-        bin l2 x2 r2 = triple (tri l2 x2 r2 x1 child) true w; // pass snag upwards
-        tri l2 y2 c2 z2 r2 = triple (bin (bin l2 y2 c2) z2 (bin r2 x1 child)) false w;
+    child@_ 0 w = (bin l1 x1 child) false w;
+    child@_ 1 w = case l1 of
+        bin l2 x2 r2 = (tri l2 x2 r2 x1 child) true w; // pass snag upwards
+        tri l2 y2 c2 z2 r2 = (bin (bin l2 y2 c2) z2 (bin r2 x1 child)) false w;
     end;
 end;
 
 shrink_right aux (tri l1 y1 c1 z1 r1) = case aux r1 of
-    triple child 0 w = triple (tri l1 y1 c1 z1 child) false w;
-    triple child 1 w = case c1 of
-        bin l2 x2 r2 = triple (bin l1 y1 (tri l2 x2 r2 z1 child)) false w;
-        tri l2 y2 c2 z2 r2 = triple (tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child)) false w;
+    child@_ 0 w = (tri l1 y1 c1 z1 child) false w;
+    child@_ 1 w = case c1 of
+        bin l2 x2 r2 = (bin l1 y1 (tri l2 x2 r2 z1 child)) false w;
+        tri l2 y2 c2 z2 r2 = (tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child)) false w;
     end;
 end;
 
-pop_left (bin nil x nil) = triple nil true x; // snag height at prev level
+pop_left (bin nil x nil) = nil true x; // snag height at prev level
 
-pop_left (tri nil y nil z nil) = triple (bin nil z nil) false y;
+pop_left (tri nil y nil z nil) = (bin nil z nil) false y;
 
 pop_left cur = shrink_left pop_left cur;
 
-pop_right (bin nil x nil) = triple nil true x; // snag height at prev level
+pop_right (bin nil x nil) = nil true x; // snag height at prev level
 
-pop_right (tri nil y nil z nil) = triple (bin nil y nil) false z;
+pop_right (tri nil y nil z nil) = (bin nil y nil) false z;
 
 pop_right cur = shrink_right pop_right cur;
 
 mpop_left (bin nil (xk=>xs) nil) = case xs of
-    [x] = triple nil true x; // snag height at prev level
-    x:xs = triple (bin nil (xk=>xs) nil) false x;
+    [x] = nil true x; // snag height at prev level
+    x:xs = (bin nil (xk=>xs) nil) false x;
 end;
 
 mpop_left (tri nil (yk=>ys) nil z nil) = case ys of
-    [y] = triple (bin nil z nil) false y;
-    y:ys = triple (tri nil (yk=>ys) nil z nil) false y;
+    [y] = (bin nil z nil) false y;
+    y:ys = (tri nil (yk=>ys) nil z nil) false y;
 end;
 
 mpop_left cur = shrink_left mpop_left cur;
 
 mpop_right (bin nil (xk=>xs) nil) = case xs of
-    [x] = triple nil true x; // snag height at prev level
-    x:xs = triple (bin nil (xk=>xs) nil) false x;
+    [x] = nil true x; // snag height at prev level
+    x:xs = (bin nil (xk=>xs) nil) false x;
 end;
 
 mpop_right (tri nil y nil (zk=>zs) nil) = case zs of
-    [z] = triple (bin nil y nil) false z;
-    z:zs = triple (tri nil y nil (zk=>zs) nil) false z;
+    [z] = (bin nil y nil) false z;
+    z:zs = (tri nil y nil (zk=>zs) nil) false z;
 end;
 
 mpop_right cur = shrink_right mpop_right cur;
@@ -1840,13 +1840,12 @@ cmp3 a b c = if a<b then LT else (if a<c then MID else GE2);
 
 eq u v = case u==v of res::int = res; _ = u===v end;
 
-// pairs and triples
 
-fst (pair x _) = x;
-fst (triple x _ _) = x;
-snd (pair _ x) = x;
-snd (triple _ x _) = x;
-trd (triple _ _ x) = x;
+// extract head from ins pairs
+fst (t@_ _) = t;
+
+// extract head from the pop/shrink triples
+fst3 (t@_ _ _) = t;
 
 // reverse with explicit base
 
