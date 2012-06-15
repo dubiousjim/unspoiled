@@ -16,24 +16,7 @@ public fst snd trd either either2 either3;
            or should it be ()---the result of void and so on?  <=====
   Another: printf and friends expect their argv sequences as tuples   <=====
            anything else in the stdlibs?
-  Another: '{M,N} is a bit slower than pair M N
-  Also:  you probably want the M and N expressions to be evaluated first
-         as Albert's (: :) suggestion does:
-              outfix (: :);
-              x,(:y:) = '(x,y);
-              (:x:),y = '(x,y);
-            This works surpringly well:
-              > 1,(:2,3:),4;
-              1,(2,3),4
-              > 1,(:2,(:3,4,5:),6:),7;
-              1,(2,(3,4,5),6),7
-            Of course, you still don't have any real 1-tuples:
-              > 1,(:2:),3;
-              1,2,3
-            Which, as I explained earlier, implies that you can't have any nested
-            tuples in the last component either:
-              > 1,(:2,3:);
-              1,2,3
+  Another: '{M,N} is a bit slower than pair M N, and you want M and N to be evaluated first
   Why '{x,y} is any better than '(x,y)?
      we have a nesting single: {x} ~= x, '{{x}} ~= {x}
      contiguously allocated
@@ -68,7 +51,7 @@ def either e default = either e with
     either {x,_,_,_} = x;
     either {x,_,_,_,_} = x;
     // either {} = default;
-    either v::vector = default if null v;
+    either v::matrix = default if null v;
 end;
 
 def either2 e default = either2 e with
@@ -77,7 +60,7 @@ def either2 e default = either2 e with
     either2 {_,x,_,_} = x;
     either2 {_,x,_,_,_} = x;
     // either2 {} = default;
-    either2 v::vector = default if null v;
+    either2 v::matrix = default if null v;
 end;
 
 def either3 e default = either3 e with
@@ -85,7 +68,7 @@ def either3 e default = either3 e with
     either3 {_,_,x,_} = x;
     either3 {_,_,x,_,_} = x;
     // either3 {} = default;
-    either3 v::vector = default if null v;
+    either3 v::matrix = default if null v;
 end;
 
 using system;
