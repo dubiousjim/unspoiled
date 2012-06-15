@@ -1,0 +1,76 @@
+/*
+  additional list functions
+ */ 
+
+public member;
+public reverse_onto map_onto zip_onto zip3_onto;
+public zipfoldl zipfoldr zipfoldl3 zipfoldr3;
+
+member [] y = 0;
+member (x:xs) y = case x == y of
+                    res::int = 1 if res;
+                             = member xs y otherwise;
+                    res      = 1 if x===y;
+                    // else we may want to count the membership test
+                    // as unsettled: member xs y || res;
+                    // but instead I here count it as false; that way we get
+                    // free syntactic comparison of constructions for which
+                    // == is undefined
+                             = member xs y otherwise;
+                  end;
+
+#! --ifndef DEFINED_REVERSE_ONTO
+#! --enable DEFINED_REVERSE_ONTO
+// reverse with explicit base
+reverse_onto [] base = base;
+reverse_onto (x:xs) base = reverse_onto xs (x:base);
+#! --endif
+
+// map with explicit base
+// not tail call
+map_onto f [] base = base;
+map_onto f (x:xs) base = f x : map_onto f xs base;
+
+// zipwith/map2 with explicit base
+// stops when shortest list expires
+// not tail call
+zip_onto f [] _ base | zip_onto f _ [] base = base;
+zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
+
+// zipwith3 with explicit base
+// stops when shortest list expires
+// not tail call
+zip_onto3 f [] _ _ base | zip_onto3 f _ [] _ base | zip_onto3 f _ _ [] base = base;
+zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
+
+// foldl and foldr on two lists in parallel, like zip/zipwith[3]
+// stops when shortest list expires
+zipfoldl f a _ [] | zipfoldl f a [] _ = a;
+zipfoldl f a (x:xs) (y:ys) = zipfoldl f (f a x y) xs ys;
+
+zipfoldr f a _ [] | zipfoldr f a [] _ = a;
+zipfoldr f a xs@(_:_) ys@(_:_) = tick [] xs ys
+with
+  tick zs (x:xs) (y:ys) = tack (x:y:zs) (zipfoldr f a xs ys&)
+                          if thunkp xs || thunkp ys;
+                        = tick (x:y:zs) xs ys;
+  tick zs _ [] | tick zs [] _ = tack zs a;
+  tick zs xs ys = tack zs (zipfoldr f a xs ys);
+  tack (x:y:zs) a = tack zs (f x y a);
+  tack [] a = a;
+end;
+
+zipfoldl3 f a _ _ [] | zipfoldl3 f a _ [] _ | zipfoldl3 f a [] _ _ = a;
+zipfoldl3 f a (x:xs) (y:ys) (w:ws) = zipfoldl3 f (f a x y w) xs ys ws;
+
+zipfoldr3 f a _ _ [] | zipfoldr3 f a _ [] _ | zipfoldr3 f a [] _ _ = a;
+zipfoldr3 f a xs@(_:_) ys@(_:_) ws@(_:_) = tick [] xs ys ws
+with
+  tick zs (x:xs) (y:ys) (w:ws) = tack (x:y:w:zs) (zipfoldr3 f a xs ys ws&)
+                          if thunkp xs || thunkp ys || thunkp ws;
+                        = tick (x:y:w:zs) xs ys ws;
+  tick zs _ _ [] | tick zs _ [] _ | tick zs [] _ _ = tack zs a;
+  tick zs xs ys ws = tack zs (zipfoldr3 f a xs ys ws);
+  tack (x:y:w:zs) a = tack zs (f x y w a);
+  tack [] a = a;
+end;

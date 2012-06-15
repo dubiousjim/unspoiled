@@ -29,7 +29,7 @@ the result. This may sometimes be useful.
 */
 
 
-#! --ifnot DEFINED_REVERSE_ONTO
+#! --ifndef DEFINED_REVERSE_ONTO
 #! --enable DEFINED_REVERSE_ONTO
 // "reverse and append"
 // used in the definition of append but not (yet) exposed
