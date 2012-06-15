@@ -32,8 +32,8 @@ the result. This may sometimes be useful.
 // "reverse and append"
 // used in the definition of append but not (yet) exposed
 // in prelude.pure
-revapp [] base = base;
-revapp (x:xs) base = revapp xs (x:base);
+reverse_onto [] base = base;
+reverse_onto (x:xs) base = reverse_onto xs (x:base);
 
 msort _ [] = [];
 msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
@@ -64,9 +64,9 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             when
                 wn = if yn > 0 then yn + zn else yn;
                 ws, wa = if ya && ~za && ~(lt y z) then
-                            revapp ys zs, 0
+                            reverse_onto ys zs, 0
                          else if ~ya && za && (lt y z) then
-                            revapp zs ys, 0
+                            reverse_onto zs ys, 0
                          else if ya < 0 then
                             // ys has only one member
                             merge lt (~za) ys zs [], ~za
@@ -79,7 +79,7 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             end
         );
 
-    merge _ _ us [] ws | merge _ _ [] us ws = revapp us ws;
+    merge _ _ us [] ws | merge _ _ [] us ws = reverse_onto us ws;
     merge lt wa (yy@(y:ys)) (zz@(z:zs)) ws =
         if (lt y z) ~= wa then
             merge lt wa ys zz (y:ws)

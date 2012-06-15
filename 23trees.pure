@@ -26,6 +26,7 @@
 
 
 namespace "23trees";
+namespace avl;
 
 /* Tree constructors: `nil` denotes an empty tree, `bin left x right`
    an interior node with the given left and right subtrees, and
@@ -56,7 +57,7 @@ private fst;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private revapp map2 map3 promote spaces center tostring;
+private reverse_onto map2 map3 promote spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
@@ -179,20 +180,20 @@ end;
 
 mmembers t::tree = members t [] with
     members nil base = base;
-    members (bin l (_=>xs) r) base = members l (revapp xs (members r base));
-    members (tri l (_=>ys) c (_=>zs) r) base = members l (revapp ys (members c (revapp zs (members r base))));
+    members (bin l (_=>xs) r) base = members l (reverse_onto xs (members r base));
+    members (tri l (_=>ys) c (_=>zs) r) base = members l (reverse_onto ys (members c (reverse_onto zs (members r base))));
 end;
 
 mkeys t::tree = keys t [] with
     keys nil base = base;
-    keys (bin l (_=>xs) r) base = keys l (revapp [x | x=>_ = xs] (keys r base));
-    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (revapp [y | y=>_ = ys] (keys c (revapp [z | z=>_ = zs] (keys r base))));
+    keys (bin l (_=>xs) r) base = keys l (reverse_onto [x | x=>_ = xs] (keys r base));
+    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (reverse_onto [y | y=>_ = ys] (keys c (reverse_onto [z | z=>_ = zs] (keys r base))));
 end;
 
 mvals t::tree = vals t [] with
     vals nil base = base;
-    vals (bin l (_=>xs) r) base = vals l (revapp [x | _=>x = xs] (vals r base));
-    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (revapp [y | _=>y = ys] (vals c (revapp [z | _=>z = zs] (vals r base))));
+    vals (bin l (_=>xs) r) base = vals l (reverse_onto [x | _=>x = xs] (vals r base));
+    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_onto [y | _=>y = ys] (vals c (reverse_onto [z | _=>z = zs] (vals r base))));
 end;
 
 mfirst t::fulltree = first t with
@@ -1084,7 +1085,7 @@ mdeletekvn t::tree (k=>v) = catch handle (fst3 $ pop k v t) /* child, _, _ */ wi
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del v _ [] = throw abort; // (k=>v) not found
-    del v ws (u@(_=>uv):us) = u:revapp ws us if eq v uv;
+    del v ws (u@(_=>uv):us) = u:reverse_onto ws us if eq v uv;
     del v ws (u:us) = del v (u:ws) us;
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
@@ -1183,7 +1184,7 @@ hinsertk t::tree new@(k=>_) = catch handle (fst $ ins (hash k) new t) with
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less pressure on GC
     add new@(u=>v) ws ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
-                                     else new:revapp ws us; // update value
+                                     else new:reverse_onto ws us; // update value
     add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
@@ -1225,7 +1226,7 @@ hdelete t::tree old = catch handle (fst3 $ pop (hash old) old t) /* child, _, _ 
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del old ws (old:us) = revapp ws us;
+    del old ws (old:us) = reverse_onto ws us;
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1266,7 +1267,7 @@ hdeletek t::tree k = catch handle (fst3 $ pop (hash k) k t) /* child, _, _ */ wi
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del k ws (u@(k=>_):us) = u:revapp ws us;
+    del k ws (u@(k=>_):us) = u:reverse_onto ws us;
     del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1309,7 +1310,7 @@ hpopk t::tree k = '(child, v) when
     child@_ _ (_=>v) = pop (hash k) k t
 end with
     del _ _ [] = throw out_of_bounds;
-    del k ws (u@(k=>_):us) = u:revapp ws us;
+    del k ws (u@(k=>_):us) = u:reverse_onto ws us;
     del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1350,7 +1351,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* child
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:revapp ws us else throw abort; // (k=>v) not found
+    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_onto ws us else throw abort; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1473,7 +1474,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (fst3 $ pop (hash k) old t) /* chi
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del (k=>v) ws (u@(k=>uv):us) = u:revapp ws us if eq v uv; // else (unlike hdeletekv) we continue searching
+    del (k=>v) ws (u@(k=>uv):us) = u:reverse_onto ws us if eq v uv; // else (unlike hdeletekv) we continue searching
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1849,8 +1850,8 @@ fst3 (t@_ _ _) = t;
 
 // reverse with explicit base
 
-revapp [] base = base;
-revapp (x:xs) base = revapp xs (x:base);
+reverse_onto [] base = base;
+reverse_onto (x:xs) base = reverse_onto xs (x:base);
 
 // converts ([xn..x1, ... wn..w1], (match:yn..y1), (zn..z1))
 //        --> match : (w1..wn)+(x1..xn)+(y1..yn)+(z1..zn)
