@@ -59,7 +59,7 @@ end;
 // accepts non-int conditions
 // note that msg is supplied by name, so it can be e.g. (sprintf fmt args...)
 // and won't be invoked until the assertion fails
-using system;
+public assert failed_assert;
 nonfix failed_assert;
 def assert exp msg
     = if c === 0 then throw (failed_assert (msg)) else c
@@ -69,6 +69,7 @@ def assert exp msg
    term which doesn't throw an exception. This is handy if we have to match a
    number of different expressions against corresponding patterns. Maybe this
    should go into the prelude. */
+public try;
 def try [x] = x;
 def try (x:xs) = catch (\_->try xs) x;
 

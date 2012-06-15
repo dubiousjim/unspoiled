@@ -121,6 +121,8 @@
  CaselessStringSet::member (CaselessStringSet::insert CaselessStringSet::empty "Bar") "bar" // true
 */
 
+public functor;
+
 #! --quoteargs functor
 def functor name::var (ts __with__ body) = eval m when
     type_decls = types ts;

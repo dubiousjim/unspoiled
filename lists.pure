@@ -2,9 +2,7 @@
   additional list functions
  */ 
 
-public member;
-public reverse_onto map_onto zip_onto zip3_onto;
-public zipfoldl zipfoldr zipfoldl3 zipfoldr3;
+public member map_onto zipfoldl zipfoldr zipfoldl3 zipfoldr3;
 
 member [] y = 0;
 member (x:xs) y = case x == y of
@@ -21,6 +19,7 @@ member (x:xs) y = case x == y of
 
 #! --ifndef DEFINED_REVERSE_ONTO
 #! --enable DEFINED_REVERSE_ONTO
+public reverse_onto;
 // reverse with explicit base
 reverse_onto [] base = base;
 reverse_onto (x:xs) base = reverse_onto xs (x:base);

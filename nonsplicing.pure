@@ -1,7 +1,7 @@
 /*
   non-splicing vector constructor
   {| 1, {x, succ 3}, {} |} with x = 5 end // evaluates to '{1,{5,4},{}}
- */ 
+ */
 
 /*
 // this method fails when last component is itself a tuple
@@ -15,16 +15,16 @@ namespace __aux__ with
     def __vector__ v (x:xs) = __vector__ {v,'{x}} xs when x=x end;
     def __vector__ v [] = v;
 end;
+public __vector__;
 def __vector__ xs = __aux__::__vector__ {} (__list__ xs);
 
 // non-splicing vector constructor
 // nonfix {||}; def {||} = {}; // not really necessary
                                // note that {| |} wouldn't be accepted in any case
-outfix {| |}; def {| xs |} = __vector__ xs;
+public outfix {| |}; def {| xs |} = __vector__ xs;
 
 // another alternative is:
 //   prefix 1190 vect; def vect t = __vector__ t;
 // then you can say: (vect 1, {x, succ 3}, {}) when x = 5 end
 // but `vect _` doesn't also become available for pattern-matching
 // and neither does {| _ |}
-

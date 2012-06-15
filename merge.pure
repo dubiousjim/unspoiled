@@ -38,6 +38,8 @@ reverse_onto [] base = base;
 reverse_onto (x:xs) base = reverse_onto xs (x:base);
 #! --endif
 
+public msort;
+
 msort _ [] = [];
 msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
     // ya = are these ys strictly ascending?
