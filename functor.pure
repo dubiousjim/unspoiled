@@ -111,6 +111,7 @@
         // namespace StringSet with
         //   type t = PlainStrings::t;
         //   using namespace PlainStrings;
+        //   empty = [];
         //   insert [] x::t = [x];
         //   ...
         // end;
@@ -125,9 +126,6 @@ def functor name::var (ts __with__ body) = eval m when
     type_decls = types ts;
     body = __str__ $ '(0 __with__ body);
     n = sprintf "namespace %%s with %s using namespace %%s; %s; end;" (join " " type_decls, body!!(7..#body-5));
-/*
-    m = sprintf "def %s M::var S::var = eval (sprintf %s (str M, %s, str S));" (str name, str n, join ", " (repeatn (#type_decls) "str S"));
-*/
     m = sprintf "def %s M::var S::var = eval (sprintf %s (str M, %s, str S));" (str name, str n, join ", " (repeatn (#type_decls) "str S"));
 end with
 /*
