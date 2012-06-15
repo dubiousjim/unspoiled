@@ -113,10 +113,10 @@ zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
 // zipwith3 with explicit base
 // stops when shortest list expires
 // not tail call
-zip3_onto f [] _ _ base | zip3_onto f _ [] _ base | zip3_onto f _ _ [] base = base;
-zip3_onto f (x:xs) (y:ys) (z:zs) base = f x y z : zip3_onto f xs ys zs base;
+zip_onto3 f [] _ _ base | zip_onto3 f _ [] _ base | zip_onto3 f _ _ [] base = base;
+zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
 
-// foldl and foldr on two lists in parallel, like zip/zipwith
+// foldl and foldr on two lists in parallel, like zip/zipwith[3]
 // stops when shortest list expires
 zipfoldl f a _ [] | zipfoldl f a [] _ = a;
 zipfoldl f a (x:xs) (y:ys) = zipfoldl f (f a x y) xs ys;

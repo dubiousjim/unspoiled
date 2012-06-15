@@ -57,7 +57,7 @@ private head2 head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private reverse_onto zip_onto zip3_onto promote spaces center tostring;
+private reverse_onto zip_onto zip_onto3 promote spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
@@ -1870,8 +1870,8 @@ zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
 
 // zipwith3 with explicit base; we assume lists are of same length
 
-zip3_onto f [] [] [] base = base;
-zip3_onto f (x:xs) (y:ys) (z:zs) base = f x y z : zip3_onto f xs ys zs base;
+zip_onto3 f [] [] [] base = base;
+zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
 
 
 // I derived the following display code from someone else, and have since
@@ -1946,7 +1946,7 @@ end with
             spaces (totalspace - spacer1) + "\\" + spaces (right_width - right_pos);
         totalspace = width - left_width - center_width - right_width;
         spacer1 = totalspace div 2;
-        lines = zip3_onto (\left_line center_line right_line ->
+        lines = zip_onto3 (\left_line center_line right_line ->
                     left_line + spaces spacer1 + center_line +
                     spaces (totalspace - spacer1) + right_line)
                 left_lines center_lines right_lines [d, a];
