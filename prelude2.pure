@@ -30,13 +30,11 @@ nonfix false true NULL inf nan;
 
 // non-splicing vector constructor
 outfix {: :};
-#! --quoteargs __aux__::__vector__
 namespace __aux__ with
     def __vector__ v [] = v;
-    def __vector__ (v __when__ bs) (x:xs) = __vector__ ({v,'{y}} __when__ ((y-->x):bs)) xs when y=x end;
+    def __vector__ v (x:xs) = __vector__ {v,'{x}} xs when x=x end;
 end;
-def {: x,xs :} = __aux__::__vector__ ('{x} when x=x end) $ __list__ xs;
-def {: x :} = '{x} when x=x end;
+def {: xs :} = __aux__::__vector__ {} (__list__ xs);
 
 
 public either either2 either3;
