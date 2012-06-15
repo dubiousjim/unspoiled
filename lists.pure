@@ -31,17 +31,18 @@ reverse_onto (x:xs) base = reverse_onto xs (x:base);
 map_onto f [] base = base;
 map_onto f (x:xs) base = f x : map_onto f xs base;
 
-// zipwith/map2 with explicit base
-// stops when shortest list expires
-// not tail call
+/*
+// zipwith/map2 with explicit base, stopping when shortest list expires
+// zip_onto f xs ys base == zipfoldr (\x y b -> f x y : b) base xs ys
+// zip_onto3 f xs ys zs base == zipfoldr3 (\x y z b -> f x y z : b) base xs ys zs
+
 zip_onto f [] _ base | zip_onto f _ [] base = base;
 zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
 
-// zipwith3 with explicit base
-// stops when shortest list expires
-// not tail call
 zip_onto3 f [] _ _ base | zip_onto3 f _ [] _ base | zip_onto3 f _ _ [] base = base;
 zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
+*/
+
 
 // foldl and foldr on two lists in parallel, like zip/zipwith[3]
 // stops when shortest list expires
