@@ -5,6 +5,11 @@
 // permit pattern-matching on these
 nonfix false true NULL inf nan;
 
+using lists;
+using "23trees";
+using merge;
+using functor;
+
 
 /*
   Using the existing {} for `nothing`.
@@ -28,7 +33,6 @@ nonfix false true NULL inf nan;
     [1,2,3] is 9 cells
 */
 
-using lists;
 using nonsplicing;
 
 public either either2 either3;
@@ -74,8 +78,6 @@ def try [x] = x;
 def try (x:xs) = catch (\_->try xs) x;
 
 
-
-
 public odd even log2;
 
 type nat x::int = x>=0;
@@ -114,4 +116,3 @@ extern int floorlog2 (unsigned int v) {
 %>
 namespace;
 log2 x::int = __C::floorlog2 x if x > 0;
-
