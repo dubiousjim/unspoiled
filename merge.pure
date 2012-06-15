@@ -93,29 +93,29 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
 
 end;
 
+#! --ifdef TEST
+    // We test with tuples, for which we provide a definition of <.
+    // The second alphabetic element tracks where the tuple occurred in the
+    // original list, so we can verify the stability of the sort.
+    // < is blind to the presence of the alphabetic element.
+    // We also define a >= which does take account of the alphabetic element.
+    // This isn't used in the sort algorithm, but only when verifying whether
+    // its results are stably sorted.
 
+    (a,_) < (b,_) = a < b;
+    (b,j) >= (a,i) = b > a || (b==a && j >= i);
+    sorted [] = true;
+    sorted (b:bs) = aux b bs with
+        aux _ [] = true;
+        aux a (b:bs) = b >= a && aux b bs;
+    end;
 
-// We test with tuples, for which we provide a definition of <.
-// The second alphabetic element tracks where the tuple occurred in the
-// original list, so we can verify the stability of the sort.
-// < is blind to the presence of the alphabetic element.
-// We also define a >= which does take account of the alphabetic element.
-// This isn't used in the sort algorithm, but only when verifying whether
-// its results are stably sorted.
+    // generate random test tuples
+    using math;
+    rand n = random31 mod n;
+    data top len = map (\i -> rand top,i) ("a".."a"+len-1);
 
-(a,_) < (b,_) = a < b;
-(b,j) >= (a,i) = b > a || (b==a && j >= i);
-sorted [] = true;
-sorted (b:bs) = aux b bs with
-    aux _ [] = true;
-    aux a (b:bs) = b >= a && aux b bs;
-end;
-
-// generate random test tuples
-using math;
-rand n = random31 mod n;
-data top len = map (\i -> rand top,i) ("a".."a"+len-1);
-
-// To test:
-// > all id [sorted $ msort (<) (data j 26) | i=1..300;j=2..8];
-// 1
+    // To test:
+    // > all id [sorted $ msort (<) (data j 26) | i=1..300;j=2..8];
+    // 1
+#! --endif
