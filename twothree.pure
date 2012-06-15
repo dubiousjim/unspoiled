@@ -27,9 +27,9 @@
 
 namespace twothree;
 
-/* Tree constructors: 'nil' denotes an empty tree, 'bin left x right'
+/* Tree constructors: `nil` denotes an empty tree, `bin left x right`
    an interior node with the given left and right subtrees, and
-   'tri left y center z right' and interior node with the given subtrees.
+   `tri left y center z right` and interior node with the given subtrees.
    These are shared by all variations of the data structure. Depending on the
    particular type of data structure, the data element may take the form of a
    simple key (set-like), a key=>value pair (dictionary-like), or a
@@ -37,7 +37,7 @@ namespace twothree;
    and multidicts where multiple elements may be stored under a single key.
    For hash trees no order of the key elements is assumed, and keys are only
    compared for syntactical equality. Keys in non-hash trees must be ordered,
-   i.e., at least the comparison predicate '<' must be defined in a consistent
+   i.e., at least the comparison predicate `<` must be defined in a consistent
    fashion on them. In this case keys a and b are considered equal if neither
    a<b nor b<a holds. Note that in this case, adding b (or b=>value) to a tree
    that already contains a (or a=>the same value) returns the original tree
