@@ -57,24 +57,35 @@
 
  Here's how to do the same in Pure
  ---------------------------------
- // OCaml's sig/module type corresponds to Pure interfaces
+ // OCaml's sig/module type sort-of corresponds to Pure interfaces
  // OCaml's struct/module corresponds to Pure namespaces
 
+
+ // For present purposes, I'd like this to provide a pattern that different implementations of (<)
+ // in different namespaces might match against. That is, when the binding of (<)
+ // changes because you've changed namespaces, which types satisfy Comparable would
+ // likewise change. Unfortunately that doesn't seem to work (and for other purposes
+ // it may well be best that it doesn't). This declaration interprets (<) statically, using the binding
+ // visible when the declaration is compiled.
  interface Comparable with
     x::Comparable < y::Comparable;
-    // The way I'm using interfaces is broken!
-    // I wanted this to be a pattern that different implementations of (<) might satisfy
-    // but instead the interface declaration seems to interpret (<) statically:
-    //   interface Comparable with x::Comparable < y::Comparable; end;
-    //   namespace I with type t (pair _ _::string) = 1; infix (::<) <; (pair _ x) < (pair _ y) = x ::< y; end;
-    //   using namespace I;
-    //   typep Comparable (pair 1 "J"); // want this to be true, but instead it's false
  end;
 
- functor MakeSet(t=>Comparable with
-    // the following use type t and function (<) from the namespace
-    // they're parameterized on
-    empty = []; // unfortunately const and let don't work here
+ // If interfaces worked the way I described, we could qualify the types here
+ // like this:
+ //    functor MakeSet( t1=>Comparable, t2=>... with
+ //         /- implementation parameterized on t1 and t2 -/
+ //    end;
+
+ // Instead, we just have to trust that the types in the supplied namespaces
+ // satisfy the interface we're assuming.
+
+ functor MakeSet( t with
+    // The implementation will use type t and function (<) from the supplied namespace.
+    // Unfortunately, though this will in the end be *evaluated as* a toplevel context,
+    // the mechanism used here doesn't parse it that way. So declarations like `const` and `let`
+    // and `type` can't be used here.
+    empty = [];
     insert [] x::t = [x];
     insert (y:ys) x::t = x:y:ys if x < y;
                        = y:insert ys x otherwise;
@@ -98,7 +109,7 @@
 
  MakeSet StringSet PlainStrings; // evaluates to:
         // namespace StringSet with
-        //   type t v = typep Comparable v && typep PlainStrings::t v;
+        //   type t = PlainStrings::t;
         //   using namespace PlainStrings;
         //   insert [] x::t = [x];
         //   ...
@@ -114,9 +125,17 @@ def functor name::var (ts __with__ body) = eval m when
     type_decls = types ts;
     body = __str__ $ '(0 __with__ body);
     n = sprintf "namespace %%s with %s using namespace %%s; %s; end;" (join " " type_decls, body!!(7..#body-5));
+/*
+    m = sprintf "def %s M::var S::var = eval (sprintf %s (str M, %s, str S));" (str name, str n, join ", " (repeatn (#type_decls) "str S"));
+*/
     m = sprintf "def %s M::var S::var = eval (sprintf %s (str M, %s, str S));" (str name, str n, join ", " (repeatn (#type_decls) "str S"));
 end with
+/*
     type1 (t=>iface) = sprintf "type %s v = typep %s v && typep %%s::%s v;" (str t, str iface, str t);
     types (t@(_=>_)),ts = type1 t : types ts;
     types t@(_=>_) = [type1 t];
+*/
+    type1 t = sprintf "type %s = %%s::%s;" (str t, str t);
+    types (t,ts) = type1 t : types ts;
+    types t = [type1 t];
 end;
