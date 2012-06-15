@@ -99,9 +99,12 @@ member (x:xs) y = case x == y of
                              = member xs y otherwise;
                   end;
 
+#! --ifnot DEFINED_REVERSE_ONTO
+#! --enable DEFINED_REVERSE_ONTO
 // reverse with explicit base
 reverse_onto [] base = base;
 reverse_onto (x:xs) base = reverse_onto xs (x:base);
+#! --endif
 
 // map with explicit base
 // not tail call
