@@ -5,9 +5,9 @@
 // permit pattern-matching on these
 nonfix false true NULL inf nan;
 
-public single pair triple quad fst snd trd;
+public fst snd trd either either2 either3;
 /*
-  Using the existing () nonfix for `nothing`.
+  Using the existing {} for `nothing`.
 
   I'm now tempted to just use '{x}, '{x,y} etc for single x, pair x y.
   One downside: currently pattern-matching on {} crashes
@@ -45,44 +45,47 @@ public single pair triple quad fst snd trd;
     [1,2,3] is 9 cells
 */
 
-fst (single x) = x;
-fst (pair x _) = x;
-fst (triple x _ _) = x;
-fst (quad x _ _ _) = x;
-snd (pair _ x) = x;
-snd (triple _ x _) = x;
-snd (quad _ x _ _) = x;
-trd (triple _ _ x) = x;
-trd (quad _ _ x _) = x;
+fst {x} = x;
+fst {x,_} = x;
+fst {x,_,_} = x;
+fst {x,_,_,_} = x;
+fst {x,_,_,_,_} = x;
+snd {_,x} = x;
+snd {_,x,_} = x;
+snd {_,x,_,_} = x;
+snd {_,x,_,_,_} = x;
+trd {_,_,x} = x;
+trd {_,_,x,_} = x;
+trd {_,_,x,_,_} = x;
 
-// not sure how useful this type will be, since generally a caller will expect
-// only some of the sizes
-type maybe () | maybe (single _) | maybe (pair _ _)
-   | maybe (triple _ _ _) | maybe (quad _ _ _ _) = 1;
-// implicitly excludes everything else
-
-// defined only on (long-enough) maybes
+// defined only on (long-enough) vectors
 // extract the 1st, 2nd, or 3rd elements, or use default if ()
 // these are macros so that the default position can be short-circuited
 def either e default = either e with
-    either (single x) = x;
-    either (pair x _) = x;
-    either (triple x _ _) = x;
-    either (quad x _ _ _) = x;
-    either () = default;
+    either {x} = x;
+    either {x,_} = x;
+    either {x,_,_} = x;
+    either {x,_,_,_} = x;
+    either {x,_,_,_,_} = x;
+    // either {} = default;
+    either v::vector = default if null v;
 end;
 
 def either2 e default = either2 e with
-    either2 (pair _ x) = x;
-    either2 (triple _ x _) = x;
-    either2 (quad _ x _ _) = x;
-    either2 () = default;
+    either2 {_,x} = x;
+    either2 {_,x,_} = x;
+    either2 {_,x,_,_} = x;
+    either2 {_,x,_,_,_} = x;
+    // either2 {} = default;
+    either2 v::vector = default if null v;
 end;
 
 def either3 e default = either3 e with
-    either3 (triple _ _ x) = x;
-    either3 (quad _ _ x _) = x;
-    either3 () = default;
+    either3 {_,_,x} = x;
+    either3 {_,_,x,_} = x;
+    either3 {_,_,x,_,_} = x;
+    // either3 {} = default;
+    either3 v::vector = default if null v;
 end;
 
 using system;
