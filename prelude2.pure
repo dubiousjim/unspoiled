@@ -5,15 +5,16 @@
 // permit pattern-matching on these
 nonfix false true NULL inf nan;
 
+
 /*
   Using the existing {} for `nothing`.
 
   I'm now tempted to just use '{x}, '{x,y} etc for single x, pair x y.
-  One downside: currently pattern-matching on {} crashes
+  One downside: currently pattern-matching on {} crashes (fixed post-0.55)
                 have to use `m::matrix = ... if null m` instead
   Another: should the nothing be {}---which would be continuous with '{x} and so on?
-           or should it be ()---the result of void and so on?  <=====
-  Another: printf and friends expect their argv sequences as tuples   <=====
+           or should it be ()---the result of void and so on?
+  Another: printf and friends expect their argv sequences as tuples
            anything else in the stdlibs?
   Another: '{M,N} is a bit slower than pair M N, and you want M and N to be evaluated first
   Why '{x,y} is any better than '(x,y)?
@@ -27,51 +28,29 @@ nonfix false true NULL inf nan;
     [1,2,3] is 9 cells
 */
 
-/*
-public fst snd trd;
-// not clear these are needed, can just use (!0), (!1) etc.
-fst {x} = x;
-fst {x,_} = x;
-fst {x,_,_} = x;
-fst {x,_,_,_} = x;
-fst {x,_,_,_,_} = x;
-snd {_,x} = x;
-snd {_,x,_} = x;
-snd {_,x,_,_} = x;
-snd {_,x,_,_,_} = x;
-trd {_,_,x} = x;
-trd {_,_,x,_} = x;
-trd {_,_,x,_,_} = x;
-*/
-
 public either either2 either3;
-// defined only on (long-enough) vectors
-// extract the 1st, 2nd, or 3rd elements, or use default if {}
-// these are macros so that the default position can be short-circuited
-def either e default = either e with
-    either {x} = x;
-    either {x,_} = x;
-    either {x,_,_} = x;
-    // either {} = default;
-    either v::matrix = default if null v;
-                     = v!0;
+// combines unboxing and short-circuiting of alternate argument
+// contrast: e || default, which requires e to be an int
+// and: e ~== 0 || default, which coerces e to 0 or 1
+// `either` expects e to be boxed in a vector (see also assert, below)
+// all of these are defined only on (long-enough) vectors and {}
+def either e default = fst e with
+    fst v::matrix = default if null v;
+                  = v!0;
 end;
 
-def either2 e default = either2 e with
-    either2 {_,x} = x;
-    either2 {_,x,_} = x;
-    // either2 {} = default;
-    either2 v::matrix = default if null v;
-                      = v!1 if #v > 3;
+def either2 e default = snd e with
+    snd v::matrix = default if null v;
+                  = v!1 if #v >= 2;
 end;
 
-def either3 e default = either3 e with
-    either3 {_,_,x} = x;
-    // either3 {} = default;
-    either3 v::matrix = default if null v;
-                      = v!2 if #v > 3;
+def either3 e default = trd e with
+    trd v::matrix = default if null v;
+                  = v!2 if #v >= 3;
 end;
 
+
+// accepts non-int conditions
 using system;
 def assert condition fmt args
     = if condition === 0 then throw (sprintf ("assertion failed: "+fmt) args)
@@ -89,7 +68,7 @@ member (x:xs) y = case x == y of
                     res      = 1 if x===y;
                     // else we may want to count the membership test
                     // as unsettled: member xs y || res;
-                    // instead we count it as false; that way we get
+                    // but instead I here count it as false; that way we get
                     // free syntactic comparison of constructions for which
                     // == is undefined
                              = member xs y otherwise;
