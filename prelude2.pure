@@ -66,7 +66,7 @@ end;
 public assert failed_assert;
 nonfix failed_assert;
 def assert exp msg
-    = if c === 0 then throw (failed_assert (msg)) else c
+    = if c === 0 then throw (failed_assert msg) else c
       when c = exp end;
 
 /* From getopt: A macro to evaluate a series of terms and return the result of the first
@@ -84,7 +84,7 @@ type nat x::int = x>=0;
 type nat x::bigint = x>=0;
 
 type odd x::nat = x mod 2;
-type even x::nat = ~odd x;
+type even x::nat = x mod 2 == 0;
 odd x = typep odd x; // turns type tag into type predicate
 even x = typep even x; // could also do: `even = typep ('even)`, quoting needed to prevent looping
 
