@@ -4,16 +4,20 @@
 
 public member map_onto zipfoldl zipfoldr zipfoldl3 zipfoldr3;
 
+// just says whether y is a member
+// whereas index returns the position 0..#xs-1, or -1 if not found
+// also, index requires == is defined between the xs and y
 member [] y = 0;
 member (x:xs) y = case x == y of
                     res::int = 1 if res;
                              = member xs y otherwise;
+                    // syntactic equality suffices for membership
                     res      = 1 if x===y;
-                    // else we may want to count the membership test
-                    // as unsettled: member xs y || res;
-                    // but instead I here count it as false; that way we get
-                    // free syntactic comparison of constructions for which
-                    // == is undefined
+                    // else we may want to count membership as unsettled:
+                    //       =  member xs y || res otherwise;
+                    // but instead I here count it as false
+                    // that way we get free syntactic comparison
+                    // for structures whose == is undefined
                              = member xs y otherwise;
                   end;
 
