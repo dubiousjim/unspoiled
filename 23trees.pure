@@ -86,6 +86,7 @@ private tree fulltree;
 
 type tree (bin _ _ _) | tree (tri _ _ _ _ _) | tree nil = 1;
 type tree _ = 0;
+
 type fulltree (bin _ _ _) | fulltree (tri _ _ _ _ _) = 1;
 type fulltree _ = 0;
 
@@ -99,9 +100,11 @@ type fulltree _ = 0;
 
 /* Basic 2-3-tree operations, single value per key. */
 
-public size members keys vals first last rmfirst rmlast popfirst poplast;
+public size foldl foldl1 foldr foldr1 members keys vals;
+public first last rmfirst rmlast popfirst poplast;
 
 // Compute the size of a tree.
+// TODO: should we instead extend ::# and ::members?
 
 size t::tree = size t with
     size nil = 0;
@@ -109,13 +112,46 @@ size t::tree = size t with
     size (tri l _ c _ r) = size l + size c + size r + 2;
 end;
 
-// Get the list of all members.
+// General folds, and get the list of all members
 
+foldl f a t::tree = fold a t with
+    fold a nil = a;
+    fold a (bin l x r) = fold (f (fold a l) x) r;
+    fold a (tri l y c z r) = fold (f (fold (f (fold a l) y) c) z) r;
+end;
+
+foldl1 f t::fulltree = fold notfound t with
+    fold notfound (bin nil x nil) = x;
+    fold notfound (tri nil y nil z nil) = f y z;
+    fold a nil = a;
+    fold a (bin l x r) = fold (f (fold a l) x) r;
+    fold a (tri l y c z r) = fold (f (fold (f (fold a l) y) c) z) r;
+end;
+
+foldr f a t::tree = fold t a with
+    fold nil a = a;
+    fold (bin l x r) a = fold l (f x (fold r a));
+    fold (tri l y c z r) a = fold l (f y (fold c (f z (fold r a))));
+end;
+
+foldr1 f t::fulltree = fold t notfound with
+    fold (bin nil x nil) notfound = x;
+    fold (tri nil y nil z nil) notfound = f y z;
+    fold nil a = a;
+    fold (bin l x r) a = fold l (f x (fold r a));
+    fold (tri l y c z r) a = fold l (f y (fold c (f z (fold r a))));
+end;
+
+/*
 members t::tree = members t [] with
     members nil base = base;
     members (bin l x r) base = members l (x : members r base);
     members (tri l y c z r) base = members l (y : members c (z : members r base));
 end;
+*/
+
+members t::tree = foldr (:) [] t;
+
 
 // Get the list of all keys and values. This requires a dictionary-like
 // structure with separate key values.
@@ -167,7 +203,8 @@ end;
 
 /* Basic 2-3-tree operations, multiple values per key. */
 
-public msize mmembers mkeys mvals mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
+public msize mfoldl mfoldl1 mfoldr mfoldr1 mmembers mkeys mvals;
+public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
 msize t::tree = size t with
     size nil = 0;
@@ -175,13 +212,53 @@ msize t::tree = size t with
     size (tri l (_=>ys) c (_=>zs) r) = size l + size c + size r + #ys + #zs;
 end;
 
+mfoldl f a t::tree = fold a t with
+    fold a nil = a;
+    fold a (bin l (_=>xs) r) = fold (ff (fold a l) xs) r;
+    fold a (tri l (_=>ys) c (_=>zs) r) = fold (ff (fold (ff (fold a l) ys) c) zs) r;
+end when
+    ff = ::foldr (flip f);
+end;
+
+mfoldl1 f t::fulltree = fold notfound t with
+    fold notfound (bin nil (_=>xs) nil) = ::foldr1 (flip f) xs;
+    fold notfound (tri nil (_=>ys) nil (_=>zs) nil) = ff (::foldr1 (flip f) ys) zs;
+    fold a nil = a;
+    fold a (bin l (_=>xs) r) = fold (ff (fold a l) xs) r;
+    fold a (tri l (_=>ys) c (_=>zs) r) = fold (ff (fold (ff (fold a l) ys) c) zs) r;
+end when
+    ff = ::foldr (flip f);
+end;
+
+mfoldr f a t::tree = fold t a with
+    fold nil a = a;
+    fold (bin l (_=>xs) r) a = fold l (ff (fold r a) xs);
+    fold (tri l (_=>ys) c (_=>zs) r) a = fold l (ff (fold c (ff (fold r a) zs)) ys);
+end when
+    ff = ::foldl (flip f);
+end;
+
+mfoldr1 f t::fulltree = fold t notfound with
+    fold (bin nil (_=>xs) nil) notfound = ::foldl1 (flip f) xs;
+    fold (tri nil (_=>ys) nil (_=>zs) nil) notfound = ff (::foldl1 (flip f) zs) ys;
+    fold nil a = a;
+    fold (bin l (_=>xs) r) a = fold l (ff (fold r a) xs);
+    fold (tri l (_=>ys) c (_=>zs) r) a = fold l (ff (fold c (ff (fold r a) zs)) ys);
+end when
+    ff = ::foldl (flip f);
+end;
+
 // For compatibility with avltrees, we return the member list with first-added elements first.
 
+/*
 mmembers t::tree = members t [] with
     members nil base = base;
     members (bin l (_=>xs) r) base = members l (reverse_onto xs (members r base));
     members (tri l (_=>ys) c (_=>zs) r) base = members l (reverse_onto ys (members c (reverse_onto zs (members r base))));
 end;
+*/
+
+mmembers t::tree = mfoldr ((:)) [] t;
 
 mkeys t::tree = keys t [] with
     keys nil base = base;
