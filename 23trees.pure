@@ -82,13 +82,13 @@ null nil = 1;
 null (bin _ _ _) = 0;
 null (tri _ _ _ _ _) = 0;
 
-private tree fulltree;
+// public tree fulltree rtree; // TODO: How does one specify the visibility of types?
 
-type tree (bin _ _ _) | tree (tri _ _ _ _ _) | tree nil = 1;
-type tree _ = 0;
+type tree nil | tree (bin _ _ _) | tree (tri _ _ _ _ _);
+type rtree nil | rtree (bin _::rtree _ _::rtree) | rtree (tri _::rtree _ _::rtree _ _::rtree);
 
-type fulltree (bin _ _ _) | fulltree (tri _ _ _ _ _) = 1;
-type fulltree _ = 0;
+type fulltree nil = 0;
+type fulltree t::tree = 1;
 
 
 /* In the following, different operations are provided for the different kinds
