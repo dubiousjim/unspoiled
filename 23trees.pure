@@ -82,13 +82,12 @@ null nil = 1;
 null (bin _ _ _) = 0;
 null (tri _ _ _ _ _) = 0;
 
-// public tree fulltree rtree; // TODO: How does one specify the visibility of types?
-
 type tree nil | tree (bin _ _ _) | tree (tri _ _ _ _ _);
 type rtree nil | rtree (bin _::rtree _ _::rtree) | rtree (tri _::rtree _ _::rtree _ _::rtree);
 
-type fulltree nil = 0;
-type fulltree t::tree = 1;
+private fullp;
+fullp (bin _ _ _) | fullp (tri _ _ _ _ _) = 1;
+fullp _ = 0;
 
 
 /* In the following, different operations are provided for the different kinds
@@ -120,7 +119,7 @@ foldl f a t::tree = fold a t with
     fold a (tri l y c z r) = fold (f (fold (f (fold a l) y) c) z) r;
 end;
 
-foldl1 f t::fulltree = fold notfound t with
+foldl1 f t = fold notfound t if fullp t with
     fold notfound (bin nil x nil) = x;
     fold notfound (tri nil y nil z nil) = f y z;
     fold a nil = a;
@@ -134,7 +133,7 @@ foldr f a t::tree = fold t a with
     fold (tri l y c z r) a = fold l (f y (fold c (f z (fold r a))));
 end;
 
-foldr1 f t::fulltree = fold t notfound with
+foldr1 f t = fold t notfound if fullp t with
     fold (bin nil x nil) notfound = x;
     fold (tri nil y nil z nil) notfound = f y z;
     fold nil a = a;
@@ -170,14 +169,14 @@ end;
 
 // Get the first and the last member of a tree.
 
-first t::fulltree = first t with
+first t = first t if fullp t with
     first (bin nil x _) = x;
     first (bin l _ _) = first l;
     first (tri nil y _ _ _) = y;
     first (tri l _ _ _ _) = first l;
 end;
 
-last t::fulltree = last t with
+last t = last t if fullp t with
     last (bin _ x nil) = x;
     last (bin _ _ r) = last r;
     last (tri _ _ _ z nil) = z;
@@ -186,19 +185,19 @@ end;
 
 // Remove the first and the last member from a tree.
 
-rmfirst t::fulltree = head3 $ pop_left t;
+rmfirst t = head3 $ pop_left t if fullp t;
 
-rmlast t::fulltree = head3 $ pop_right t;
+rmlast t = head3 $ pop_right t if fullp t;
 
 // Note that popped element may be () or a longer tuple.
 
-popfirst t::fulltree = case pop_left t of
+popfirst t = case pop_left t of
     child@_ _ w = '(child, w)
-end;
+end if fullp t;
 
-poplast t::fulltree = case pop_right t of
+poplast t = case pop_right t of
     child@_ _ w = '(child, w)
-end;
+end if fullp t;
 
 
 /* Basic 2-3-tree operations, multiple values per key. */
@@ -220,7 +219,7 @@ end when
     ff = ::foldr (flip f);
 end;
 
-mfoldl1 f t::fulltree = fold notfound t with
+mfoldl1 f t = fold notfound t with
     fold notfound (bin nil (_=>xs) nil) = ::foldr1 (flip f) xs;
     fold notfound (tri nil (_=>ys) nil (_=>zs) nil) = ff (::foldr1 (flip f) ys) zs;
     fold a nil = a;
@@ -228,7 +227,7 @@ mfoldl1 f t::fulltree = fold notfound t with
     fold a (tri l (_=>ys) c (_=>zs) r) = fold (ff (fold (ff (fold a l) ys) c) zs) r;
 end when
     ff = ::foldr (flip f);
-end;
+end if fullp t;
 
 mfoldr f a t::tree = fold t a with
     fold nil a = a;
@@ -238,7 +237,7 @@ end when
     ff = ::foldl (flip f);
 end;
 
-mfoldr1 f t::fulltree = fold t notfound with
+mfoldr1 f t = fold t notfound with
     fold (bin nil (_=>xs) nil) notfound = ::foldl1 (flip f) xs;
     fold (tri nil (_=>ys) nil (_=>zs) nil) notfound = ff (::foldl1 (flip f) zs) ys;
     fold nil a = a;
@@ -246,7 +245,7 @@ mfoldr1 f t::fulltree = fold t notfound with
     fold (tri l (_=>ys) c (_=>zs) r) a = fold l (ff (fold c (ff (fold r a) zs)) ys);
 end when
     ff = ::foldl (flip f);
-end;
+end if fullp t;
 
 // For compatibility with avltrees, we return the member list with first-added elements first.
 
@@ -272,35 +271,35 @@ mvals t::tree = vals t [] with
     vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_onto [y | _=>y = ys] (vals c (reverse_onto [z | _=>z = zs] (vals r base))));
 end;
 
-mfirst t::fulltree = first t with
+mfirst t = first t with
     // first-added element is at the end of the list
     first (bin nil (_=>xs) _) = ::last xs;
     first (bin l _ _) = first l;
     first (tri nil (_=>ys) _ _ _) = ::last ys;
     first (tri l _ _ _ _) = first l;
-end;
+end if fullp t;
 
-mlast t::fulltree = last t with
+mlast t = last t with
     // last-added element is at the head of the list
     last (bin _ (_=>xs) nil) = head xs;
     last (bin _ _ r) = last r;
     last (tri _ _ _ (_=>zs) nil) = head zs;
     last (tri _ _ _ _ r) = last r;
-end;
+end if fullp t;
 
-mrmfirst t::fulltree = head3 $ mpop_left t;
+mrmfirst t = head3 $ mpop_left t if fullp t;
 
-mrmlast t::fulltree = head3 $ mpop_right t;
+mrmlast t = head3 $ mpop_right t if fullp t;
 
 // Note that popped element may be () or a longer tuple.
 
-mpopfirst t::fulltree = case mpop_left t of
+mpopfirst t = case mpop_left t of
     child@_ _ w = '(child, w)
-end;
+end if fullp t;
 
-mpoplast t::fulltree = case mpop_right t of
+mpoplast t = case mpop_right t of
     child@_ _ w = '(child, w)
-end;
+end if fullp t;
 
 
 /* The above also apply to all kinds of hash trees. For convenience and
