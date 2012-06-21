@@ -7,19 +7,13 @@
     * the box contains a refcell r that keeps a list of which weak_ref
       sentries have been associated with x; r also contains an unsafe ptr to x
       (we keep that always at the head of the list)
-    * hashtable H keeps an association from x's address --> r
-    * clients can use x's address as indices into H; but they shouldn't
-      keep hold of these indices (x might get GC'd, and in the
-      meantime another object can get registered into the weak_ref system
-      using the same address).
-    * I considered versioning the hashtable, or keeping hashtable entries
-      alive after x had been collected. But on balance, I favor the lightweight
-      approach of just making sure the higher-level API (the weakdict collections)
-      does the right thing.
+    * clients can use r as a weakref to x; it will live longer than x does
+      but won't keep x alive. When x starts to die, r will no longer deref to
+      x; however x will in fact still be alive until all its weak_sentries
+      have run (and after them, its ordinary sentries).
 
     High-level weak-key and weak-value dictionaries are guided by Python's
     implementation of these, and my experience working with Lua's weak tables.
-
 */
 
 
@@ -200,8 +194,6 @@ refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
 */
 
 
-using hashtable, trees23;
-
 // we need to overwrite the stdlib definitions of these
 public _sentry _clear_sentry _get_sentry _cookedp _cooked;
 
@@ -214,8 +206,8 @@ namespace weakdict;
 namespace weakdict::__ref__;
 
 
-public weak_addr weak_get weak_ref;
-private H Box lookup; private nonfix notfound nil;
+public weak_get weak_getref weak_ref; // FIXME public
+private Box weak_unbox; private nonfix notfound nil;
 
 
 private extern expr* pure_sentry(expr*,expr*); //  = sentry; // IMPURE!
@@ -265,15 +257,18 @@ end with
     handle r x = () when
                     // do we need to use pure_ref x here...?
                     u:ss = __C::pointer_get_expr r;
-                    // remove (xaddr=>r) from H
-                    xaddr = get_pointer u;
-                    hashtable::delete H xaddr;
+                    // assert(u is still unsafe ptr, not notfound)
+                    // now that x is dying, no one can look it up via r anymore
+                    put r [notfound];
                     // run the weak_ref sentries
-                    do ($ xaddr) ss;
+                    // we give them the weakref as an argument but not x
+                    // so there's no danger of them reviving x
+                    do ($ r) ss;
                     // do we need to use pure_unref x here ...?
                end;
 end;
 
+/*
 // is there a way to get x's address without allocating a new pointer?
 weak_addr x = xaddr when
     u::pointer = __C::pure_expr_pointer;
@@ -284,7 +279,7 @@ end;
 let H = hashtable::emptyhashtable; // global hashtable of (addr=>weak_ref)s
 
 lookup xaddr = hashtable::getk H xaddr notfound;
-/*
+/-
     lookup xaddr = hashtable::eachk H f xaddr notfound with
         f (_=>r) = if alive r then r else 0; // 0 means continue
     end;
@@ -292,48 +287,64 @@ lookup xaddr = hashtable::getk H xaddr notfound;
 */
 
 
-// lookup x using xaddr
-weak_get xaddr = case lookup xaddr of
-    notfound = throw (bad_pointer_value xaddr);
-    r = x when
-            u:_ = __C::pointer_get_expr r;
-            x = __C::pointer_get_expr u;
-        end;
+// lookup x from weak_ref
+weak_get r = case __C::pointer_get_expr r of
+    u:_ = {} if u === notfound;
+        = '{x} when
+            x = __C::pointer_get_expr u; // deref the unsafe ptr
+          end otherwise;
 end;
 
-// register a "new weak_ref" for x (a new sentry)
-weak_ref x sen::function = xaddr when
+weak_unbox x = if ~pure_has_sentry x then notfound
+               else case pure_get_sentry x of
+                    Box r _ = r;
+                    _ = notfound;
+               end;
+
+
+// lookup existing weak_ref from x
+weak_getref x = case weak_unbox x of
+    notfound = throw bad_pointer_value;
+    r = r;
+end;
+
+
+// make new weak_ref for x (with optional sentry)
+// use void if you don't want a sentry (that case is optimized)
+weak_ref x sen::function = r when
     pure_new x; // lock x from being collected until everything is set up
                 // might I use pure_ref instead?
-    u::pointer = __C::pure_expr_pointer;
-    __C::pointer_put_expr u x;  // unsafe ptr to x (x's refcount not increased)
-    xaddr = get_pointer u;
-    r = case lookup xaddr of
-            notfound = r when
-                 // r is a refcell containing the unsafe ptr and a list of sentries
-                 r = ref [u, sen];
-                 // We add r to hashtable, indexed by xaddr, so we can look it up given x
-                 hashtable::insert H (xaddr=>r);
-                 // setup x's sentry
-                 weak_sentry r x;
-            end;
-            r = put r (u:sen:ss) $$ r when // add sentry
-                u:ss = get r;
-            end;
+    r = case weak_unbox x of
+        notfound = r when
+                       u::pointer = __C::pure_expr_pointer;
+                       __C::pointer_put_expr u x; // unsafe ptr to x (x's refcount not increased)
+                       // r is a refcell containing the unsafe ptr and a list of weak_sentries
+                       r = ref (u:ss) when
+                            ss = if sen === ::void
+                                 then []
+                                 else [sen];
+                           end;
+                       // setup sentry Box on x
+                       pure_sentry (Box r s) x when
+                            s = if pure_has_sentry x
+                                then pure_get_sentry x
+                                else nil;
+                       end;
+                   end;
+               r = r if sen === ::void;
+                 = put r (u:sen:ss) $$ r when // add sentry
+                       u:ss = get r;
+                   end otherwise;
         end;
     pure_free x; // might I use pure_unref instead?
-end with
-    // set up our sentry box
-    weak_sentry r x = () when
-        s = if pure_has_sentry x then pure_get_sentry x else nil;
-        pure_sentry (Box r s) x;
-    end;
 end;
 
 
 namespace weakdict;
 
 // high-level API
+
+using trees23;
 
 using namespace weakdict::__ref__;
 
@@ -380,11 +391,13 @@ insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
 insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
 */
 
+/*
 // insert a member
 insert (WKDict  d) el@(x=>y) = WKDict  (
 insert (WVDict  d) el@(x=>y) = WVDict  (
 insert (WKMDict d) el@(x=>y) = WKMDict (
 insert (WVMDict d) el@(x=>y) = WVMDict (
+*/
 
 // curried version of insert
 update d@(WKDict  _) x y | update d@(WVDict  _) x y |
@@ -398,11 +411,13 @@ delete (MDict  d) x = MDict  (avl::mdeletek  d x);
 delete (HMDict d) x = HMDict (avl::mhdeletek d x);
 */
 
+/*
 // delete a member by key
 delete (WKDict  d) x = WKDict  (
 delete (WVDict  d) x = WVDict  (
 delete (WKMDict d) x = WKMDict (
 delete (WVMDict d) x = WVMDict (
+*/
 
 /*
 // delete a member by key=>val
@@ -412,11 +427,13 @@ delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
 delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
 */
 
+/*
 // delete a member by key=>val
 delete_val (WKDict  d) el@(x=>y) = WKDict  (
 delete_val (WVDict  d) el@(x=>y) = WVDict  (
 delete_val (WKMDict d) el@(x=>y) = WKMDict (
 delete_val (WVMDict d) el@(x=>y) = WVMDict (
+*/
 
 /*
 // delete all instances of a given key
@@ -426,11 +443,13 @@ delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
 delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
 */
 
+/*
 // delete all instances of a given key
 delete_all (WKDict  d) x = WKDict  (
 delete_all (WVDict  d) x = WVDict  (
 delete_all (WKMDict d) x = WKMDict (
 delete_all (WVMDict d) x = WVMDict (
+*/
 
 /*
 // membership test
@@ -440,11 +459,13 @@ member (HDict  d) k = avl::hmemberk d k;
 member (HMDict d) k = avl::hmemberk d k;
 */
 
+/*
 // membership test
 member (WKDict  d) k = WKDict  (
 member (WVDict  d) k = WVDict  (
 member (WKMDict d) k = WKMDict (
 member (WVMDict d) k = WVMDict (
+*/
 
 /*
 // get a value by key
@@ -454,12 +475,13 @@ member (WVMDict d) k = WVMDict (
 (HMDict d)!k = avl::mhgetk d k;
 */
 
+/*
 // get a value by key
 (WKDict  d)!k = trees23::getk d k;
 (WVDict  d)!k = trees23::getk d k;
 (WKMDict d)!k = trees23::getk d k;
 (WVMDict d)!k = trees23::getk d k;
-
+*/
 
 ///////////////////////////////////////////////////////////////
 
