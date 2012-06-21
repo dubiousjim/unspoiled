@@ -25,7 +25,7 @@
 */
 
 
-namespace "23trees";
+namespace trees23;
 
 /* Tree constructors: `nil` denotes an empty tree, `bin left x right`
    an interior node with the given left and right subtrees, and
