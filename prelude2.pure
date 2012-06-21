@@ -6,7 +6,7 @@
 nonfix false true NULL inf nan;
 
 using lists;
-using "23trees";
+using trees23;
 using merge;
 using functor;
 
