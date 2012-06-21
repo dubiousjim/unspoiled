@@ -12,19 +12,53 @@ end;
 def __vector__ xs = __aux__::__vector__ {} xs;
 */
 namespace __aux__ with
-    def __vector__ v (x:xs) = __vector__ {v,'{x}} xs when x=x end;
+    def __vector__ v (r:s:t:u:w:x:y:z:zs) = __vector__ {v,'{r,s,t,u,w,x,y,z}} zs when r=r; s=s; t=t; u=u; w=w; x=x; y=y; z=z end;
+    def __vector__ v (s:t:u:w:x:y:z:zs) = __vector__ {v,'{s,t,u,w,x,y,z}} zs when s=s; t=t; u=u; w=w; x=x; y=y; z=z end;
+    def __vector__ v (t:u:w:x:y:z:zs) = __vector__ {v,'{t,u,w,x,y,z}} zs when t=t; u=u; w=w; x=x; y=y; z=z end;
+    def __vector__ v (u:w:x:y:z:zs) = __vector__ {v,'{u,w,x,y,z}} zs when u=u; w=w; x=x; y=y; z=z end;
+    def __vector__ v (w:x:y:z:zs) = __vector__ {v,'{w,x,y,z}} zs when w=w; x=x; y=y; z=z end;
+    def __vector__ v (x:y:z:zs) = __vector__ {v,'{x,y,z}} zs when x=x; y=y; z=z end;
+    def __vector__ v (y:z:zs) = __vector__ {v,'{y,z}} zs when y=y; z=z end;
+    def __vector__ v (z:zs) = __vector__ {v,'{z}} zs when z=z end;
     def __vector__ v [] = v;
+    /*
+    In runtime.h: "Stuff below this line is for internal use by the Pure interpreter. Don't call these directly, unless you know what you are doing."
+    ...
+    These are used internally to construct quoted matrices.
+    pure_expr *pure_matrix_columnsq(uint32_t n, ...);
+    */
+    extern expr* pure_matrix_columnsq (int, ...);
+    extern expr* pure_matrix_columnsq (int, expr*) = col1;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*) = col2;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*) = col3;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*) = col4;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*) = col5;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*, expr*) = col6;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*, expr*, expr*) = col7;
+    extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*, expr*, expr*, expr*) = col8;
+    def __vector2__ v (r:s:t:u:w:x:y:z:zs) = __vector2__ {v,col8 8 r s t u w x y z} zs;
+    def __vector2__ v (s:t:u:w:x:y:z:zs) = __vector2__ {v,col7 7 s t u w x y z} zs;
+    def __vector2__ v (t:u:w:x:y:z:zs) = __vector2__ {v,col6 6 t u w x y z} zs;
+    def __vector2__ v (u:w:x:y:z:zs) = __vector2__ {v,col5 5 u w x y z} zs;
+    def __vector2__ v (w:x:y:z:zs) = __vector2__ {v,col4 4 w x y z} zs;
+    def __vector2__ v (x:y:z:zs) = __vector2__ {v,col3 3 x y z} zs;
+    def __vector2__ v (y:z:zs) = __vector2__ {v,col2 2 y z} zs;
+    def __vector2__ v (z:zs) = __vector2__ {v,col1 1 z} zs;
+    def __vector2__ v [] = v;
 end;
-public __vector__;
+public __vector__ __vector2__;
 def __vector__ xs = __aux__::__vector__ {} (__list__ xs);
+def __vector2__ xs = __aux__::__vector2__ {} (__list__ xs);
 
 // non-splicing vector constructor
 // nonfix {||}; def {||} = {}; // not really necessary
                                // note that {| |} wouldn't be accepted in any case
 public outfix {| |}; def {| xs |} = __vector__ xs;
+public outfix {: :}; def {: xs :} = __vector2__ xs;
 
 // another alternative is:
 //   prefix 1190 vect; def vect t = __vector__ t;
 // then you can say: (vect 1, {x, succ 3}, {}) when x = 5 end
 // but `vect _` doesn't also become available for pattern-matching
 // and neither does {| _ |}
+
