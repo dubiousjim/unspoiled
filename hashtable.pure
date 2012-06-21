@@ -16,8 +16,8 @@ private nonfix abort notfound;
 private new_hashtable new_matrix buckets eq len2;
 
 public emptyhashtable hashtable mkhashtable size null;
-public member getk insert delete replace;
-public do fold;
+public member getk eachk insert delete replace clear;
+public do fold members;
 
 
 // new hashtable (nullary function)
@@ -55,20 +55,66 @@ end;
 
 
 // unroll the first few steps for performance
-getk (H sizeptr mptr) k =
+getk (H sizeptr mptr) k default =
 case get (m ! (hash k mod #m)) of
-    [] = throw out_of_bounds;
+    [] = default; // throw out_of_bounds
     (xk=>xv):xs = if eq k xk then xv
     else case xs of
-        [] = throw out_of_bounds;
+        [] = default; // throw out_of_bounds
         (xk=>xv):xs = if eq k xk then xv else aux k xs;
     end;
 end when
     m = get mptr;
 end with
-    aux k [] = throw out_of_bounds;
+    aux k [] = default; // throw out_of_bounds
     aux k ((xk=>xv):xs) = if eq k xk then xv else aux k xs;
 end;
+
+
+// The `f (k=>v) = ...` handler for eachk should return one of:
+//    REPLACE y, stop? --- k=>y replaces k=>v in hashtable
+//    INSERT y, stop?  --- k=>y is inserted into hashtable before k=>v
+//    DELETE, stop?    --- k=>v is removed from hashtable
+//    stop?            --- in all cases, stop? === 0 means continue
+//                         else stop value is returned
+public REPLACE INSERT; public nonfix DELETE;
+
+eachk (H sizeptr mptr) f k default =
+case aux f nsiz k (get cell) of
+    nsiz, xs, res = put cell xs $$
+                    put sizeptr nsiz $$
+                    (if nsiz > msiz << 1 then resize h else ()) $$
+                    (if res === notfound
+                     then default // throw out_of_bounds
+                     else res)
+end when
+    m = get mptr;
+    msiz = #m;
+    nsiz = get sizeptr;
+    cell = m ! (hash k mod msiz);
+end with
+    aux f nsiz _ [] = nsiz, [], notfound;
+    aux f nsiz k xx@(x@(xk=>_):xs) =
+        if eq k xk then case f x of
+            REPLACE y, stop = case aux f nsiz k xs of
+                                nsiz, xs, stop = nsiz, (k=>y):xs, stop;
+                              end if stop === 0;
+                            = nsiz, (k=>y):xs, stop otherwise;
+            INSERT y, stop  = case aux f (nsiz+1) k xs of
+                                nsiz, xs, stop = nsiz, (k=>y):x:xs, stop;
+                              end if stop === 0;
+                            = (nsiz+1), (k=>y):xx, stop otherwise;
+            DELETE, stop    = aux f (nsiz-1) k xs if stop === 0;
+                            = (nsiz-1), xs, stop otherwise;
+            stop            = case aux f nsiz k xs of
+                                nsiz, xs, stop = nsiz, x:xs, stop;
+                              end if stop === 0;
+                            = nsiz, xx, stop otherwise;
+        end else              case aux f nsiz k xs of
+                                nsiz, xs, stop = nsiz, x:xs, stop;
+                              end;
+end;
+
 
 
 // removes newest of duplicate keys
@@ -153,23 +199,18 @@ end with
 end;
 
 
+public members;
+
+// list members as (k=>v), duplicate keys are listed oldest first
+members h = fold (:) [] h;
+
+// keys h
+// vals h
 
 
-public getk_all;
-
-getk_all (H _ mptr) k =
-    aux k (get (m ! (hash k mod #m)))
-when
-    m = get mptr;
-end with
-    aux _ [] = [];
-    aux k ((xk=>xv):xs) =
-        if eq k xk then xv:aux k xs
-        else aux k xs;
-end;
 
 
-public clear;
+
 
 // careful: have to prefix with space in interpreter or it will parse as cmd
 clear (H sizeptr mptr) =
@@ -181,14 +222,6 @@ end with
              = ();
 end;
 
-
-public members;
-
-// list members as (k=>v), duplicate keys are listed oldest first
-members h = fold (:) [] h;
-
-// keys h
-// vals h
 
 
 /*
