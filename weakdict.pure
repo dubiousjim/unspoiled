@@ -1,0 +1,335 @@
+/*
+  weakdict.pure
+
+    Low-level conventions
+    ---------------------
+    * original object x gets a sentry box (this can chain a regular sentry)
+    * the box contains a refcell r that keeps a list of which weak_ref
+      sentries have been associated with x; r also contains an unsafe ptr to x
+      (we keep that always at the head of the list)
+    * hashtable H keeps an association from x's address --> r
+    * clients can use x's address as indices into H; but they shouldn't
+      keep hold of these indices (x might get GC'd, and in the
+      meantime another object can get registered into the weak_ref system
+      using the same address).
+    * I considered versioning the hashtable, or keeping hashtable entries
+      alive after x had been collected. But on balance, I favor the lightweight
+      approach of just making sure the higher-level API (the weakdict collections)
+      does the right thing.
+
+*/
+
+
+
+/* ..
+
+Some notes from other files, for my reference...
+
+   Sentries
+   ~~~~~~~~
+
+   Sentries are Pure's flavour of object `finalizers`. A sentry is simply an
+   object (usually a function) which gets applied to the target expression
+   when it is garbage-collected. This is useful to perform automatic cleanup
+   actions on objects with internal state, such as files. Pure's sentries are
+   *much* more useful than finalizers in other garbage-collected languages,
+   since it is guaranteed that they are called as soon as an object "goes out
+   of scope", i.e., becomes inaccessible.
+
+   .. function:: sentry f x
+
+      Places a sentry ``f`` at an expression ``x`` and returns the modified
+      expression.
+
+   .. function:: clear_sentry x
+
+      Removes the sentry from an expression ``x``.
+
+   .. function:: get_sentry x
+
+      Returns the sentry of an expression ``x`` (if any, fails otherwise).
+
+   As of Pure 0.45, sentries can be placed on any Pure expression. The sentry
+   itself can also be any type of object (but usually it's a function).
+   Example::
+
+     > using system;
+     > sentry (\_->puts "I'm done for!") (1..3);
+     [1,2,3]
+     > clear ans
+     I'm done for!
+
+   Note that setting a finalizer on a global symbol won't usually be of much
+   use since such values are cached by the interpreter. (However, the sentry
+   *will* be invoked if the symbol gets recompiled because its definition has
+   changed. This may be useful for some purposes.)
+
+   In Pure parlance, we call an expression `cooked` if a sentry has been
+   attached to it. The following predicate can be used to check for this
+   condition. Also, there is a convenience function to create cooked pointers
+   which take care of freeing themselves when they are no longer needed.
+
+   .. function:: cookedp x
+
+      Check whether a given object has a sentry set on it.
+
+   .. function:: cooked ptr
+
+      Create a pointer which disposes itself after use. This is just a
+      shorthand for ``sentry free``. The given pointer ``ptr`` must be
+      :func:`malloc`\ ed to make this work.
+
+   Example::
+
+     > using system;
+     > let p = cooked (malloc 1024);
+     > cookedp p;
+     1
+     > get_sentry p;
+     free
+     > clear p
+
+   Besides their use as finalizers, sentries can also be handy in other
+   circumstances, when you need to associate an expression with another,
+   "invisible" value. In this case the sentry is usually some kind of data
+   structure instead of a function to be executed at finalization time. For
+   instance, here's how we can employ sentries to implement hashing of
+   function values::
+
+     using dict;
+     hashed f x = case get_sentry f of
+                    h::hdict = h!x if member h x;
+                    _ = y when y = f x; sentry (update h x y) f
+                            when h = case get_sentry f of
+                                       h::hdict = h; _ = emptyhdict
+                                     end;
+                            end;
+                          end;
+                  end;
+
+   E.g., consider the naive recursive definition of the Fibonacci function::
+
+     fib n::int = if n<=1 then 1 else fib (n-1)+fib (n-2);
+
+   A hashed version of the Fibonacci function can be defined as follows::
+
+     let hfib = hashed f with
+       f n::int = if n<=1 then 1 else hfib (n-1)+hfib (n-2)
+     end;
+
+   This turns the naive definition of the Fibonacci function (which has
+   exponential time complexity) into a linear time operation::
+
+     > stats
+     > fib 35;
+     14930352
+     4.53s
+     > hfib 35;
+     14930352
+     0.25s
+
+   Finally, note that there can be only one sentry per expression but,
+   building on the operations provided here, it's easy to design a scheme
+   where sentries are chained. For instance::
+
+     chain_sentry f x = sentry (h (get_sentry x)) x with
+       h g x = g x $$ f x;
+     end;
+
+   This invokes the original sentry before the chained one::
+
+     > using system;
+     > f _ = puts "sentry#1"; g _ = puts "sentry#2";
+     > let p = chain_sentry g $ sentry f $ malloc 10;
+     > clear p
+     sentry#1
+     sentry#2
+
+   You can chain any number of sentries that way. This scheme should work in
+   most cases in which sentries are used just as finalizers. However, there
+   are other uses, like the "hashed function" example above, where you'd like
+   the original sentry to stay intact. This can be achieved by placing the new
+   sentry as a sentry on the *original sentry* rather than the expression
+   itself::
+
+     attach_sentry f x = sentry (sentry f (get_sentry x)) x;
+
+   This requires that the sentry will actually be garbage-collected when its
+   hosting expression gets freed, so it will *not* work if the original sentry
+   is a global::
+
+     > let p = attach_sentry g $ sentry f $ malloc 10;
+     > clear p
+     sentry#1
+
+   However, the attached sentry will work ok if you can ensure that the
+   original sentry is a (partial or constructor) application. E.g.::
+
+     > let p = attach_sentry g $ sentry (f$) $ malloc 10;
+     > clear p
+     sentry#1
+     sentry#2
+
+
+namespace __C;
+extern expr* pure_new(expr*);
+extern expr* pure_expr_pointer();
+extern void pure_free(expr*);
+extern expr* pointer_get_expr(void*);
+void pointer_put_expr(void*, expr*);
+namespace;
+
+public ref unref refp;
+
+ref x = pointer_put_expr r (pure_new x) $$
+        sentry unref r when r::pointer = pure_expr_pointer end;
+
+unref r::pointer = pure_free (pointer_get_expr r) $$
+                   clear_sentry r if refp r;
+
+put r::pointer x = pure_free (pointer_get_expr r) $$
+                   pointer_put_expr r (pure_new x) $$ x if refp r;
+
+get r::pointer = pointer_get_expr r if refp r;
+
+refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
+
+*/
+
+
+using hashtable, "23trees";
+
+// we need to overwrite the stdlib definitions of these
+public _sentry _clear_sentry _get_sentry _cookedp _cooked;
+
+// global exception
+public bad_pointer_value;
+
+namespace weakdict;
+
+// low-level weak_ref machinery
+namespace weakdict::__ref__;
+
+
+// FIXME
+public weak_addr weak_get weak_ref;
+private H Box lookup; private nonfix notfound nil;
+
+
+private extern expr* pure_sentry(expr*,expr*); //  = sentry; // IMPURE!
+private extern expr* pure_clear_sentry(expr*); // = clear_sentry; // IMPURE!
+private extern expr* pure_get_sentry(expr*); // = get_sentry;
+private extern bool  pure_has_sentry(expr*); // = cookedp;
+
+// to cooperate with existing sentry framework
+// our sentries are a box that can chain a regular sentry
+// and the ::_get_sentry etc methods ignore our box
+
+::_sentry f x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        Box r _ = pure_sentry (Box r f) x;
+        _ = pure_sentry f x;
+    end else pure_sentry f x;
+
+::_clear_sentry x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        Box r nil = x;
+        Box r _ = pure_sentry (Box r nil) x;
+        _ = pure_clear_sentry x;
+    end else x;
+
+::_get_sentry x = s if s ~== nil when
+    s = if pure_has_sentry x then
+        case pure_get_sentry x of
+            Box r s = s;
+            s = s;
+        end else nil;
+end;
+
+::_cookedp x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        Box r nil = 0;
+        _ = 1;
+    end else 0;
+
+::_cooked p::pointer = ::_sentry free p;
+
+
+// x is dying
+Box r s x = case s of
+    nil = handle r x;
+    s   = handle r x $$ s x;
+end with
+    handle r x = () when
+                    // do we need to use pure_ref x here...?
+                    u:ss = __C::pointer_get_expr r;
+                    // remove (xaddr=>r) from H
+                    xaddr = get_pointer u;
+                    hashtable::delete H xaddr;
+                    // run the weak_ref sentries
+                    do ($ xaddr) ss;
+                    // do we need to use pure_unref x here ...?
+               end;
+end;
+
+// is there a way to get x's address without allocating a new pointer?
+weak_addr x = xaddr when
+    u::pointer = __C::pure_expr_pointer;
+    __C::pointer_put_expr u x;
+    xaddr = get_pointer u;
+end;
+
+let H = hashtable::emptyhashtable; // global hashtable of (addr=>weak_ref)s
+
+lookup xaddr = hashtable::getk H xaddr notfound;
+/*
+    lookup xaddr = hashtable::eachk H f xaddr notfound with
+        f (_=>r) = if alive r then r else 0; // 0 means continue
+    end;
+    alive r = u ~== NULL when u:_ = __C::pointer_get_expr r end;
+*/
+
+
+// lookup x using xaddr
+weak_get xaddr = case lookup xaddr of
+    notfound = throw (bad_pointer_value xaddr);
+    r = x when
+            u:_ = __C::pointer_get_expr r;
+            x = __C::pointer_get_expr u;
+        end;
+end;
+
+// register a "new weak_ref" for x (a new sentry)
+weak_ref x sen::function = xaddr when
+    pure_new x; // lock x from being collected until everything is set up
+                // might I use pure_ref instead?
+    u::pointer = __C::pure_expr_pointer;
+    __C::pointer_put_expr u x;  // unsafe ptr to x (x's refcount not increased)
+    xaddr = get_pointer u;
+    r = case lookup xaddr of
+            notfound = r when
+                 // r is a refcell containing the unsafe ptr and a list of sentries
+                 r = ref [u, sen];
+                 // We add r to hashtable, indexed by xaddr, so we can look it up given x
+                 hashtable::insert H (xaddr=>r);
+                 // setup x's sentry
+                 weak_sentry r x;
+            end;
+            r = put r (u:sen:ss) $$ r when // add sentry
+                u:ss = get r;
+            end;
+        end;
+    pure_free x; // might I use pure_unref instead?
+end with
+    // set up our sentry box
+    weak_sentry r x = () when
+        s = if pure_has_sentry x then pure_get_sentry x else nil;
+        pure_sentry (Box r s) x;
+    end;
+end;
+
+
+namespace weakdict;
+
+// insert high-level API here
+
