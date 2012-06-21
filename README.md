@@ -16,5 +16,5 @@ Currently includes:
 
 Working on:
 
- *   weakrefs.pure
+ *   weakdict.pure -- weak-key and weak-value dicts
 
