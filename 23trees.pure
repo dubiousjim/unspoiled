@@ -103,7 +103,6 @@ public size foldl foldl1 foldr foldr1 members keys vals;
 public first last rmfirst rmlast popfirst poplast;
 
 // Compute the size of a tree.
-// TODO: should we instead extend ::# and ::members?
 
 size t::tree = size t with
     size nil = 0;
