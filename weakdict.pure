@@ -17,6 +17,9 @@
       approach of just making sure the higher-level API (the weakdict collections)
       does the right thing.
 
+    High-level weak-key and weak-value dictionaries are guided by Python's
+    implementation of these, and my experience working with Lua's weak tables.
+
 */
 
 
@@ -197,7 +200,7 @@ refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
 */
 
 
-using hashtable, "23trees";
+using hashtable, trees23;
 
 // we need to overwrite the stdlib definitions of these
 public _sentry _clear_sentry _get_sentry _cookedp _cooked;
@@ -211,7 +214,6 @@ namespace weakdict;
 namespace weakdict::__ref__;
 
 
-// FIXME
 public weak_addr weak_get weak_ref;
 private H Box lookup; private nonfix notfound nil;
 
@@ -331,5 +333,396 @@ end;
 
 namespace weakdict;
 
-// insert high-level API here
+// high-level API
 
+using namespace weakdict::__ref__;
+
+
+// These should be considered private.
+public WKDict WVDict WKMDict WVMDict;
+
+// TODO: do we need to define unions of these?
+type wkdict  (WKDict _)  | wvdict  (WVDict _)
+   | wkmdict (WKMDict _) | wvmdict (WVMDict _);
+
+// type checks
+wkdictp  x = typep wkdict  x;
+wvdictp  x = typep wvdict  x;
+wkmdictp x = typep wkmdict x;
+wvmdictp x = typep wvmdict x;
+
+// create an empty dict
+emptywkdict  = WKDict trees23::emptytree;
+emptywvdict  = WVDict trees23::emptytree;
+emptywkmdict = WKMDict trees23::emptytree;
+emptywvmdict = WVMDict trees23::emptytree;
+
+// create a dict from a list
+wkdict  xys::rlist = foldl insert emptywkdict  xys;
+wvdict  xys::rlist = foldl insert emptywvdict  xys;
+wkmdict xys::rlist = foldl insert emptywkmdict xys;
+wvmdict xys::rlist = foldl insert emptywvmdict xys;
+
+// create a dict from a list of keys and a constant value
+mkwkdict  y xs::rlist = wkdict  (zipwith (=>) xs (repeaten (#xs) y));
+mkwvdict  y xs::rlist = wvdict  (zipwith (=>) xs (repeaten (#xs) y));
+mkwkmdict y xs::rlist = wkmdict (zipwith (=>) xs (repeaten (#xs) y));
+mkwvmdict y xs::rlist = wvmdict (zipwith (=>) xs (repeaten (#xs) y));
+
+
+///////////////////////////////////////////////////////////////
+
+/*
+// insert a member
+insert (Dict   d) el@(x=>y) = Dict   (avl::insertk   d el);
+insert (HDict  d) el@(x=>y) = HDict  (avl::hinsertk  d el);
+insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
+insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
+*/
+
+// insert a member
+insert (WKDict  d) el@(x=>y) = WKDict  (
+insert (WVDict  d) el@(x=>y) = WVDict  (
+insert (WKMDict d) el@(x=>y) = WKMDict (
+insert (WVMDict d) el@(x=>y) = WVMDict (
+
+// curried version of insert
+update d@(WKDict  _) x y | update d@(WVDict  _) x y |
+update d@(WKMDict _) x y | update d@(WVMDict _) x y = insert d (x=>y);
+
+/*
+// delete a member by key
+delete (Dict   d) x = Dict   (avl::deletek   d x);
+delete (HDict  d) x = HDict  (avl::hdeletek  d x);
+delete (MDict  d) x = MDict  (avl::mdeletek  d x);
+delete (HMDict d) x = HMDict (avl::mhdeletek d x);
+*/
+
+// delete a member by key
+delete (WKDict  d) x = WKDict  (
+delete (WVDict  d) x = WVDict  (
+delete (WKMDict d) x = WKMDict (
+delete (WVMDict d) x = WVMDict (
+
+/*
+// delete a member by key=>val
+delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv   d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv  d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
+*/
+
+// delete a member by key=>val
+delete_val (WKDict  d) el@(x=>y) = WKDict  (
+delete_val (WVDict  d) el@(x=>y) = WVDict  (
+delete_val (WKMDict d) el@(x=>y) = WKMDict (
+delete_val (WVMDict d) el@(x=>y) = WVMDict (
+
+/*
+// delete all instances of a given key
+delete_all (Dict   d) x = Dict   (avl::deletek    d x);
+delete_all (HDict  d) x = HDict  (avl::hdeletek   d x);
+delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
+delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
+*/
+
+// delete all instances of a given key
+delete_all (WKDict  d) x = WKDict  (
+delete_all (WVDict  d) x = WVDict  (
+delete_all (WKMDict d) x = WKMDict (
+delete_all (WVMDict d) x = WVMDict (
+
+/*
+// membership test
+member (Dict   d) k = avl::memberk  d k;
+member (MDict  d) k = avl::memberk  d k;
+member (HDict  d) k = avl::hmemberk d k;
+member (HMDict d) k = avl::hmemberk d k;
+*/
+
+// membership test
+member (WKDict  d) k = WKDict  (
+member (WVDict  d) k = WVDict  (
+member (WKMDict d) k = WKMDict (
+member (WVMDict d) k = WVMDict (
+
+/*
+// get a value by key
+(Dict   d)!k = avl::getk   d k;
+(MDict  d)!k = avl::mgetk  d k;
+(HDict  d)!k = avl::hgetk  d k;
+(HMDict d)!k = avl::mhgetk d k;
+*/
+
+// get a value by key
+(WKDict  d)!k = trees23::getk d k;
+(WVDict  d)!k = trees23::getk d k;
+(WKMDict d)!k = trees23::getk d k;
+(WVMDict d)!k = trees23::getk d k;
+
+
+///////////////////////////////////////////////////////////////
+
+
+/*
+// TODO: do we want to expose these size methods?
+// they should be regarded as highly volatile, liable to change even while
+// being computed
+
+// check for the empty dict
+null d@(WKDict  _) | null d@(WVDict  _) |
+null d@(WKMDict _) | null d@(WVMDict _) = trees23::null d;
+
+// dict size
+#(WKDict  d) = trees23::hsize d;
+#(WVDict  d) = trees23::hsize d;
+#(WKMDict d) = trees23::hsize d; // not hmsize?
+#(WVMDict d) = trees23::hsize d; // not hmsize?
+
+// TODO: should any of these iteration methods be exposed?
+
+// get the members, keys and values of a dict as a list
+members (WKDict  d) = trees23::members d;
+members (WVDict  d) = trees23::members d;
+members (WKMDict d) = trees23::members d;
+members (WVMDict d) = trees23::members d;
+
+keys (WKDict  d) = trees23::keys d;
+keys (WVDict  d) = trees23::keys d;
+keys (WKMDict d) = trees23::keys d;
+keys (WVMDict d) = trees23::keys d;
+
+vals (WKDict  d) = trees23::vals d;
+vals (WVDict  d) = trees23::vals d;
+vals (WKMDict d) = trees23::vals d;
+vals (WVMDict d) = trees23::vals d;
+
+list d::xdict = members d;
+
+// get the first and last member
+first (Dict   d) = avl::first  d;
+first (MDict  d) = avl::mfirst d;
+last  (Dict   d) = avl::last   d;
+last  (MDict  d) = avl::mlast  d;
+first (HDict  d) = avl::hfirst d;
+first (HMDict d) = avl::hfirst d;
+last  (HDict  d) = avl::hlast  d;
+last  (HMDict d) = avl::hlast  d;
+
+// remove the first and last member
+rmfirst (Dict   d) = Dict   (avl::rmfirst  d);
+rmlast  (Dict   d) = Dict   (avl::rmlast   d);
+rmfirst (MDict  d) = MDict  (avl::mrmfirst d);
+rmlast  (MDict  d) = MDict  (avl::mrmlast  d);
+rmfirst (HDict  d) = HDict  (avl::hrmfirst d);
+rmlast  (HDict  d) = HDict  (avl::hrmlast  d);
+rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
+rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
+*/
+
+
+
+/*
+// Less crucial methods, also unsure which of these should be exposed
+
+// conversions between the different dictionary types
+public members;
+dict d@(Dict _) | hdict d@(HDict _) | mdict d@(MDict _) |
+  hmdict d@(HMDict _) = d;
+dict   d::xdict = dict   (members d);
+hdict  d::xdict = hdict  (members d);
+mdict  d::xdict = mdict  (members d);
+hmdict d::xdict = hmdict (members d);
+
+// comparisons
+d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
+  /- This case is optimized so that we only need a single traversal of the
+     member lists which can be done in linear time. Also note that keys are
+     compared for equality in the sense that two keys are equal if neither is
+     less than the other, whereas values are compared for proper equality (==)
+     if it is defined, falling back to (===) otherwise. -/
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 0;
+  cmp ((xk=>xv):xs) ((yk=>yv):ys) =
+    ~(xk<yk || yk<xk) && eq xv yv && cmp xs ys;
+  eq u v = case u==v of res::int = res; _ = u===v end;
+end;
+d1@(MDict _)  == d2@(MDict _)  |
+d1@(HDict _)  == d2@(HDict _)  |
+d1@(HMDict _) == d2@(HMDict _) = d1 <= d2 && d2 <= d1;
+
+d1@(Dict _)   ~= d2@(Dict _)   |
+d1@(MDict _)  ~= d2@(MDict _)  |
+d1@(HDict _)  ~= d2@(HDict _)  |
+d1@(HMDict _) ~= d2@(HMDict _) = ~(d1 == d2);
+
+d1@(Dict _)   <= d2@(Dict _)   = cmp (members d1) (members d2) with
+  /- Again, this case is optimized so that we only need a single traversal of
+     the member lists. Also note that the member lists are ordered by key, so
+     that we can use a kind of subset check for two ordered sequences which
+     can still be done in linear time. -/
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 1;
+  cmp xs1@((xk=>xv):xs) ((yk=>yv):ys)
+  = 0 if xk<yk;
+  = cmp xs1 ys if yk<xk;
+  = eq xv yv && cmp xs ys;
+  eq u v = case u==v of res::int = res; _ = u===v end;
+end;
+d1@(MDict _)  <= d2@(MDict _)  |
+d1@(HDict _)  <= d2@(HDict _)  |
+d1@(HMDict _) <= d2@(HMDict _) = null (d1 - d2);
+
+d1@(Dict _)   >= d2@(Dict _)   = d2 <= d1;
+d1@(MDict _)  >= d2@(MDict _)  |
+d1@(HDict _)  >= d2@(HDict _)  |
+d1@(HMDict _) >= d2@(HMDict _) = null (d2 - d1);
+
+d1@(Dict _)   <  d2@(Dict _)   |
+d1@(MDict _)  <  d2@(MDict _)  |
+d1@(HDict _)  <  d2@(HDict _)  |
+d1@(HMDict _) <  d2@(HMDict _) = d1 <= d2 && ~(d1 >= d2);
+
+d1@(Dict _)   >  d2@(Dict _)   |
+d1@(MDict _)  >  d2@(MDict _)  |
+d1@(HDict _)  >  d2@(HDict _)  |
+d1@(HMDict _) >  d2@(HMDict _) = d1 >= d2 && ~(d1 <= d2);
+
+// sum, difference, intersection
+d1@(Dict _)   +  d2@(Dict _)   |
+d1@(MDict _)  +  d2@(MDict _)  |
+d1@(HDict _)  +  d2@(HDict _)  |
+d1@(HMDict _) +  d2@(HMDict _) = foldl insert d1 (members d2);
+
+d1@(Dict _)   -  d2@(Dict _)   |
+d1@(MDict _)  -  d2@(MDict _)  |
+d1@(HDict _)  -  d2@(HDict _)  |
+d1@(HMDict _) -  d2@(HMDict _) = foldl delete_val d1 (members d2);
+
+d1@(Dict _)   *  d2@(Dict _)   |
+d1@(MDict _)  *  d2@(MDict _)  |
+d1@(HDict _)  *  d2@(HDict _)  |
+d1@(HMDict _) *  d2@(HMDict _) = d1 - (d1 - d2);
+
+// automatic coercion rules
+
+m1@(HMDict _) == m2 = m1 == hmdict m2 if xdictp m2;
+m1 == m2@(HMDict _) = hmdict m1 == m2 if xdictp m1;
+m1@(HDict _) == m2  = case m2 of
+                        _@(MDict _) = hmdict m1 == hmdict m2;
+                        _@(Dict _)  = m1 == hdict m2;
+                      end if xdictp m2;
+m1 == m2@(HDict _)  = case m1 of
+                        _@(MDict _) = hmdict m1 == hmdict m2;
+                        _@(Dict _)  = hdict m1 == m2;
+                      end if xdictp m2;
+m1@(MDict _) == m2@(Dict _) = m1 == mdict m2;
+m1@(Dict _) == m2@(MDict _) = mdict m1 == m2;
+
+m1@(HMDict _) ~= m2 = m1 ~= hmdict m2 if xdictp m2;
+m1 ~= m2@(HMDict _) = hmdict m1 ~= m2 if xdictp m1;
+m1@(HDict _) ~= m2  = case m2 of
+                        _@(MDict _) = hmdict m1 ~= hmdict m2;
+                        _@(Dict _)  = m1 ~= hdict m2;
+                      end if xdictp m2;
+m1 ~= m2@(HDict _)  = case m1 of
+                        _@(MDict _) = hmdict m1 ~= hmdict m2;
+                        _@(Dict _)  = hdict m1 ~= m2;
+                      end if xdictp m2;
+m1@(MDict _) ~= m2@(Dict _) = m1 ~= mdict m2;
+m1@(Dict _) ~= m2@(MDict _) = mdict m1 ~= m2;
+
+m1@(HMDict _) <= m2 = m1 <= hmdict m2 if xdictp m2;
+m1 <= m2@(HMDict _) = hmdict m1 <= m2 if xdictp m1;
+m1@(HDict _) <= m2  = case m2 of
+                        _@(MDict _) = hmdict m1 <= hmdict m2;
+                        _@(Dict _)  = m1 <= hdict m2;
+                      end if xdictp m2;
+m1 <= m2@(HDict _)  = case m1 of
+                        _@(MDict _) = hmdict m1 <= hmdict m2;
+                        _@(Dict _)  = hdict m1 <= m2;
+                      end if xdictp m2;
+m1@(MDict _) <= m2@(Dict _) = m1 <= mdict m2;
+m1@(Dict _) <= m2@(MDict _) = mdict m1 <= m2;
+
+m1@(HMDict _) >= m2 = m1 >= hmdict m2 if xdictp m2;
+m1 >= m2@(HMDict _) = hmdict m1 >= m2 if xdictp m1;
+m1@(HDict _) >= m2  = case m2 of
+                        _@(MDict _) = hmdict m1 >= hmdict m2;
+                        _@(Dict _)  = m1 >= hdict m2;
+                      end if xdictp m2;
+m1 >= m2@(HDict _)  = case m1 of
+                        _@(MDict _) = hmdict m1 >= hmdict m2;
+                        _@(Dict _)  = hdict m1 >= m2;
+                      end if xdictp m2;
+m1@(MDict _) >= m2@(Dict _) = m1 >= mdict m2;
+m1@(Dict _) >= m2@(MDict _) = mdict m1 >= m2;
+
+m1@(HMDict _) < m2 = m1 < hmdict m2 if xdictp m2;
+m1 < m2@(HMDict _) = hmdict m1 < m2 if xdictp m1;
+m1@(HDict _) < m2  = case m2 of
+                       _@(MDict _) = hmdict m1 < hmdict m2;
+                       _@(Dict _)  = m1 < hdict m2;
+                     end if xdictp m2;
+m1 < m2@(HDict _)  = case m1 of
+                       _@(MDict _) = hmdict m1 < hmdict m2;
+                       _@(Dict _)  = hdict m1 < m2;
+                     end if xdictp m2;
+m1@(MDict _) < m2@(Dict _) = m1 < mdict m2;
+m1@(Dict _) < m2@(MDict _) = mdict m1 < m2;
+
+m1@(HMDict _) > m2 = m1 > hmdict m2 if xdictp m2;
+m1 > m2@(HMDict _) = hmdict m1 > m2 if xdictp m1;
+m1@(HDict _) > m2  = case m2 of
+                       _@(MDict _) = hmdict m1 > hmdict m2;
+                       _@(Dict _)  = m1 > hdict m2;
+                     end if xdictp m2;
+m1 > m2@(HDict _)  = case m1 of
+                       _@(MDict _) = hmdict m1 > hmdict m2;
+                       _@(Dict _)  = hdict m1 > m2;
+                     end if xdictp m2;
+m1@(MDict _) > m2@(Dict _) = m1 > mdict m2;
+m1@(Dict _) > m2@(MDict _) = mdict m1 > m2;
+
+m1@(HMDict _) + m2 = m1 + hmdict m2 if xdictp m2;
+m1 + m2@(HMDict _) = hmdict m1 + m2 if xdictp m1;
+m1@(HDict _) + m2  = case m2 of
+                       _@(MDict _) = hmdict m1 + hmdict m2;
+                       _@(Dict _)  = m1 + hdict m2;
+                     end if xdictp m2;
+m1 + m2@(HDict _)  = case m1 of
+                       _@(MDict _) = hmdict m1 + hmdict m2;
+                       _@(Dict _)  = hdict m1 + m2;
+                     end if xdictp m2;
+m1@(MDict _) + m2@(Dict _) = m1 + mdict m2;
+m1@(Dict _) + m2@(MDict _) = mdict m1 + m2;
+
+m1@(HMDict _) - m2 = m1 - hmdict m2 if xdictp m2;
+m1 - m2@(HMDict _) = hmdict m1 - m2 if xdictp m1;
+m1@(HDict _) - m2  = case m2 of
+                       _@(MDict _) = hmdict m1 - hmdict m2;
+                       _@(Dict _)  = m1 - hdict m2;
+                     end if xdictp m2;
+m1 - m2@(HDict _)  = case m1 of
+                       _@(MDict _) = hmdict m1 - hmdict m2;
+                       _@(Dict _)  = hdict m1 - m2;
+                     end if xdictp m2;
+m1@(MDict _) - m2@(Dict _) = m1 - mdict m2;
+m1@(Dict _) - m2@(MDict _) = mdict m1 - m2;
+
+m1@(HMDict _) * m2 = m1 * hmdict m2 if xdictp m2;
+m1 * m2@(HMDict _) = hmdict m1 * m2 if xdictp m1;
+m1@(HDict _) * m2  = case m2 of
+                       _@(MDict _) = hmdict m1 * hmdict m2;
+                       _@(Dict _)  = m1 * hdict m2;
+                     end if xdictp m2;
+m1 * m2@(HDict _)  = case m1 of
+                       _@(MDict _) = hmdict m1 * hmdict m2;
+                       _@(Dict _)  = hdict m1 * m2;
+                     end if xdictp m2;
+m1@(MDict _) * m2@(Dict _) = m1 * mdict m2;
+m1@(Dict _) * m2@(MDict _) = mdict m1 * m2;
+
+*/
