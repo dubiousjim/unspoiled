@@ -146,7 +146,7 @@ weak_ref x sen::function
                                 else nil;
                        end;
                    end;
-               r = r;
+               r = r; // TODO may want to u:ss = get r and prune expired ss
         end;
     pure_free x; // might I use pure_unref instead?
 end if sen === ::void;
@@ -172,6 +172,7 @@ end if sen === ::void;
                        senptr = ref sen;
                        expirer = \() -> put senptr void;
                        u:ss = get r;
+                       // TODO may want to prune expired ss
                        put r (u:senptr:ss);
                    end;
         end;
@@ -181,41 +182,53 @@ end otherwise;
 
 // high-level API
 
-public wk_newdict wv_newdict wk_insert wk_member wv_member wk_get wv_get;
-public wv_insert wk_delete wv_delete wk_delete_val wv_delete_val;
+public wk_newdict wv_newdict wk_insert;
+public wk_member wv_member wv_mmember wk_get wv_get wv_mget wv_insert;
+public wk_delete wv_delete wv_mdelete wk_delete_val wv_delete_val wv_mdelete_val;
 public wkv_apply;
 
-using system;
+private WVE;
+
+// value comparisons ignore expirers
+// note that all === values will be purged from wv-dicts at same time
+(WVE r1 _) ::== (WVE r2 _) = r1 === r2;
+(WVE r1 _) ::== r2 | r1 ::== (WVE r2 _) = r1 === r2;
 
 wk_newdict K deleter = K dptr (sentrybase wd) when
     dptr = ref trees23::emptytree;
-    wd = weak_ref dptr void;
+    wd, _ = weak_ref dptr void;
 end with
     sentrybase wd r = case weak_get wd of
-        {dptr} = put dptr (deleter (get dptr) r) $$ ();
+        {dptr} = put dptr (deleter (get dptr) r); // $$ ();
         _      = ();
     end;
 end;
 
 wv_newdict K deleter = K dptr (sentrybase wd) when
     dptr = ref trees23::emptytree;
-    wd = weak_ref dptr void;
+    wd, _ = weak_ref dptr void;
 end with
-    sentrybase wd k _ = case weak_get wd of
-        {dptr} = put dptr (deleter (get dptr) k) $$ ();
+    sentrybase wd k r = case weak_get wd of
+        {dptr} = put dptr (deleter (get dptr) (k=>r)); // $$ ();
         _      = ();
     end;
 end;
 
 wk_insert inserter dptr sb k v = () when
     d = get dptr;
-    d = inserter d (weak_ref k sb=>v);
+    wk, expirer = weak_ref k sb;
+    // harmless to let sentry run after wk has been deleted from d
+    // so we don't bother keeping track of the expirer
+    d = inserter d (wk=>v);
     put dptr d;
 end;
 
 wv_insert inserter dptr sb k v = () when
     d = get dptr;
-    d = inserter d (k=>weak_ref v (sb k));
+    wv, expirer = weak_ref v (sb k);
+    // we have to keep track of the expirer, else other k=>v pairs
+    // with the same k may be deleted after this value is deleted from d
+    d = inserter d (k=>WVE wv expirer);
     put dptr d;
 end;
 
@@ -227,27 +240,51 @@ wk_delete deleter dptr k = () when
     end;
 end;
 
-wv_delete deleter dptr k = () when
+wv_delete popper dptr k = () when
     d = get dptr;
-    put dptr (deleter d k);
+    d, WVE _ expirer = popper d k; // may throw out_of_bounds
+    expirer ();
+    put dptr d;
+end;
+
+wv_mdelete popper dptr k = () when
+    d = get dptr;
+    d, vs = popper d k; // may throw out_of_bounds
+    do (\(WVE _ expirer) -> expirer ()) vs;
+    put dptr d;
 end;
 
 wk_delete_val deleter dptr k v = () when
     d = get dptr;
     case weak_getref k of
         notfound  = (); // k has no box, won't be in dict
-        kr = put dptr (deleter d kr v);
+        kr = put dptr (deleter d (kr=>v));
     end;
 end;
 
-wv_delete_val deleter dptr k v = () when
+wv_delete_val popper dptr k v = () when
     d = get dptr;
     case weak_getref v of
         notfound  = (); // v has no box, won't be in dict
-        vr = put dptr (deleter d k vr);
+        vr = () when
+            d, WVE _ expirer = popper d (k=>vr); // may throw out_of_bounds
+            expirer ();
+            put dptr d;
+        end;
     end;
 end;
 
+wv_mdelete_val popper dptr k v = () when
+    d = get dptr;
+    case weak_getref v of
+        notfound  = (); // v has no box, won't be in dict
+        vr = () when
+            d, vs = popper d (k=>vr); // may throw out_of_bounds
+            do (\(WVE _ expirer) -> expirer ()) vs;
+            put dptr d;
+        end;
+    end;
+end;
 
 wk_member tester dptr k = case weak_getref k of
     notfound  = 0; // k has no box, won't be in dict
@@ -256,7 +293,7 @@ end;
 
 wv_member getter dptr k =
 catch handler (case getter (get dptr) k of
-    vr = case weak_get vr of
+    WVE vr _ = case weak_get vr of
         {_} = 1;
         _  = 0; // v is dying, but its weak_sentry hasn't yet purged this k=>v
         end;
@@ -265,20 +302,34 @@ end) with
     handler e = throw e;
 end;
 
+// special-case the wvm-dicts, check all members
+wv_mmember getter dptr k =
+catch handler (any f (getter (get dptr) k) with // may throw out_of_bounds
+    f (WVE vr _) = case weak_get vr of
+        {v} = 1;
+        _   = 0; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+    end;
+end) with
+    handler out_of_bounds = 0; // k not in d
+    handler e = throw e;
+end;
+
+
 wk_get getter dptr k = case weak_getref k of
     notfound = throw out_of_bounds; // k has no box, won't be in dict
-    kr       = getter (get dptr) kr;
+    kr       = getter (get dptr) kr; // may throw out_of_bounds
 end;
 
 wv_get getter dptr k = case weak_get vr of
     {v} = v;
     _   = throw out_of_bounds; // v is dying, but its weak_sentry hasn't yet purged this k=>v
 end when
-    vr = getter (get dptr) k;
+    WVE vr _ = getter (get dptr) k; // may throw out_of_bounds
 end;
 
-wv_mget getter dptr k = catmap f (getter (get dptr) k) with
-    f vr = case weak_get vr of
+// special-case the wvm-dicts, get all members
+wv_mget getter dptr k = catmap f (getter (get dptr) k) with // may throw out_of_bounds
+    f (WVE vr _) = case weak_get vr of
         {v} = [v];
         _   = []; // v is dying, but its weak_sentry hasn't yet purged this k=>v
     end;
@@ -309,12 +360,14 @@ wvhmdictp x = typep wvhmdict x;
 
 
 // create an empty dict
-emptywkdict   = weakdict::wk_newdict WKDict   trees23::hdeletek;
-emptywkmdict  = weakdict::wk_newdict WKMDict  trees23::mhdeletek;
-emptywvdict   = weakdict::wv_newdict WVDict   trees23::deletek;
-emptywvmdict  = weakdict::wv_newdict WVMDict  trees23::mdeletek;
-emptywvhdict  = weakdict::wv_newdict WVHDict  trees23::hdeletek;
-emptywvhmdict = weakdict::wv_newdict WVHMDict trees23::mhdeletek;
+emptywkdict   = weakdict::wk_newdict  WKDict   trees23::hdeletek;
+emptywkmdict  = weakdict::wk_newdict  WKMDict  trees23::mhdeleteka;
+emptywvdict   = weakdict::wv_newdict  WVDict   trees23::deletekv;
+// given how our sentries/expirers work, all === values are purged at same time
+emptywvmdict  = weakdict::wv_newdict  WVMDict  trees23::mdeletekva;
+emptywvhdict  = weakdict::wv_newdict  WVHDict  trees23::hdeletekv;
+// given how our sentries/expirers work, all === values are purged at same time
+emptywvhmdict = weakdict::wv_newdict  WVHMDict trees23::mhdeletekva;
 
 // create a dict from a list
 wkdict   kvs::rlist = foldl insert emptywkdict   kvs;
@@ -346,60 +399,76 @@ update  w@(WKDict  _ _) k v | update  w@(WKMDict _ _) k v |
 update  w@(WVDict  _ _) k v | update  w@(WVMDict _ _) k v |
 update w@(WVHDict  _ _) k v | update w@(WVHMDict _ _) k v = insert w (k=>v);
 
-// delete a member by key
-delete w@(WKDict   dptr _) k = weakdict::wk_delete trees23::hdeletek  dptr k $$ w;
-delete w@(WKMDict  dptr _) k = weakdict::wk_delete trees23::mhdeletek dptr k $$ w;
-delete w@(WVDict   dptr _) k = weakdict::wv_delete trees23::deletek   dptr k $$ w;
-delete w@(WVMDict  dptr _) k = weakdict::wv_delete trees23::mdeletek  dptr k $$ w;
-delete w@(WVHDict  dptr _) k = weakdict::wv_delete trees23::hdeletek  dptr k $$ w;
-delete w@(WVHMDict dptr _) k = weakdict::wv_delete trees23::mhdeletek dptr k $$ w;
+// delete a member by key, deletes older of duplicate keys in mdicts
+delete w@(WKDict   dptr _) k = weakdict::wk_delete  trees23::hdeletek   dptr k $$ w;
+delete w@(WKMDict  dptr _) k = weakdict::wk_delete  trees23::mhdeleteko dptr k $$ w;
+delete w@(WVDict   dptr _) k = weakdict::wv_delete  trees23::popk       dptr k $$ w;
+delete w@(WVMDict  dptr _) k = weakdict::wv_delete  trees23::mpopko     dptr k $$ w;
+delete w@(WVHDict  dptr _) k = weakdict::wv_delete  trees23::hpopk      dptr k $$ w;
+delete w@(WVHMDict dptr _) k = weakdict::wv_delete  trees23::mhpopko    dptr k $$ w;
 
+// deletes newer of duplicate keys in mdicts
+delete_new w@(WKDict   dptr _) k = weakdict::wk_delete  trees23::hdeletek   dptr k $$ w;
+delete_new w@(WKMDict  dptr _) k = weakdict::wk_delete  trees23::mhdeletekn dptr k $$ w;
+delete_new w@(WVDict   dptr _) k = weakdict::wv_delete  trees23::popk       dptr k $$ w;
+delete_new w@(WVMDict  dptr _) k = weakdict::wv_delete  trees23::mpopkn     dptr k $$ w;
+delete_new w@(WVHDict  dptr _) k = weakdict::wv_delete  trees23::hpopk      dptr k $$ w;
+delete_new w@(WVHMDict dptr _) k = weakdict::wv_delete  trees23::mhpopkn    dptr k $$ w;
+
+/*
+// delete all instances of a given key
+// TODO mpopka and mhpopka not yet defined
+delete_all w@(WKDict   dptr _) k = weakdict::wk_delete  trees23::hdeletek   dptr k $$ w;
+delete_all w@(WKMDict  dptr _) k = weakdict::wk_delete  trees23::mhdeleteka dptr k $$ w;
+delete_all w@(WVDict   dptr _) k = weakdict::wv_delete  trees23::popk       dptr k $$ w;
+delete_all w@(WVMDict  dptr _) k = weakdict::wv_mdelete trees23::mpopka     dptr k $$ w;
+delete_all w@(WVHDict  dptr _) k = weakdict::wv_delete  trees23::hpopk      dptr k $$ w;
+delete_all w@(WVHMDict dptr _) k = weakdict::wv_mdelete trees23::mhpopka    dptr k $$ w;
+*/
 
 // delete a member by key=>val
-delete_val w@(WKDict   dptr _) (k=>v) = weakdict::wk_delete_val trees23::hdeletekv  dptr k v $$ w;
-delete_val w@(WKMDict  dptr _) (k=>v) = weakdict::wk_delete_val trees23::mhdeletekv dptr k v $$ w;
-delete_val w@(WVDict   dptr _) (k=>v) = weakdict::wv_delete_val trees23::deletekv   dptr k v $$ w;
-delete_val w@(WVMDict  dptr _) (k=>v) = weakdict::wv_delete_val trees23::mdeletekv  dptr k v $$ w;
-delete_val w@(WVHDict  dptr _) (k=>v) = weakdict::wv_delete_val trees23::hdeletekv  dptr k v $$ w;
-delete_val w@(WVHMDict dptr _) (k=>v) = weakdict::wv_delete_val trees23::mhdeletekv dptr k v $$ w;
-
-
-// delete all instances of a given key
-delete_all w@(WKDict   dptr _) k = weakdict::wk_delete trees23::hdeletek   dptr k $$ w;
-delete_all w@(WKMDict  dptr _) k = weakdict::wk_delete trees23::mhdeleteka dptr k $$ w;
-delete_all w@(WVDict   dptr _) k = weakdict::wv_delete trees23::deletek    dptr k $$ w;
-delete_all w@(WVMDict  dptr _) k = weakdict::wv_delete trees23::mdeleteka  dptr k $$ w;
-delete_all w@(WVHDict  dptr _) k = weakdict::wv_delete trees23::hdeletek   dptr k $$ w;
-delete_all w@(WVHMDict dptr _) k = weakdict::wv_delete trees23::mhdeleteka dptr k $$ w;
+delete_val w@(WKDict   dptr _) (k=>v) = weakdict::wk_delete_val  trees23::hdeletekv   dptr k v $$ w;
+// uses mhdeletekva
+delete_val w@(WKMDict  dptr _) (k=>v) = weakdict::wk_delete_val  trees23::mhdeletekva dptr k v $$ w;
+delete_val w@(WVDict   dptr _) (k=>v) = weakdict::wv_delete_val  trees23::popkv    dptr k v $$ w;
+// uses mpop/deletekva (this is necessary given how our sentries/expirers work)
+delete_val w@(WVMDict  dptr _) (k=>v) = weakdict::wv_mdelete_val trees23::mpopkva  dptr k v $$ w;
+delete_val w@(WVHDict  dptr _) (k=>v) = weakdict::wv_delete_val  trees23::hpopkv   dptr k v $$ w;
+// uses mhpop/deletekva (this is necessary given how our sentries/expirers work)
+delete_val w@(WVHMDict dptr _) (k=>v) = weakdict::wv_mdelete_val trees23::mhpopkva dptr k v $$ w;
 
 
 // membership test
-member (WKDict   dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
-member (WKMDict  dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
-member (WVDict   dptr _) k = weakdict::wv_member trees23::getk     dptr k;
-member (WVMDict  dptr _) k = weakdict::wv_member trees23::mgetkn   dptr k;
-member (WVHDict  dptr _) k = weakdict::wv_member trees23::hgetk    dptr k;
-member (WVHMDict dptr _) k = weakdict::wv_member trees23::mhgetkn  dptr k;
+member (WKDict   dptr _) k = weakdict::wk_member  trees23::hmemberk dptr k;
+member (WKMDict  dptr _) k = weakdict::wk_member  trees23::hmemberk dptr k; // there are no m[h]memberk
+member (WVDict   dptr _) k = weakdict::wv_member  trees23::getk     dptr k;
+member (WVMDict  dptr _) k = weakdict::wv_mmember trees23::mgetk    dptr k;
+member (WVHDict  dptr _) k = weakdict::wv_member  trees23::hgetk    dptr k;
+member (WVHMDict dptr _) k = weakdict::wv_mmember trees23::mhgetk   dptr k;
 
 // get a value by key
 (WKDict   dptr _)!k = weakdict::wk_get  trees23::hgetk   dptr k;
+// TODO get old-only, new-only?
 (WKMDict  dptr _)!k = weakdict::wk_get  trees23::mhgetk  dptr k;
 (WVDict   dptr _)!k = weakdict::wv_get  trees23::getk    dptr k;
+// TODO get old-only, new-only?
 (WVMDict  dptr _)!k = weakdict::wv_mget trees23::mgetk   dptr k;
 (WVHDict  dptr _)!k = weakdict::wv_get  trees23::hgetk   dptr k;
+// TODO get old-only, new-only?
 (WVHMDict dptr _)!k = weakdict::wv_mget trees23::mhgetk  dptr k;
 
 // I'm not sure the size and iteration methods should be exposed
 // In any case, they should be regarded as volatile: liable to change
 // at any time, even while being computed
 // Even if Pure's current GC happens to be friendlier than that.
+// Exposing them for now to help test.
 
-#(WKDict   dptr _) = weakdict::wkv_apply trees23::hsize dptr;
-#(WKMDict  dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+#(WKDict   dptr _) = weakdict::wkv_apply trees23::hsize dptr; // h- and m- are same
+#(WKMDict  dptr _) = weakdict::wkv_apply trees23::hsize dptr; // there are no mhsize
 #(WVDict   dptr _) = weakdict::wkv_apply trees23::size  dptr;
 #(WVMDict  dptr _) = weakdict::wkv_apply trees23::msize dptr;
 #(WVHDict  dptr _) = weakdict::wkv_apply trees23::hsize dptr;
-#(WVHMDict dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+#(WVHMDict dptr _) = weakdict::wkv_apply trees23::hsize dptr; // there are no mhsize
 
 null (WKDict   dptr _) = weakdict::wkv_apply trees23::null dptr;
 null (WKMDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
@@ -408,29 +477,67 @@ null (WVMDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
 null (WVHDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
 null (WVHMDict dptr _) = weakdict::wkv_apply trees23::null dptr;
 
-members (WKDict   dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
-members (WKMDict  dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+members (WKDict   dptr _) = weakdict::wkv_apply trees23::hmembers dptr; // h- and m- are same
+members (WKMDict  dptr _) = weakdict::wkv_apply trees23::hmembers dptr; // there are no mhmembers
 members (WVDict   dptr _) = weakdict::wkv_apply trees23::members  dptr;
 members (WVMDict  dptr _) = weakdict::wkv_apply trees23::mmembers dptr;
 members (WVHDict  dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
-members (WVHMDict dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+members (WVHMDict dptr _) = weakdict::wkv_apply trees23::hmembers dptr; // there are no mhmembers
 
-keys (WKDict   dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
-keys (WKMDict  dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+keys (WKDict   dptr _) = weakdict::wkv_apply trees23::hkeys dptr; // h- and m- are same
+keys (WKMDict  dptr _) = weakdict::wkv_apply trees23::hkeys dptr; // there are no mhmembers
 keys (WVDict   dptr _) = weakdict::wkv_apply trees23::keys  dptr;
 keys (WVMDict  dptr _) = weakdict::wkv_apply trees23::mkeys dptr;
 keys (WVHDict  dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
-keys (WVHMDict dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+keys (WVHMDict dptr _) = weakdict::wkv_apply trees23::hkeys dptr; // there are no mhmembers
 
-vals (WKDict   dptr _) = weakdict::wkv_apply trees23::hvals dptr;
-vals (WKMDict  dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+vals (WKDict   dptr _) = weakdict::wkv_apply trees23::hvals dptr; // h- and m- are same
+vals (WKMDict  dptr _) = weakdict::wkv_apply trees23::hvals dptr; // there are no mhmembers
 vals (WVDict   dptr _) = weakdict::wkv_apply trees23::vals  dptr;
 vals (WVMDict  dptr _) = weakdict::wkv_apply trees23::mvals dptr;
 vals (WVHDict  dptr _) = weakdict::wkv_apply trees23::hvals dptr;
-vals (WVHMDict dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+vals (WVHMDict dptr _) = weakdict::wkv_apply trees23::hvals dptr; // there are no mhmembers
+
+
 
 
 /*
+wk  -->  h
+wkm --> mh
+
+wv  -->  0-k
+wvh -->  h
+wvm -->  m
+wvhm--> mh
+
+
+[m]size [m]foldl [m]foldl1 [m]foldr [m]foldr1 [m]members [m]keys [m]vals;
+[m]first [m]last [m]rmfirst [m]rmlast [m]popfirst [m]poplast;
+// the hsize..hpoplast methods === the m- ones; no mh-version
+
+[h]memberk -- no m-version
+
+[h]insertk
+m[h]insertk
+
+[h]deletek [h]popk
+m[h]deleteko ; m[h]popko
+m[h]deletekn ; m[h]popkn // == h{delete,pop}k
+
+[h]deletekv
+m[h]deletekva = delete all matching kv
+m[h]deletekvo = m[h]deletekv
+m[h]deletekvn
+
+m[h]deleteka // == deletek
+
+[h]getk
+m[h]getk = list all members
+m[h]getko
+m[h]getkn
+
+
+
 
 list d::xdict = members d;
 
