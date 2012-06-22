@@ -715,7 +715,9 @@ insertk t::tree new@(k=>v) = catch handle (head2 $ ins k v new t) with
     end;
 end;
 
-public delete deletek deletekv popk;
+// The popkv methods may seem like overkill, but we need them for weak-value dicts.
+public delete deletek popk;
+public deletekv popkv;
 
 delete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
@@ -788,14 +790,25 @@ end;
 
 // Delete one specific key=>val pair.
 
-deletekv t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
+private base_popkv;
+
+deletekv t::tree (k=>v) = catch handle (head3 $ base_popkv k v t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pop k v nil = throw abort;
+end;
+
+// Note that popped element may be () or a longer tuple.
+
+popkv t::tree (k=>v) = '(child, v) when
+    child@_ _ (_=>v) = base_popkv k v t out_of_bounds;
+end;
+
+base_popkv k v t e = pop k v t with
+    pop k v nil = throw e;
     pop k v cur@(bin l x@(xk=>xv) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = if ~eq v xv then throw abort
+        = if ~eq v xv then throw e
           else if r===nil then l 1 x
           else (shrink_right (\_ -> child snag x) (bin l w r) when
             child@_ snag w = pop_left r
@@ -805,13 +818,13 @@ deletekv t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ wit
     pop k v cur@(tri l y@(yk=>yv) c z@(zk=>zv) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = if ~eq v yv then throw abort
+        = if ~eq v yv then throw e
           else if c===nil then (bin l z r) 0 y
           else (shrink_center (\_ -> child snag y) (tri l w c z r) when
             child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = if ~eq v zv then throw abort
+        = if ~eq v zv then throw e
           else if r===nil then (bin l y c) 0 z
           else (shrink_right (\_ -> child snag z) (tri l y c w r) when
             child@_ snag w = pop_left r
@@ -891,7 +904,10 @@ minsertk t::tree new@(k=>_) = head2 $ ins k new t with
     end;
 end;
 
-public mdelete mdeleteko mdeletekn mdeletekvo mdeletekvn mdeletekva mpopko mpopkn;
+// The popkv methods may seem like overkill, but we need them for weak-value dicts.
+// But I'm lazy, we only use mdeletekva/mpopkva.
+public mdelete mdeleteko mdeletekn mpopko mpopkn;
+public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
 mdelete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
@@ -1116,13 +1132,24 @@ mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     end;
 end;
 
-mdeletekva t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
+private base_mpopkva;
+
+mdeletekva t::tree (k=>v) = catch handle (head3 $ base_mpopkva k v t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
+end;
+
+// Note that popped element may be () or a longer tuple.
+
+mpopkva t::tree (k=>v) = '(child, v) when
+    child@_ _ (_=>v) = base_mpopkva k v t out_of_bounds;
+end;
+
+base_mpopkva k v t e = pop k v t with
     del _ ws [] = reverse ws;
     del v ws (u@(_=>uv):us) = del v ws us if eq v uv;
                             = del v (u:ws) us otherwise;
-    pop k v nil = throw abort;
+    pop k v nil = throw e;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
@@ -1255,7 +1282,9 @@ end;
 
 // These are also valid for multi-hashes.
 
-public hdelete hdeletek hdeletekv hpopk;
+// The popkv methods may seem like overkill, but we need them for weak-value dicts.
+public hdelete hdeletek hpopk;
+public hdeletekv hpopkv;
 
 hdelete t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
@@ -1350,13 +1379,24 @@ base_hpopk k t e = pop (hash k) k t with
     end;
 end;
 
-hdeletekv t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
+private base_hpopkv;
+
+hdeletekv t::tree old@(k=>_) = catch handle (head3 $ base_hpopkv k old t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ _ [] = throw abort; // not found
-    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_onto ws us else throw abort; // (k=>v) not found
+end;
+
+// Note that popped element may be () or a longer tuple.
+
+hpopkv t::tree old@(k=>_) = '(child, v) when
+    child@_ _ (_=>v) = base_hpopkv k old t out_of_bounds;
+end;
+
+base_hpopkv k old t e = pop (hash k) old t with
+    del _ _ [] = throw e; // not found
+    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_onto ws us else throw e; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
-    pop h::int old nil = throw abort;
+    pop h::int old nil = throw e;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1462,7 +1502,10 @@ mhinsertk t::tree new@(k=>_) = head2 $ ins (hash k) new t with
     end;
 end;
 
-public mhdelete mhdeleteko mhdeletekvo mhpopko mhdeletekn mhdeletekvn mhdeletekva mhpopkn;
+// The popkv methods may seem like overkill, but we need them for weak-value dicts.
+// But I'm lazy, we only use mhdeletekva/mhpopkva.
+public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
+public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
 // mhdelete deletes the first (newest) match, which will be === old (not merely EQ, as with mdelete).
 
@@ -1609,13 +1652,24 @@ base_mhpopko k t e = pop (hash k) k t with
     end;
 end;
 
-mhdeletekva t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
+private base_mhpopkva;
+
+mhdeletekva t::tree old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
+end;
+
+// Note that popped element may be () or a longer tuple.
+
+mhpopkva t::tree old@(k=>_) = '(child, v) when
+    child@_ _ (_=>v) = base_mhpopkva k old t out_of_bounds;
+end;
+
+base_mhpopkva k old t e = pop (hash k) old t with
     del _ ws [] = reverse ws;
     del old@(k=>v) ws (u@(k=>uv):us) = del old ws us if eq v uv;
     del old ws (u:us) = del old (u:ws) us;
-    pop h::int old nil = throw abort;
+    pop h::int old nil = throw e;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
