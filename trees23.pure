@@ -1041,7 +1041,7 @@ mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     handle e = throw e;
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
     del v hss hs ms (u@(_=>uv):us) = del v (hs:hss) (u:ms) [] us if eq v uv;
-    del v hss hs ms (u:us) = del v hss hs (u:ms) us;
+                                   = del v hss hs (u:ms) us otherwise;
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -1160,7 +1160,7 @@ mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     handle e = throw e;
     del v _ [] = throw abort; // (k=>v) not found
     del v ws (u@(_=>uv):us) = u:reverse_onto ws us if eq v uv;
-    del v ws (u:us) = del v (u:ws) us;
+                            = del v (u:ws) us otherwise;
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -1760,7 +1760,7 @@ mhdeletekva t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
     handle e = throw e;
     del _ ws [] = reverse ws;
     del old@(k=>v) ws (u@(k=>uv):us) = del old ws us if eq v uv;
-                                     = del old (u:ws) us otherwise;
+    del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
