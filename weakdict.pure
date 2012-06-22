@@ -272,6 +272,13 @@ end when
     vr = getter (get dptr) k;
 end;
 
+wv_mget getter dptr k = catmap f (getter (get dptr) k) with
+    f vr = case weak_get vr of
+        {v} = [v];
+        _   = []; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+    end;
+end;
+
 // uses private get from this weakdict:: namespace
 wkv_apply f dptr = f (get dptr);
 
@@ -364,18 +371,18 @@ delete_all w@(WVHMDict dptr _) k = weakdict::wv_delete trees23::mhdeleteka dptr 
 // membership test
 member (WKDict   dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
 member (WKMDict  dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
-member (WVDict   dptr _) k = weakdict::wv_member trees23::getk  dptr k;
-member (WVMDict  dptr _) k = weakdict::wv_member trees23::getk  dptr k;
-member (WVHDict  dptr _) k = weakdict::wv_member trees23::hgetk dptr k;
-member (WVHMDict dptr _) k = weakdict::wv_member trees23::hgetk dptr k;
+member (WVDict   dptr _) k = weakdict::wv_member trees23::getk     dptr k;
+member (WVMDict  dptr _) k = weakdict::wv_member trees23::mgetkn   dptr k;
+member (WVHDict  dptr _) k = weakdict::wv_member trees23::hgetk    dptr k;
+member (WVHMDict dptr _) k = weakdict::wv_member trees23::mhgetkn  dptr k;
 
 // get a value by key
-(WKDict   dptr _)!k = weakdict::wk_get trees23::hgetk  dptr k;
-(WKMDict  dptr _)!k = weakdict::wk_get trees23::mhgetk dptr k;
-(WVDict   dptr _)!k = weakdict::wv_get trees23::getk   dptr k;
-(WVMDict  dptr _)!k = weakdict::wv_get trees23::mgetk  dptr k;
-(WVHDict  dptr _)!k = weakdict::wv_get trees23::hgetk  dptr k;
-(WVHMDict dptr _)!k = weakdict::wv_get trees23::mhgetk dptr k;
+(WKDict   dptr _)!k = weakdict::wk_get  trees23::hgetk   dptr k;
+(WKMDict  dptr _)!k = weakdict::wk_get  trees23::mhgetk  dptr k;
+(WVDict   dptr _)!k = weakdict::wv_get  trees23::getk    dptr k;
+(WVMDict  dptr _)!k = weakdict::wv_mget trees23::mgetk   dptr k;
+(WVHDict  dptr _)!k = weakdict::wv_get  trees23::hgetk   dptr k;
+(WVHMDict dptr _)!k = weakdict::wv_mget trees23::mhgetk  dptr k;
 
 // I'm not sure the size and iteration methods should be exposed
 // In any case, they should be regarded as volatile: liable to change
