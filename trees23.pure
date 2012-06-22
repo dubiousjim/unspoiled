@@ -1147,7 +1147,7 @@ mpopkva t::tree (k=>v) = '(child, vs) when
 end;
 
 base_mpopkva k v t e = pop k v t with
-    del _ vs ws [] = vs, reverse ws;
+    del _ vs ws [] = [vs]:reverse ws;
     del v vs ws (u@(_=>uv):us) = del v (uv:vs) ws us if eq v uv;
                                = del v vs (u:ws) us otherwise;
     pop k v nil = throw e;
@@ -1668,7 +1668,7 @@ mhpopkva t::tree old@(k=>_) = '(child, vs) when
 end;
 
 base_mhpopkva k old t e = pop (hash k) old t with
-    del _ vs ws [] = vs, reverse ws;
+    del _ vs ws [] = [vs]:reverse ws;
     del old@(k=>v) vs ws (u@(k=>uv):us) = del old (uv:vs) ws us if eq v uv;
     del old vs ws (u:us) = del old vs (u:ws) us;
     pop h::int old nil = throw e;
