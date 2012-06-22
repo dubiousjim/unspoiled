@@ -1141,19 +1141,20 @@ end;
 
 // Note that popped element may be () or a longer tuple.
 
-mpopkva t::tree (k=>v) = '(child, v) when
-    child@_ _ (_=>v) = base_mpopkva k v t out_of_bounds;
+mpopkva t::tree (k=>v) = '(child, vs) when
+    child@_ _ vs = base_mpopkva k v t out_of_bounds;
+    vs = reverse vs; // TODO isn't this wasteful and probably unnecessary?
 end;
 
 base_mpopkva k v t e = pop k v t with
-    del _ ws [] = reverse ws;
-    del v ws (u@(_=>uv):us) = del v ws us if eq v uv;
-                            = del v (u:ws) us otherwise;
+    del _ vs ws [] = vs, reverse ws;
+    del v vs ws (u@(_=>uv):us) = del v (uv:vs) ws us if eq v uv;
+                               = del v vs (u:ws) us otherwise;
     pop k v nil = throw e;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] xs of
+        = case del v [] [] xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                         child@_ snag w = pop_left r
@@ -1165,7 +1166,7 @@ base_mpopkva k v t e = pop k v t with
     pop k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] ys of
+        = case del v [] [] ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                         child@_ snag w = pop_left c
@@ -1173,7 +1174,7 @@ base_mpopkva k v t e = pop k v t with
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = case del v [] zs of
+        = case del v [] [] zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                         child@_ snag w = pop_left r
@@ -1661,19 +1662,20 @@ end;
 
 // Note that popped element may be () or a longer tuple.
 
-mhpopkva t::tree old@(k=>_) = '(child, v) when
-    child@_ _ (_=>v) = base_mhpopkva k old t out_of_bounds;
+mhpopkva t::tree old@(k=>_) = '(child, vs) when
+    child@_ _ vs = base_mhpopkva k old t out_of_bounds;
+    vs = reverse vs; // TODO isn't this wasteful and probably unnecessary?
 end;
 
 base_mhpopkva k old t e = pop (hash k) old t with
-    del _ ws [] = reverse ws;
-    del old@(k=>v) ws (u@(k=>uv):us) = del old ws us if eq v uv;
-    del old ws (u:us) = del old (u:ws) us;
+    del _ vs ws [] = vs, reverse ws;
+    del old@(k=>v) vs ws (u@(k=>uv):us) = del old (uv:vs) ws us if eq v uv;
+    del old vs ws (u:us) = del old vs (u:ws) us;
     pop h::int old nil = throw e;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] xs of
+        = case del old [] [] xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1685,7 +1687,7 @@ base_mhpopkva k old t e = pop (hash k) old t with
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] ys of
+        = case del old [] [] ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1693,7 +1695,7 @@ base_mhpopkva k old t e = pop (hash k) old t with
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old [] zs of
+        = case del old [] [] zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
