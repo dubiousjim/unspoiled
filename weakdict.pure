@@ -17,182 +17,7 @@
 */
 
 
-
-/* ..
-
-Some notes from other files, for my reference...
-
-   Sentries
-   ~~~~~~~~
-
-   Sentries are Pure's flavour of object `finalizers`. A sentry is simply an
-   object (usually a function) which gets applied to the target expression
-   when it is garbage-collected. This is useful to perform automatic cleanup
-   actions on objects with internal state, such as files. Pure's sentries are
-   *much* more useful than finalizers in other garbage-collected languages,
-   since it is guaranteed that they are called as soon as an object "goes out
-   of scope", i.e., becomes inaccessible.
-
-   .. function:: sentry f x
-
-      Places a sentry ``f`` at an expression ``x`` and returns the modified
-      expression.
-
-   .. function:: clear_sentry x
-
-      Removes the sentry from an expression ``x``.
-
-   .. function:: get_sentry x
-
-      Returns the sentry of an expression ``x`` (if any, fails otherwise).
-
-   As of Pure 0.45, sentries can be placed on any Pure expression. The sentry
-   itself can also be any type of object (but usually it's a function).
-   Example::
-
-     > using system;
-     > sentry (\_->puts "I'm done for!") (1..3);
-     [1,2,3]
-     > clear ans
-     I'm done for!
-
-   Note that setting a finalizer on a global symbol won't usually be of much
-   use since such values are cached by the interpreter. (However, the sentry
-   *will* be invoked if the symbol gets recompiled because its definition has
-   changed. This may be useful for some purposes.)
-
-   In Pure parlance, we call an expression `cooked` if a sentry has been
-   attached to it. The following predicate can be used to check for this
-   condition. Also, there is a convenience function to create cooked pointers
-   which take care of freeing themselves when they are no longer needed.
-
-   .. function:: cookedp x
-
-      Check whether a given object has a sentry set on it.
-
-   .. function:: cooked ptr
-
-      Create a pointer which disposes itself after use. This is just a
-      shorthand for ``sentry free``. The given pointer ``ptr`` must be
-      :func:`malloc`\ ed to make this work.
-
-   Example::
-
-     > using system;
-     > let p = cooked (malloc 1024);
-     > cookedp p;
-     1
-     > get_sentry p;
-     free
-     > clear p
-
-   Besides their use as finalizers, sentries can also be handy in other
-   circumstances, when you need to associate an expression with another,
-   "invisible" value. In this case the sentry is usually some kind of data
-   structure instead of a function to be executed at finalization time. For
-   instance, here's how we can employ sentries to implement hashing of
-   function values::
-
-     using dict;
-     hashed f x = case get_sentry f of
-                    h::hdict = h!x if member h x;
-                    _ = y when y = f x; sentry (update h x y) f
-                            when h = case get_sentry f of
-                                       h::hdict = h; _ = emptyhdict
-                                     end;
-                            end;
-                          end;
-                  end;
-
-   E.g., consider the naive recursive definition of the Fibonacci function::
-
-     fib n::int = if n<=1 then 1 else fib (n-1)+fib (n-2);
-
-   A hashed version of the Fibonacci function can be defined as follows::
-
-     let hfib = hashed f with
-       f n::int = if n<=1 then 1 else hfib (n-1)+hfib (n-2)
-     end;
-
-   This turns the naive definition of the Fibonacci function (which has
-   exponential time complexity) into a linear time operation::
-
-     > stats
-     > fib 35;
-     14930352
-     4.53s
-     > hfib 35;
-     14930352
-     0.25s
-
-   Finally, note that there can be only one sentry per expression but,
-   building on the operations provided here, it's easy to design a scheme
-   where sentries are chained. For instance::
-
-     chain_sentry f x = sentry (h (get_sentry x)) x with
-       h g x = g x $$ f x;
-     end;
-
-   This invokes the original sentry before the chained one::
-
-     > using system;
-     > f _ = puts "sentry#1"; g _ = puts "sentry#2";
-     > let p = chain_sentry g $ sentry f $ malloc 10;
-     > clear p
-     sentry#1
-     sentry#2
-
-   You can chain any number of sentries that way. This scheme should work in
-   most cases in which sentries are used just as finalizers. However, there
-   are other uses, like the "hashed function" example above, where you'd like
-   the original sentry to stay intact. This can be achieved by placing the new
-   sentry as a sentry on the *original sentry* rather than the expression
-   itself::
-
-     attach_sentry f x = sentry (sentry f (get_sentry x)) x;
-
-   This requires that the sentry will actually be garbage-collected when its
-   hosting expression gets freed, so it will *not* work if the original sentry
-   is a global::
-
-     > let p = attach_sentry g $ sentry f $ malloc 10;
-     > clear p
-     sentry#1
-
-   However, the attached sentry will work ok if you can ensure that the
-   original sentry is a (partial or constructor) application. E.g.::
-
-     > let p = attach_sentry g $ sentry (f$) $ malloc 10;
-     > clear p
-     sentry#1
-     sentry#2
-
-
-namespace __C;
-extern expr* pure_new(expr*);
-extern expr* pure_expr_pointer();
-extern void pure_free(expr*);
-extern expr* pointer_get_expr(void*);
-void pointer_put_expr(void*, expr*);
-namespace;
-
-public ref unref refp;
-
-ref x = pointer_put_expr r (pure_new x) $$
-        sentry unref r when r::pointer = pure_expr_pointer end;
-
-unref r::pointer = pure_free (pointer_get_expr r) $$
-                   clear_sentry r if refp r;
-
-put r::pointer x = pure_free (pointer_get_expr r) $$
-                   pointer_put_expr r (pure_new x) $$ x if refp r;
-
-get r::pointer = pointer_get_expr r if refp r;
-
-refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
-
-*/
-
+using trees23;
 
 // we need to overwrite the stdlib definitions of these
 public _sentry _clear_sentry _get_sentry _cookedp _cooked;
@@ -200,15 +25,12 @@ public _sentry _clear_sentry _get_sentry _cookedp _cooked;
 // global exception
 public bad_pointer_value;
 
+
+// for our constructors and private methods
 namespace weakdict;
 
-// low-level weak_ref machinery
-namespace weakdict::__ref__;
-
-
-public weak_get weak_getref weak_ref; // FIXME public
-private Box weak_unbox; private nonfix notfound nil;
-
+private Box weak_get weak_getref weak_ref;
+private nonfix notfound nil;
 
 private extern expr* pure_sentry(expr*,expr*); //  = sentry; // IMPURE!
 private extern expr* pure_clear_sentry(expr*); // = clear_sentry; // IMPURE!
@@ -249,6 +71,26 @@ end;
 ::_cooked p::pointer = ::_sentry free p;
 
 
+// We need our own version of these, at least until our _sentry
+// methods are moved to stdlib, because our refcells won't typecheck as being refp.
+// (Some of our refcells won't typecheck even afterwards.)
+
+private ref unref put get;
+
+ref x = __C::pointer_put_expr r (__C::pure_new x) $$
+        _sentry unref r when r::pointer = __C::pure_expr_pointer end;
+
+unref r::pointer = __C::pure_free (__C::pointer_get_expr r) $$
+                   _clear_sentry r;
+
+put r::pointer x = __C::pure_free (__C::pointer_get_expr r) $$
+                   __C::pointer_put_expr r (__C::pure_new x) $$ x;
+
+get r::pointer = __C::pointer_get_expr r;
+
+
+
+
 // x is dying
 Box r s x = case s of
     nil = handle r x;
@@ -256,7 +98,7 @@ Box r s x = case s of
 end with
     handle r x = () when
                     // do we need to use pure_ref x here...?
-                    u:ss = __C::pointer_get_expr r;
+                    u:ss = get r;
                     // assert(u is still unsafe ptr, not notfound)
                     // now that x is dying, no one can look it up via r anymore
                     put r [notfound];
@@ -288,33 +130,26 @@ lookup xaddr = hashtable::getk H xaddr notfound;
 
 
 // lookup x from weak_ref
-weak_get r = case __C::pointer_get_expr r of
+weak_get r = case get r of
     u:_ = {} if u === notfound;
         = '{x} when
-            x = __C::pointer_get_expr u; // deref the unsafe ptr
+            x = get u; // deref the unsafe ptr
           end otherwise;
 end;
 
-weak_unbox x = if ~pure_has_sentry x then notfound
+// lookup existing weak_ref from x
+weak_getref x = if ~pure_has_sentry x then notfound
                else case pure_get_sentry x of
                     Box r _ = r;
                     _ = notfound;
                end;
-
-
-// lookup existing weak_ref from x
-weak_getref x = case weak_unbox x of
-    notfound = throw bad_pointer_value;
-    r = r;
-end;
-
 
 // make new weak_ref for x (with optional sentry)
 // use void if you don't want a sentry (that case is optimized)
 weak_ref x sen::function = r when
     pure_new x; // lock x from being collected until everything is set up
                 // might I use pure_ref instead?
-    r = case weak_unbox x of
+    r = case weak_getref x of
         notfound = r when
                        u::pointer = __C::pure_expr_pointer;
                        __C::pointer_put_expr u x; // unsafe ptr to x (x's refcount not increased)
@@ -339,185 +174,264 @@ weak_ref x sen::function = r when
     pure_free x; // might I use pure_unref instead?
 end;
 
-
-namespace weakdict;
-
 // high-level API
 
-using trees23;
+public wk_newdict wv_newdict wk_insert wk_member wv_member wk_get wv_get;
+public wv_insert wk_delete wv_delete wk_delete_val wv_delete_val;
+public wkv_apply;
 
-using namespace weakdict::__ref__;
+using system;
 
+wk_newdict K deleter = K dptr (sentrybase wd) when
+    dptr = ref trees23::emptytree;
+    wd = weak_ref dptr void;
+end with
+    sentrybase wd r = case weak_get wd of
+        {dptr} = put dptr (deleter (get dptr) r) $$ ();
+        _      = ();
+    end;
+end;
+
+wv_newdict K deleter = K dptr (sentrybase wd) when
+    dptr = ref trees23::emptytree;
+    wd = weak_ref dptr void;
+end with
+    sentrybase wd k _ = case weak_get wd of
+        {dptr} = put dptr (deleter (get dptr) k) $$ ();
+        _      = ();
+    end;
+end;
+
+wk_insert inserter dptr sb k v = () when
+    d = get dptr;
+    d = inserter d (weak_ref k sb=>v);
+    put dptr d;
+end;
+
+wv_insert inserter dptr sb k v = () when
+    d = get dptr;
+    d = inserter d (k=>weak_ref v (sb k));
+    put dptr d;
+end;
+
+wk_delete deleter dptr k = () when
+    d = get dptr;
+    case weak_getref k of
+        notfound  = (); // k has no box, won't be in dict
+        kr = put dptr (deleter d kr);
+    end;
+end;
+
+wv_delete deleter dptr k = () when
+    d = get dptr;
+    put dptr (deleter d k);
+end;
+
+wk_delete_val deleter dptr k v = () when
+    d = get dptr;
+    case weak_getref k of
+        notfound  = (); // k has no box, won't be in dict
+        kr = put dptr (deleter d kr v);
+    end;
+end;
+
+wv_delete_val deleter dptr k v = () when
+    d = get dptr;
+    case weak_getref v of
+        notfound  = (); // v has no box, won't be in dict
+        vr = put dptr (deleter d k vr);
+    end;
+end;
+
+
+wk_member tester dptr k = res when
+    d = get dptr;
+    res = case weak_getref k of
+        notfound  = 0; // k has no box, won't be in dict
+        kr = tester d kr;
+    end;
+end;
+
+wv_member getter dptr k = res when
+    d = get dptr;
+    case catch handler (getter d k) of
+        vr = case weak_get vr of
+            {_} = 1;
+            _  = 0; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+        end;
+    end;
+end with
+    handler out_of_bounds = 0; // k not in d
+    handler e = throw e;
+end;
+
+
+wk_get getter dptr k = v when
+    d = get dptr;
+    case weak_getref k of
+        notfound  = throw out_of_bounds; // k has no box, won't be in dict
+        kr = getter d kr;
+    end;
+end;
+
+wv_get getter dptr k = res when
+    d = get dptr;
+    case getter d k of
+        vr = case weak_get vr of
+            {v} = v;
+            _  = throw out_of_bounds; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+        end;
+    end;
+end;
+
+wkv_apply f dptr = f d when
+    d = get dptr;
+end;
+
+
+namespace;
 
 // These should be considered private.
-public WKDict WVDict WKMDict WVMDict;
+public WKDict WKMDict WVDict WVMDict WVHDict WVHMDict;
+
 
 // TODO: do we need to define unions of these?
-type wkdict  (WKDict _)  | wvdict  (WVDict _)
-   | wkmdict (WKMDict _) | wvmdict (WVMDict _);
+type wkdict   (WKDict _ _) | wkmdict   (WKMDict _ _)
+   | wvdict   (WVDict _ _) | wvmdict   (WVMDict _ _)
+   | wvhdict (WVHDict _ _) | wvhmdict (WVHMDict _ _);
 
 // type checks
-wkdictp  x = typep wkdict  x;
-wvdictp  x = typep wvdict  x;
-wkmdictp x = typep wkmdict x;
-wvmdictp x = typep wvmdict x;
+wkdictp   x = typep wkdict  x;
+wkmdictp  x = typep wkmdict x;
+wvdictp   x = typep wvdict  x;
+wvmdictp  x = typep wvmdict x;
+wvhdictp  x = typep wvhdict  x;
+wvhmdictp x = typep wvhmdict x;
+
 
 // create an empty dict
-emptywkdict  = WKDict trees23::emptytree;
-emptywvdict  = WVDict trees23::emptytree;
-emptywkmdict = WKMDict trees23::emptytree;
-emptywvmdict = WVMDict trees23::emptytree;
+emptywkdict   = weakdict::wk_newdict WKDict   trees23::hdeletek;
+emptywkmdict  = weakdict::wk_newdict WKMDict  trees23::mhdeletek;
+emptywvdict   = weakdict::wv_newdict WVDict   trees23::deletek;
+emptywvmdict  = weakdict::wv_newdict WVMDict  trees23::mdeletek;
+emptywvhdict  = weakdict::wv_newdict WVHDict  trees23::hdeletek;
+emptywvhmdict = weakdict::wv_newdict WVHMDict trees23::mhdeletek;
 
 // create a dict from a list
-wkdict  xys::rlist = foldl insert emptywkdict  xys;
-wvdict  xys::rlist = foldl insert emptywvdict  xys;
-wkmdict xys::rlist = foldl insert emptywkmdict xys;
-wvmdict xys::rlist = foldl insert emptywvmdict xys;
+wkdict   kvs::rlist = foldl insert emptywkdict   kvs;
+wkmdict  kvs::rlist = foldl insert emptywkmdict  kvs;
+wvdict   kvs::rlist = foldl insert emptywvdict   kvs;
+wvmdict  kvs::rlist = foldl insert emptywvmdict  kvs;
+wvhdict  kvs::rlist = foldl insert emptywvhdict  kvs;
+wvhmdict kvs::rlist = foldl insert emptywvhmdict kvs;
 
 // create a dict from a list of keys and a constant value
-mkwkdict  y xs::rlist = wkdict  (zipwith (=>) xs (repeaten (#xs) y));
-mkwvdict  y xs::rlist = wvdict  (zipwith (=>) xs (repeaten (#xs) y));
-mkwkmdict y xs::rlist = wkmdict (zipwith (=>) xs (repeaten (#xs) y));
-mkwvmdict y xs::rlist = wvmdict (zipwith (=>) xs (repeaten (#xs) y));
+mkwkdict   v ks::rlist = wkdict   (zipwith (=>) ks (repeaten (#xs) v));
+mkwkmdict  v ks::rlist = wkmdict  (zipwith (=>) ks (repeaten (#xs) v));
+mkwvdict   v ks::rlist = wvdict   (zipwith (=>) ks (repeaten (#xs) v));
+mkwvmdict  v ks::rlist = wvmdict  (zipwith (=>) ks (repeaten (#xs) v));
+mkwvhdict  v ks::rlist = wvhdict  (zipwith (=>) ks (repeaten (#xs) v));
+mkwvhmdict v ks::rlist = wvhmdict (zipwith (=>) ks (repeaten (#xs) v));
 
 
-///////////////////////////////////////////////////////////////
-
-/*
 // insert a member
-insert (Dict   d) el@(x=>y) = Dict   (avl::insertk   d el);
-insert (HDict  d) el@(x=>y) = HDict  (avl::hinsertk  d el);
-insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
-insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
-*/
-
-/*
-// insert a member
-insert (WKDict  d) el@(x=>y) = WKDict  (
-insert (WVDict  d) el@(x=>y) = WVDict  (
-insert (WKMDict d) el@(x=>y) = WKMDict (
-insert (WVMDict d) el@(x=>y) = WVMDict (
-*/
+insert w@(WKDict   dptr sb) (k=>v) = weakdict::wk_insert trees23::hinsertk  dptr sb k v $$ w;
+insert w@(WKMDict  dptr sb) (k=>v) = weakdict::wk_insert trees23::mhinsertk dptr sb k v $$ w;
+insert w@(WVDict   dptr sb) (k=>v) = weakdict::wv_insert trees23::insertk   dptr sb k v $$ w;
+insert w@(WVMDict  dptr sb) (k=>v) = weakdict::wv_insert trees23::minsertk  dptr sb k v $$ w;
+insert w@(WVHDict  dptr sb) (k=>v) = weakdict::wv_insert trees23::hinsertk  dptr sb k v $$ w;
+insert w@(WVHMDict dptr sb) (k=>v) = weakdict::wv_insert trees23::mhinsertk dptr sb k v $$ w;
 
 // curried version of insert
-update d@(WKDict  _) x y | update d@(WVDict  _) x y |
-update d@(WKMDict _) x y | update d@(WVMDict _) x y = insert d (x=>y);
+update  w@(WKDict  _ _) k v | update  w@(WKMDict _ _) k v |
+update  w@(WVDict  _ _) k v | update  w@(WVMDict _ _) k v |
+update w@(WVHDict  _ _) k v | update w@(WVHMDict _ _) k v = insert w (k=>v);
 
-/*
 // delete a member by key
-delete (Dict   d) x = Dict   (avl::deletek   d x);
-delete (HDict  d) x = HDict  (avl::hdeletek  d x);
-delete (MDict  d) x = MDict  (avl::mdeletek  d x);
-delete (HMDict d) x = HMDict (avl::mhdeletek d x);
-*/
+delete w@(WKDict   dptr _) k = weakdict::wk_delete trees23::hdeletek  dptr k $$ w;
+delete w@(WKMDict  dptr _) k = weakdict::wk_delete trees23::mhdeletek dptr k $$ w;
+delete w@(WVDict   dptr _) k = weakdict::wv_delete trees23::deletek   dptr k $$ w;
+delete w@(WVMDict  dptr _) k = weakdict::wv_delete trees23::mdeletek  dptr k $$ w;
+delete w@(WVHDict  dptr _) k = weakdict::wv_delete trees23::hdeletek  dptr k $$ w;
+delete w@(WVHMDict dptr _) k = weakdict::wv_delete trees23::mhdeletek dptr k $$ w;
 
-/*
-// delete a member by key
-delete (WKDict  d) x = WKDict  (
-delete (WVDict  d) x = WVDict  (
-delete (WKMDict d) x = WKMDict (
-delete (WVMDict d) x = WVMDict (
-*/
 
-/*
 // delete a member by key=>val
-delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv   d el);
-delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv  d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
-delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
-*/
+delete_val w@(WKDict   dptr _) (k=>v) = weakdict::wk_delete_val trees23::hdeletekv  dptr k v $$ w;
+delete_val w@(WKMDict  dptr _) (k=>v) = weakdict::wk_delete_val trees23::mhdeletekv dptr k v $$ w;
+delete_val w@(WVDict   dptr _) (k=>v) = weakdict::wv_delete_val trees23::deletekv   dptr k v $$ w;
+delete_val w@(WVMDict  dptr _) (k=>v) = weakdict::wv_delete_val trees23::mdeletekv  dptr k v $$ w;
+delete_val w@(WVHDict  dptr _) (k=>v) = weakdict::wv_delete_val trees23::hdeletekv  dptr k v $$ w;
+delete_val w@(WVHMDict dptr _) (k=>v) = weakdict::wv_delete_val trees23::mhdeletekv dptr k v $$ w;
 
-/*
-// delete a member by key=>val
-delete_val (WKDict  d) el@(x=>y) = WKDict  (
-delete_val (WVDict  d) el@(x=>y) = WVDict  (
-delete_val (WKMDict d) el@(x=>y) = WKMDict (
-delete_val (WVMDict d) el@(x=>y) = WVMDict (
-*/
 
-/*
 // delete all instances of a given key
-delete_all (Dict   d) x = Dict   (avl::deletek    d x);
-delete_all (HDict  d) x = HDict  (avl::hdeletek   d x);
-delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
-delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
-*/
+delete_all w@(WKDict   dptr _) k = weakdict::wk_delete trees23::hdeletek   dptr k $$ w;
+delete_all w@(WKMDict  dptr _) k = weakdict::wk_delete trees23::mhdeleteka dptr k $$ w;
+delete_all w@(WVDict   dptr _) k = weakdict::wv_delete trees23::deletek    dptr k $$ w;
+delete_all w@(WVMDict  dptr _) k = weakdict::wv_delete trees23::mdeleteka  dptr k $$ w;
+delete_all w@(WVHDict  dptr _) k = weakdict::wv_delete trees23::hdeletek   dptr k $$ w;
+delete_all w@(WVHMDict dptr _) k = weakdict::wv_delete trees23::mhdeleteka dptr k $$ w;
 
-/*
-// delete all instances of a given key
-delete_all (WKDict  d) x = WKDict  (
-delete_all (WVDict  d) x = WVDict  (
-delete_all (WKMDict d) x = WKMDict (
-delete_all (WVMDict d) x = WVMDict (
-*/
 
-/*
 // membership test
-member (Dict   d) k = avl::memberk  d k;
-member (MDict  d) k = avl::memberk  d k;
-member (HDict  d) k = avl::hmemberk d k;
-member (HMDict d) k = avl::hmemberk d k;
-*/
+member (WKDict   dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
+member (WKMDict  dptr _) k = weakdict::wk_member trees23::hmemberk dptr k;
+member (WVDict   dptr _) k = weakdict::wv_member trees23::getk  dptr k;
+member (WVMDict  dptr _) k = weakdict::wv_member trees23::getk  dptr k;
+member (WVHDict  dptr _) k = weakdict::wv_member trees23::hgetk dptr k;
+member (WVHMDict dptr _) k = weakdict::wv_member trees23::hgetk dptr k;
 
-/*
-// membership test
-member (WKDict  d) k = WKDict  (
-member (WVDict  d) k = WVDict  (
-member (WKMDict d) k = WKMDict (
-member (WVMDict d) k = WVMDict (
-*/
-
-/*
 // get a value by key
-(Dict   d)!k = avl::getk   d k;
-(MDict  d)!k = avl::mgetk  d k;
-(HDict  d)!k = avl::hgetk  d k;
-(HMDict d)!k = avl::mhgetk d k;
-*/
+(WKDict   dptr _)!k = weakdict::wk_get trees23::hgetk  dptr k;
+(WKMDict  dptr _)!k = weakdict::wk_get trees23::mhgetk dptr k;
+(WVDict   dptr _)!k = weakdict::wv_get trees23::getk   dptr k;
+(WVMDict  dptr _)!k = weakdict::wv_get trees23::mgetk  dptr k;
+(WVHDict  dptr _)!k = weakdict::wv_get trees23::hgetk  dptr k;
+(WVHMDict dptr _)!k = weakdict::wv_get trees23::mhgetk dptr k;
+
+// I'm not sure the size and iteration methods should be exposed
+// In any case, they should be regarded as volatile: liable to change
+// at any time, even while being computed
+// Even if Pure's current GC happens to be friendlier than that.
+
+#(WKDict   dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+#(WKMDict  dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+#(WVDict   dptr _) = weakdict::wkv_apply trees23::size  dptr;
+#(WVMDict  dptr _) = weakdict::wkv_apply trees23::msize dptr;
+#(WVHDict  dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+#(WVHMDict dptr _) = weakdict::wkv_apply trees23::hsize dptr;
+
+null (WKDict   dptr _) = weakdict::wkv_apply trees23::null dptr;
+null (WKMDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
+null (WVDict   dptr _) = weakdict::wkv_apply trees23::null dptr;
+null (WVMDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
+null (WVHDict  dptr _) = weakdict::wkv_apply trees23::null dptr;
+null (WVHMDict dptr _) = weakdict::wkv_apply trees23::null dptr;
+
+members (WKDict   dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+members (WKMDict  dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+members (WVDict   dptr _) = weakdict::wkv_apply trees23::members  dptr;
+members (WVMDict  dptr _) = weakdict::wkv_apply trees23::mmembers dptr;
+members (WVHDict  dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+members (WVHMDict dptr _) = weakdict::wkv_apply trees23::hmembers dptr;
+
+keys (WKDict   dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+keys (WKMDict  dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+keys (WVDict   dptr _) = weakdict::wkv_apply trees23::keys  dptr;
+keys (WVMDict  dptr _) = weakdict::wkv_apply trees23::mkeys dptr;
+keys (WVHDict  dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+keys (WVHMDict dptr _) = weakdict::wkv_apply trees23::hkeys dptr;
+
+vals (WKDict   dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+vals (WKMDict  dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+vals (WVDict   dptr _) = weakdict::wkv_apply trees23::vals  dptr;
+vals (WVMDict  dptr _) = weakdict::wkv_apply trees23::mvals dptr;
+vals (WVHDict  dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+vals (WVHMDict dptr _) = weakdict::wkv_apply trees23::hvals dptr;
+
 
 /*
-// get a value by key
-(WKDict  d)!k = trees23::getk d k;
-(WVDict  d)!k = trees23::getk d k;
-(WKMDict d)!k = trees23::getk d k;
-(WVMDict d)!k = trees23::getk d k;
-*/
-
-///////////////////////////////////////////////////////////////
-
-
-/*
-// TODO: do we want to expose these size methods?
-// they should be regarded as highly volatile, liable to change even while
-// being computed
-
-// check for the empty dict
-null d@(WKDict  _) | null d@(WVDict  _) |
-null d@(WKMDict _) | null d@(WVMDict _) = trees23::null d;
-
-// dict size
-#(WKDict  d) = trees23::hsize d;
-#(WVDict  d) = trees23::hsize d;
-#(WKMDict d) = trees23::hsize d; // not hmsize?
-#(WVMDict d) = trees23::hsize d; // not hmsize?
-
-// TODO: should any of these iteration methods be exposed?
-
-// get the members, keys and values of a dict as a list
-members (WKDict  d) = trees23::members d;
-members (WVDict  d) = trees23::members d;
-members (WKMDict d) = trees23::members d;
-members (WVMDict d) = trees23::members d;
-
-keys (WKDict  d) = trees23::keys d;
-keys (WVDict  d) = trees23::keys d;
-keys (WKMDict d) = trees23::keys d;
-keys (WVMDict d) = trees23::keys d;
-
-vals (WKDict  d) = trees23::vals d;
-vals (WVDict  d) = trees23::vals d;
-vals (WKMDict d) = trees23::vals d;
-vals (WVMDict d) = trees23::vals d;
 
 list d::xdict = members d;
 
@@ -540,12 +454,7 @@ rmfirst (HDict  d) = HDict  (avl::hrmfirst d);
 rmlast  (HDict  d) = HDict  (avl::hrmlast  d);
 rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
 rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
-*/
 
-
-
-/*
-// Less crucial methods, also unsure which of these should be exposed
 
 // conversions between the different dictionary types
 public members;
