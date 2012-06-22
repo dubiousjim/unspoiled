@@ -746,41 +746,21 @@ delete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     end;
 end;
 
-deletek t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
+private base_popk;
+
+deletek t::tree k = catch handle (head3 $ base_popk k t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds
     handle e = throw e;
-    pop k nil = throw abort;
-    pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = if r===nil then l 1 x
-          else (shrink_right (\_ -> child snag x) (bin l w r) when
-            child@_ snag w = pop_left r
-          end) if res == EQ;
-        = shrink_right (pop k) cur if res == GT;
-    end;
-    pop k cur@(tri l y@(yk=>_) c z@(zk=>_) r) = case cmp2 k yk zk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = if c===nil then (bin l z r) 0 y
-          else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-            child@_ snag w = pop_left c
-          end) if res == EQ;
-        = shrink_center (pop k) cur if res == LT2;
-        = if r===nil then (bin l y c) 0 z
-          else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-            child@_ snag w = pop_left r
-          end) if res == EQ2;
-        = shrink_right (pop k) cur if res == GT2;
-    end;
 end;
 
 // Note that popped element may be () or a longer tuple.
 
 popk t::tree k = '(child, v) when
-    child@_ _ (_=>v) = pop k t
-end with
-    pop k nil = throw out_of_bounds;
+    child@_ _ (_=>v) = base_popk k t out_of_bounds;
+end;
+
+base_popk k t e = pop k t with
+    pop k nil = throw e;
     pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -804,7 +784,7 @@ end with
           end) if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
-end;
+end; 
 
 // Delete one specific key=>val pair.
 
@@ -954,54 +934,23 @@ mdelete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
     end;
 end;
 
-mdeleteko t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
+private base_mpopko;
+
+mdeleteko t::tree k = catch handle (head3 $ base_mpopko k t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del [u] vs = u:reverse vs;
-    del (u:us) vs = del us (u:vs);
-    pop k nil = throw abort;
-    pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = case del xs [] of
-            [x]  = if r===nil then l 1 x
-                   else (shrink_right (\_ -> child snag x) (bin l w r) when
-                        child@_ snag w = pop_left r
-                   end);
-            x:xs = (bin l (xk=>xs) r) 0 x;
-          end if res == EQ;
-        = shrink_right (pop k) cur if res == GT;
-    end;
-    pop k cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = case del ys [] of
-            [y]  = if c===nil then (bin l z r) 0 y
-                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-                        child@_ snag w = pop_left c
-                   end);
-            y:ys = (tri l (yk=>ys) c z r) 0 y;
-          end if res == EQ;
-        = shrink_center (pop k) cur if res == LT2;
-        = case del zs [] of
-            [z]  = if r===nil then (bin l y c) 0 z
-                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-                        child@_ snag w = pop_left r
-                   end);
-            z:zs = (tri l y c (zk=>zs) r) 0 z;
-          end if res == EQ2;
-        = shrink_right (pop k) cur if res == GT2;
-    end;
 end;
 
 // Note that popped element may be () or a longer tuple.
 
 mpopko t::tree k = '(child, v) when
-    child@_ _ (_=>v) = pop k t
-end with
+    child@_ _ (_=>v) = base_mpopko k t out_of_bounds;
+end;
+
+base_mpopko k t e = pop k t with
     del [u] vs = u:reverse vs;
     del (u:us) vs = del us (u:vs);
-    pop k nil = throw out_of_bounds;
+    pop k nil = throw e;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -1077,50 +1026,21 @@ mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     end;
 end;
 
-mdeletekn t::tree k = catch handle (head3 $ pop k t) /* child, _, _ */ with
+private base_mpopkn;
+
+mdeletekn t::tree k = catch handle (head3 $ base_mpopkn k t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    pop k nil = throw abort;
-    pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = case xs of
-            [x]  = if r===nil then l 1 x
-                   else (shrink_right (\_ -> child snag x) (bin l w r) when
-                        child@_ snag w = pop_left r
-                   end);
-            x:xs = (bin l (xk=>xs) r) 0 x;
-          end if res == EQ;
-        = shrink_right (pop k) cur if res == GT;
-    end;
-    pop k cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
-      res::int
-        = shrink_left (pop k) cur if res == LT;
-        = case ys of
-            [y]  = if c===nil then (bin l z r) 0 y
-                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-                        child@_ snag w = pop_left c
-                   end);
-            y:ys = (tri l (yk=>ys) c z r) 0 y;
-          end if res == EQ;
-        = shrink_center (pop k) cur if res == LT2;
-        = case zs of
-            [z]  = if r===nil then (bin l y c) 0 z
-                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-                        child@_ snag w = pop_left r
-                   end);
-            z:zs = (tri l y c (zk=>zs) r) 0 z;
-          end if res == EQ2;
-        = shrink_right (pop k) cur if res == GT2;
-    end;
 end;
 
 // Note that popped element may be () or a longer tuple.
 
 mpopkn t::tree k = '(child, v) when
-    child@_ _ (_=>v) = pop k t
-end with
-    pop k nil = throw out_of_bounds;
+    child@_ _ (_=>v) = base_mpopkn k t out_of_bounds;
+end;
+
+base_mpopkn k t e = pop k t with
+    pop k nil = throw e;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -1378,53 +1298,21 @@ hdelete t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _
     end;
 end;
 
-hdeletek t::tree k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
+private base_hpopk;
+
+hdeletek t::tree k = catch handle (head3 $ base_hpopk k t abort) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ _ [] = throw abort; // not found
-    del k ws (u@(k=>_):us) = u:reverse_onto ws us;
-    del k ws (u:us) = del k (u:ws) us;
-    pop h::int k nil = throw abort;
-    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
-      res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] xs of
-            [x]  = if r===nil then l 1 x
-                   else (shrink_right (\_ -> child snag x) (bin l w r) when
-                       child@_ snag w = pop_left r
-                   end);
-            x:xs = (bin l (xh=>xs) r) 0 x;
-          end if res == EQ;
-        = shrink_right (pop h k) cur if res == GT;
-    end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
-      res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] ys of
-            [y]  = if c===nil then (bin l z r) 0 y
-                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-                       child@_ snag w = pop_left c
-                   end);
-            y:ys = (tri l (yh=>ys) c z r) 0 y;
-          end if res == EQ;
-        = shrink_center (pop h k) cur if res == LT2;
-        = case del k [] zs of
-            [z]  = if r===nil then (bin l y c) 0 z
-                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-                       child@_ snag w = pop_left r
-                   end);
-            z:zs = (tri l y c (zh=>zs) r) 0 z;
-          end if res == EQ2;
-        = shrink_right (pop h k) cur if res == GT2;
-    end;
 end;
 
 // Note that popped element may be () or a longer tuple.
 
 hpopk t::tree k = '(child, v) when
-    child@_ _ (_=>v) = pop (hash k) k t
-end with
-    del _ _ [] = throw out_of_bounds;
+    child@_ _ (_=>v) = base_hpopk k t out_of_bounds;
+end;
+
+base_hpopk k t e = pop (hash k) k t with
+    del _ _ [] = throw e;
     del k ws (u@(k=>_):us) = u:reverse_onto ws us;
     del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
@@ -1669,58 +1557,24 @@ end;
 
 // The mh*o functions pop the last (oldest) match.
 
-mhdeleteko t::tree k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
-    handle abort = t; // throw out_of_bounds;
+private base_mhpopko;
+
+mhdeleteko t::tree k = catch handle (head3 $ base_mhpopko k t abort) /* child, _, _ */ with
+    handle abort = t;
     handle e = throw e;
-    del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
-    del k hss hs ms (u@(k=>_):us) = del k (hs:hss) (u:ms) [] us;
-    del k hss hs ms (u:us) = del k hss hs (u:ms) us;
-    pop h::int k nil = throw abort;
-    pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
-      res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] [] xs of
-            [x]  = if r===nil then l 1 x
-                   else (shrink_right (\_ -> child snag x) (bin l w r) when
-                       child@_ snag w = pop_left r
-                   end);
-            x:xs = (bin l (xh=>xs) r) 0 x;
-          end if res == EQ;
-        = shrink_right (pop h k) cur if res == GT;
-    end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
-      res::int
-        = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] [] ys of
-            [y]  = if c===nil then (bin l z r) 0 y
-                   else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-                       child@_ snag w = pop_left c
-                   end);
-            y:ys = (tri l (yh=>ys) c z r) 0 y;
-          end if res == EQ;
-        = shrink_center (pop h k) cur if res == LT2;
-        = case del k [] [] [] zs of
-            [z]  = if r===nil then (bin l y c) 0 z
-                   else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-                       child@_ snag w = pop_left r
-                   end);
-            z:zs = (tri l y c (zh=>zs) r) 0 z;
-          end if res == EQ2;
-        = shrink_right (pop h k) cur if res == GT2;
-    end;
 end;
 
 // Note that popped element may be () or a longer tuple.
 
 mhpopko t::tree k = '(child, v) when
-    child@_ _ (_=>v) = catch handle (pop (hash k) k t)
-end with
-    handle abort = throw out_of_bounds;
-    handle e = throw e;
+    child@_ _ (_=>v) = base_mhpopko k t out_of_bounds;
+end;
+
+base_mhpopko k t e = pop (hash k) k t with
     del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
     del k hss hs ms (u@(k=>_):us) = del k (hs:hss) (u:ms) [] us;
     del k hss hs ms (u:us) = del k hss hs (u:ms) us;
-    pop h::int k nil = throw abort;
+    pop h::int k nil = throw e;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
