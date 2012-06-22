@@ -244,49 +244,36 @@ wv_delete_val deleter dptr k v = () when
 end;
 
 
-wk_member tester dptr k = res when
-    d = get dptr;
-    res = case weak_getref k of
-        notfound  = 0; // k has no box, won't be in dict
-        kr = tester d kr;
-    end;
+wk_member tester dptr k = case weak_getref k of
+    notfound  = 0; // k has no box, won't be in dict
+    kr = tester (get dptr) kr;
 end;
 
-wv_member getter dptr k = res when
-    d = get dptr;
-    case catch handler (getter d k) of
-        vr = case weak_get vr of
-            {_} = 1;
-            _  = 0; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+wv_member getter dptr k =
+catch handler (case getter (get dptr) k of
+    vr = case weak_get vr of
+        {_} = 1;
+        _  = 0; // v is dying, but its weak_sentry hasn't yet purged this k=>v
         end;
-    end;
-end with
+end) with
     handler out_of_bounds = 0; // k not in d
     handler e = throw e;
 end;
 
-
-wk_get getter dptr k = v when
-    d = get dptr;
-    case weak_getref k of
-        notfound  = throw out_of_bounds; // k has no box, won't be in dict
-        kr = getter d kr;
-    end;
+wk_get getter dptr k = case weak_getref k of
+    notfound = throw out_of_bounds; // k has no box, won't be in dict
+    kr       = getter (get dptr) kr;
 end;
 
-wv_get getter dptr k = res when
-    d = get dptr;
-    case getter d k of
-        vr = case weak_get vr of
-            {v} = v;
-            _  = throw out_of_bounds; // v is dying, but its weak_sentry hasn't yet purged this k=>v
-        end;
-    end;
+wv_get getter dptr k = case weak_get vr of
+    {v} = v;
+    _   = throw out_of_bounds; // v is dying, but its weak_sentry hasn't yet purged this k=>v
+end when
+    vr = getter (get dptr) k;
 end;
 
-wkv_apply f dptr = f d when
-    d = get dptr;
-end;
+// uses private get from this weakdict:: namespace
+wkv_apply f dptr = f (get dptr);
 
 
 namespace;
