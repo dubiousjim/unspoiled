@@ -72,23 +72,36 @@ end;
 
 
 // We need our own version of these, at least until our _sentry
-// methods are moved to stdlib, because our refcells won't typecheck as being refp.
-// (Some of our refcells won't typecheck even afterwards.)
+// methods are moved to stdlib, because our refcells won't typecheck as being ::refp.
+public ref unref put get refp;
 
-private ref unref put get;
-
+// parameterizing unref permits installing hooks like gasp, below
 ref x = __C::pointer_put_expr r (__C::pure_new x) $$
-        _sentry unref r when r::pointer = __C::pure_expr_pointer end;
+        _sentry (unref _clear_sentry) r when r::pointer = __C::pure_expr_pointer end;
 
-unref r::pointer = __C::pure_free (__C::pointer_get_expr r) $$
-                   _clear_sentry r;
+unref next r::pointer = __C::pure_free (__C::pointer_get_expr r) $$
+                        next r if refp r;
 
 put r::pointer x = __C::pure_free (__C::pointer_get_expr r) $$
-                   __C::pointer_put_expr r (__C::pure_new x) $$ x;
+                   __C::pointer_put_expr r (__C::pure_new x) $$ x if refp r;
 
-get r::pointer = __C::pointer_get_expr r;
+get r::pointer = __C::pointer_get_expr r if refp r;
 
+refp r = case r of
+    _::pointer = case _get_sentry r of unref _ = 1; _ = 0 end;
+    _ = 0;
+end;
 
+// for testing, make object announce its death
+// works for refcells created using the above methods, and ordinary expressions
+public gasp;
+gasp name::string x = case _get_sentry x of
+    unref next = _sentry (unref (next . announcer)) x;
+    _get_sentry _ = _sentry announcer x;
+    _ = throw "sentry conflict"
+end with
+    announcer _ = printf "%s is dying\n" name;
+end;
 
 
 // x is dying
@@ -115,7 +128,7 @@ end;
 weak_get r = case get r of
     u:_ = {} if u === notfound;
         = '{x} when
-            x = get u; // deref the unsafe ptr
+            x = __C::pointer_get_expr u; // deref the unsafe ptr
           end otherwise;
 end;
 
