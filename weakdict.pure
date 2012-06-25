@@ -387,12 +387,12 @@ wvhdict  kvs::rlist = foldl insert emptywvhdict  kvs;
 wvhmdict kvs::rlist = foldl insert emptywvhmdict kvs;
 
 // create a dict from a list of keys and a constant value
-mkwkdict   v ks::rlist = wkdict   (zipwith (=>) ks (repeaten (#xs) v));
-mkwkmdict  v ks::rlist = wkmdict  (zipwith (=>) ks (repeaten (#xs) v));
-mkwvdict   v ks::rlist = wvdict   (zipwith (=>) ks (repeaten (#xs) v));
-mkwvmdict  v ks::rlist = wvmdict  (zipwith (=>) ks (repeaten (#xs) v));
-mkwvhdict  v ks::rlist = wvhdict  (zipwith (=>) ks (repeaten (#xs) v));
-mkwvhmdict v ks::rlist = wvhmdict (zipwith (=>) ks (repeaten (#xs) v));
+mkwkdict   v ks::rlist = wkdict   (zipwith (=>) ks (repeatn (#xs) v));
+mkwkmdict  v ks::rlist = wkmdict  (zipwith (=>) ks (repeatn (#xs) v));
+mkwvdict   v ks::rlist = wvdict   (zipwith (=>) ks (repeatn (#xs) v));
+mkwvmdict  v ks::rlist = wvmdict  (zipwith (=>) ks (repeatn (#xs) v));
+mkwvhdict  v ks::rlist = wvhdict  (zipwith (=>) ks (repeatn (#xs) v));
+mkwvhmdict v ks::rlist = wvhmdict (zipwith (=>) ks (repeatn (#xs) v));
 
 
 // insert a member
