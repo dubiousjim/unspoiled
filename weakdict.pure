@@ -144,8 +144,6 @@ weak_getref x = if ~pure_has_sentry x then notfound
 // use void if you don't want a sentry (that case is optimized)
 weak_ref x sen::function
 = r, void when
-    pure_new x; // lock x from being collected until everything is set up
-                // might I use pure_ref instead?
     r = case weak_getref x of
         notfound = r when
                        u::pointer = __C::pure_expr_pointer;
@@ -161,11 +159,9 @@ weak_ref x sen::function
                    end;
                r = r; // TODO may want to u:ss = get r and prune expired ss
         end;
-    pure_free x; // might I use pure_unref instead?
+    x; // keep x from being collected until everything is set up
 end if sen === ::void;
 = r, expirer when
-    pure_new x; // lock x from being collected until everything is set up
-                // might I use pure_ref instead?
     r, expirer = case weak_getref x of
         notfound = r, expirer when
                        u::pointer = __C::pure_expr_pointer;
@@ -189,7 +185,7 @@ end if sen === ::void;
                        put r (u:senptr:ss);
                    end;
         end;
-    pure_free x; // might I use pure_unref instead?
+    x; // keep x from being collected until everything is set up
 end otherwise;
 
 
