@@ -116,3 +116,22 @@ extern int floorlog2 (unsigned int v) {
 %>
 namespace;
 log2 x::int = __C::floorlog2 x if x > 0;
+
+
+// http://www.haskell.org/haskellwiki/Prime_numbers#Linear_merging
+// see also pure-lang mailing list starting 6 Dec 2011
+primes = 2 : primes with
+  primes = 3 : minus (5:7..inf) (join [p*p:p*p+2*p..inf | p = primes]) &;
+  join ((x:xs):t) = x : union xs (join t) &;
+  minus (x:xs) (y:ys) = x : minus  xs  (y:ys) & if x<y;
+                      =     minus (x:xs)  ys    if y<x;
+                      =     minus  xs     ys    otherwise;
+  minus  xs     _     = xs;
+
+  union (x:xs) (y:ys) = x : union  xs  (y:ys) & if x<y;
+                      = y : union (x:xs)  ys  & if y<x;
+                      = x : union  xs     ys  & otherwise;
+  union  xs     []    = xs;
+  union  []     ys    = ys;
+end;
+
