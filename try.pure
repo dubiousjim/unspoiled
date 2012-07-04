@@ -1,0 +1,147 @@
+/*
+  try/succeeds/finally macros
+
+I like the clean simplicity of Pure's exception syntax. In typical cases, one would do something like this:
+
+    catch handle ... with
+        handle (HEAD1 V) = ...;
+        handle other = throw other;
+    end;
+
+to catch a one-argument exception with head HEAD1. Or, if you want to catch a no-argument exception:
+
+    catch handle ... with
+        handle h = ... if h === HEAD0;
+        handle other = throw other;
+    end;
+
+However, once one moves a bit beyond these simple cases it's tricky to be sure you're catching all the exceptions you should, relaying the ones you shouldn't be catching, and cleaning up where you need to. It'd be useful to build some higher-level idioms on top of the basic syntax, and centralize all the careful analysis into the design of those idioms. Python is good guide here, with their try/except/else/finally constructs.
+
+The following macros bring such idioms to Pure. The following complex example displays all the possible variations:
+
+    using try;
+    using namespace try;
+    try (case BODY of
+        HEAD1 V = HANDLE1 V if TEST1;
+        HEAD0 = HANDLE0 if TEST0;
+        succeeds V = ELSE V;
+        finally = CLEANUP;
+    end);
+
+While evaluating BODY, any exceptions of the form HEAD1 _ or HEAD0 (where the latter must be matched literally) will be caught and handled as indicated (if the optional test clauses are satisfied). Other exceptions will be relayed onwards. If no exceptions were thrown by BODY, then the result will be passed to the `succeeds` clause. During the evaluation of that clause, exceptions are not caught. In every case, whether an unhandled exception, an exception matching the HEAD clauses, or no exceptions thrown, the `finally` clause will be evaluated as control leaves this block.
+
+Here's how we implement all of that (this is the macro expansion of the `try` block just displayed):
+
+    deliver (catch handle BODY) with
+        relay e = CLEANUP $$ throw e;
+        deliver value = CLEANUP $$ get failed if value === failed;
+        deliver value = CLEANUP $$ value2 when value2 = catch relay (ELSE V when V = value end) end;
+        handle (HEAD1 V) = catch relay (put failed (HANDLE1 V) $$ failed) if TEST1;
+        handle h = catch relay (put failed (HANDLE0) $$ failed) if h === HEAD0 && TEST0;
+        handle other = relay other;
+    end when
+        failed = ref ();
+    end;
+
+Simpler expansions are used in cases where the `finally` clause, or the `succeeds` clause, or both, are missing.
+
+    // with finally but no succeeds
+    deliver (catch handle BODY) with
+        relay e = CLEANUP $$ throw e;
+        deliver value = CLEANUP $$ value;
+        handle (HEAD1 V) = catch relay (HANDLE1 V) if TEST1;
+        handle h = catch relay (HANDLE0) if h === HEAD0 && TEST0;
+        handle other = relay other;
+    end;
+
+    // with succeeds but no finally
+    deliver (catch handle BODY) with
+        deliver value = get failed if value === failed;
+        deliver value = ELSE V when V = value end;
+        handle (HEAD1 V) = put failed (HANDLE1 V) $$ failed if TEST1;
+        handle h = put failed (HANDLE0) $$ failed if h === HEAD0 && TEST0;
+        handle other = throw other;
+    end when
+        failed = ref ();
+    end;
+
+    // without finally or succeeds
+    catch handle BODY with
+        handle (HEAD1 V) = HANDLE1 V if TEST1;
+        handle h = HANDLE0 if h === HEAD0 && TEST0;
+        handle other = throw other;
+    end;
+*/
+
+namespace try;
+#! --quoteargs try::try
+public try succeeds;
+public nonfix finally;
+
+private triage process3 process2 process1 process0;
+private r f d e other deliver value value2;
+private nonfix nil;
+
+// 0 has neither succeeds nor finally
+#! --quoteargs try::process0
+def process0 _ pre [] clauses = pre __with__ clauses;
+def process0 d pre ((h@(_ _)-->hx __if__ t):cs) clauses = process0 d pre cs ((d h-->hx __if__ t):clauses);
+def process0 d pre ((h-->hx __if__ t):cs) clauses = process0 d pre cs ((d h-->hx __if__ head===h&&t):clauses);
+def process0 d pre ((h@(_ _)-->hx):cs) clauses = process0 d pre cs ((d h-->hx):clauses);
+def process0 d pre ((h-->hx):cs) clauses = process0 d pre cs ((d head-->hx __if__ head===h):clauses);
+// 1 has succeeds but no finally
+#! --quoteargs try::process1
+def process1 _ _ pre [] clauses post = pre __with__ clauses __when__ post;
+def process1 f d pre ((h@(_ _)-->hx __if__ t):cs) clauses post = process1 f d pre cs ((d h-->put f hx$$f __if__ t):clauses) post;
+def process1 f d pre ((h-->hx __if__ t):cs) clauses post = process1 f d pre cs ((d h-->put f hx$$f __if__ head===h&&t):clauses) post;
+def process1 f d pre ((h@(_ _)-->hx):cs) clauses post = process1 f d pre cs ((d h-->put f hx$$f):clauses) post;
+def process1 f d pre ((h-->hx):cs) clauses post = process1 f d pre cs ((d head-->put f hx$$f __if__ head===h):clauses) post;
+// 2 has finally but no succeeds
+#! --quoteargs try::process2
+def process2 _ _ pre [] clauses = pre __with__ clauses;
+def process2 r d pre ((h@(_ _)-->hx __if__ t):cs) clauses = process2 r d pre cs ((d h-->catch r hx __if__ t):clauses);
+def process2 r d pre ((h-->hx __if__ t):cs) clauses = process2 r d pre cs ((d h-->catch r hx __if__ head===h&&t):clauses);
+def process2 r d pre ((h@(_ _)-->hx):cs) clauses = process2 r d pre cs ((d h-->catch r hx):clauses);
+def process2 r d pre ((h-->hx):cs) clauses = process2 r d pre cs ((d head-->catch r hx __if__ head===h):clauses);
+#! --quoteargs try::process3
+def process3 _ _ _ pre [] clauses post = pre __with__ clauses __when__ post;
+def process3 r f d pre ((h@(_ _)-->hx __if__ t):cs) clauses post = process3 r f d pre cs ((d h-->catch r (put f hx$$f) __if__ t):clauses) post;
+def process3 r f d pre ((h-->hx __if__ t):cs) clauses post = process3 r f d pre cs ((d h-->catch r (put f hx$$f) __if__ head===h&&t):clauses) post;
+def process3 r f d pre ((h@(_ _)-->hx):cs) clauses post = process3 r f d pre cs ((d h-->catch r (put f hx$$f)):clauses) post;
+def process3 r f d pre ((h-->hx):cs) clauses post = process3 r f d pre cs ((d head-->catch r (put f hx$$f) __if__ head===h):clauses) post;
+
+def triage nil nil BODY clauses [] =
+    process0 d
+        (catch d BODY)
+        clauses
+        [(d other-->throw other)];
+def triage nil (V-->SUCC) BODY clauses [] =
+    process1 f d
+        (deliver (catch d BODY))
+        clauses
+        [(d other-->throw other),
+         (deliver value-->get f __if__ value===f),
+         (deliver value-->SUCC __when__ [V-->value])]
+        [f-->ref ()];
+def triage FINAL nil BODY clauses [] =
+    process2 r d
+        (deliver (catch d BODY))
+        clauses
+        [(r e-->FINAL$$throw e),
+         (d other-->r other),
+         (deliver value-->FINAL$$value)];
+def triage FINAL (V-->SUCC) BODY clauses [] =
+    process3 r f d
+        (deliver (catch d BODY))
+        clauses
+        [(r e-->FINAL$$throw e),
+         (d other-->r other),
+         (deliver value-->FINAL$$get f __if__ value===f),
+         (deliver value-->FINAL$$value2 __when__ [value2-->catch r (SUCC __when__ [V-->value])])]
+        [f-->ref ()];
+def triage nil succ body clauses ((finally-->final):cs) = triage final succ body clauses cs;
+def triage final nil body clauses ((succeeds v-->succ):cs) = triage final (v-->succ) body clauses cs;
+def triage final succ body clauses ((finally-->_):cs) | triage final succ body clauses ((succeeds _-->_):cs) = triage final succ body clauses cs;
+def triage final succ body clauses (c:cs) = triage final succ body (c:clauses) cs;
+def try (__case__ body clauses@(_:_)) = triage nil nil body [] clauses;
+

@@ -13,6 +13,7 @@ I plan some further developments for trees23, but hopefully everything will get 
 
 The toplevel includes things I'm working on, or are provided here just for the random interested browser.
 
+ *   try.pure -- try/succeeds/finally macros
  *   lists.pure -- additional list methods
  *   weakdict.pure -- weak references, and weak-key and weak-value dicts (this may also be merged into the standard distribution)
  *   hashtable.pure -- mutable hashtable
