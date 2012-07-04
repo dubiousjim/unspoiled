@@ -24,7 +24,7 @@ The following macros bring such idioms to Pure. The following complex example di
     try (case BODY of
         HEAD1 V = HANDLE1 V if TEST1;
         HEAD0 = HANDLE0 if TEST0;
-        succeeds V = ELSE V;
+        succeeds V = SUCC V;
         finally = CLEANUP;
     end);
 
@@ -35,7 +35,7 @@ Here's how we implement all of that (this is the macro expansion of the `try` bl
     deliver (catch handle BODY) with
         relay e = CLEANUP $$ throw e;
         deliver value = CLEANUP $$ get failed if value === failed;
-        deliver value = CLEANUP $$ value2 when value2 = catch relay (ELSE V when V = value end) end;
+        deliver value = CLEANUP $$ value2 when value2 = catch relay (SUCC V when V = value end) end;
         handle (HEAD1 V) = catch relay (put failed (HANDLE1 V) $$ failed) if TEST1;
         handle h = catch relay (put failed (HANDLE0) $$ failed) if h === HEAD0 && TEST0;
         handle other = relay other;
@@ -57,7 +57,7 @@ Simpler expansions are used in cases where the `finally` clause, or the `succeed
     // with succeeds but no finally
     deliver (catch handle BODY) with
         deliver value = get failed if value === failed;
-        deliver value = ELSE V when V = value end;
+        deliver value = SUCC V when V = value end;
         handle (HEAD1 V) = put failed (HANDLE1 V) $$ failed if TEST1;
         handle h = put failed (HANDLE0) $$ failed if h === HEAD0 && TEST0;
         handle other = throw other;
