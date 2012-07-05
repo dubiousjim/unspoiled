@@ -56,7 +56,8 @@ private head2 head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private reverse_on zip_on zip_on3 promote spaces center tostring;
+private reverse_on zip_on zip_on3 findl findr rotater popl popr split;
+private spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
@@ -411,15 +412,15 @@ hmemberk t::tree k = mem (hash k) k t with
     mem h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = mem h k l if res == LT;
-        = any (\(u=>_) -> u===k) xs if res == EQ;
+        = any (same k.key) xs if res == EQ;
         = mem h k r if res == GT;
     end;
     mem h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = mem h k l if res == LT;
-        = any (\(u=>_) -> u===k) ys if res == EQ;
+        = any (same k.key) ys if res == EQ;
         = mem h k c if res == LT2;
-        = any (\(u=>_) -> u===k) zs if res == EQ2;
+        = any (same k.key) zs if res == EQ2;
         = mem h k r if res == GT2;
     end;
 end;
@@ -469,29 +470,28 @@ mgetk t::tree k = get k notfound [] t with
     get k w ws nil = if ::null ws then []
     else case cmp1 w k of
       res::int
-        = match ws [] if res == GE || res == EQ;
+        = match ws if res == GE || res == EQ;
         = [];
     end;
     get k w ws (bin l (x=>xs) r) = case cmp1 k x of
       res::int
         = get k w ws l if res == LT;
-        = match xs [] if res == EQ;
+        = match xs if res == EQ;
         = get k notfound [] r if res == GT;
         = get k x xs r if res == GE; // x may be a match
     end;
     get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
       res::int
         = get k w ws l if res == LT;
-        = match ys [] if res == EQ;
+        = match ys if res == EQ;
         = get k y ys c if res == MID; // y may be a match
         = get k notfound [] c if res == LT2;
-        = match zs [] if res == EQ2;
+        = match zs if res == EQ2;
         = get k notfound [] r if res == GT2;
         = get k z zs r if res == GE2; // z may be a match
     end;
-    // reverse [v | _=>v = us];
-    match [] base = base;
-    match ((_=>v):us) base = match us (v:base);
+    // extract values and reverse
+    match us = ::foldl (flip((:).val)) [] us;
 end;
 
 mgetko t::tree k = get k notfound [] t with
@@ -567,10 +567,7 @@ hgetk t::tree k = get (hash k) k t with
         = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match k us = case dropwhile (\(u=>_) -> u~==k) us of
-        (_=>v):_ = v;
-        _ = throw out_of_bounds;
-    end;
+    match k us = val (findl (same k.key) us); // throw out_of_bounds if no hits
 end;
 
 mhgetk t::tree k = get (hash k) k t with
@@ -578,20 +575,19 @@ mhgetk t::tree k = get (hash k) k t with
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = get h k l if res == LT;
-        = match k xs [] if res == EQ;
+        = match k xs if res == EQ;
         = get h k r if res == GT;
     end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = get h k l if res == LT;
-        = match k ys [] if res == EQ;
+        = match k ys if res == EQ;
         = get h k c if res == LT2;
-        = match k zs [] if res == EQ2;
+        = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    // reverse [v | u=>v = us; u===k];
-    match _ [] base = base;
-    match k ((u=>v):us) base = match k us (if u===k then v:base else base);
+    // reverse [v | u=>v = us; k===u];
+    match k us = ::foldl (\vs (uk=>uv) -> if k===uk then uv:vs else vs) [] us;
 end;
 
 mhgetko t::tree k = get (hash k) k t with
@@ -599,20 +595,18 @@ mhgetko t::tree k = get (hash k) k t with
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = get h k l if res == LT;
-        = match k notfound xs if res == EQ;
+        = match k xs if res == EQ;
         = get h k r if res == GT;
     end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = get h k l if res == LT;
-        = match k notfound ys if res == EQ;
+        = match k ys if res == EQ;
         = get h k c if res == LT2;
-        = match k notfound zs if res == EQ2;
+        = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match _ w [] = if (w===notfound) then throw out_of_bounds else w;
-    match k _ ((k=>v):us) = match k v us;
-    match k w (_:us) = match k w us;
+    match k us = val (findr (same k.key) us); // throw out_of_bounds if no hits
 end;
 
 mhgetkn t::tree k = get (hash k) k t with
@@ -631,9 +625,7 @@ mhgetkn t::tree k = get (hash k) k t with
         = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match _ [] = throw out_of_bounds;
-    match k ((k=>v):_) = v;
-    match k (_:us) = match k us;
+    match k us = val (findl (same k.key) us); // throw out_of_bounds if no hits
 end;
 
 /* 2-3-tree insertion and deletion. */
@@ -786,7 +778,7 @@ base_popk k t e = pop k t with
           end) if res == EQ2;
         = shrink_right (pop k) cur if res == GT2;
     end;
-end; 
+end;
 
 // Delete one specific key=>val pair.
 
@@ -964,13 +956,11 @@ mpopko t::tree k = '(child, v) when
 end;
 
 base_mpopko k t e = pop k t with
-    del [u] vs = u:reverse vs;
-    del (u:us) vs = del us (u:vs);
     pop k nil = throw e;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = case del xs [] of
+        = case rotater xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                         child@_ snag w = pop_left r
@@ -982,7 +972,7 @@ base_mpopko k t e = pop k t with
     pop k cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = case del ys [] of
+        = case rotater ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                         child@_ snag w = pop_left c
@@ -990,7 +980,7 @@ base_mpopko k t e = pop k t with
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
-        = case del zs [] of
+        = case rotater zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                         child@_ snag w = pop_left r
@@ -1004,14 +994,12 @@ end;
 mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
-    del v hss hs ms (u@(_=>uv):us) = del v (hs:hss) (u:ms) [] us if eq v uv;
-                                   = del v hss hs (u:ms) us otherwise;
+    del v us = popr abort (eq v.val) us; // throw abort if no hits
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] [] [] xs of
+        = case del v xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                         child@_ snag w = pop_left r
@@ -1023,7 +1011,7 @@ mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     pop k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] [] [] ys of
+        = case del v ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                         child@_ snag w = pop_left c
@@ -1031,7 +1019,7 @@ mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = case del v [] [] [] zs of
+        = case del v zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                         child@_ snag w = pop_left r
@@ -1094,14 +1082,12 @@ end;
 mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del v _ [] = throw abort; // (k=>v) not found
-    del v ws (u@(_=>uv):us) = u:reverse_on us ws if eq v uv;
-                            = del v (u:ws) us otherwise;
+    del v us = popl abort (eq v.val) us; // throw abort if no hits
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] xs of
+        = case del v xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1113,7 +1099,7 @@ mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     pop k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] ys of
+        = case del v ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1121,7 +1107,7 @@ mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = case del v [] zs of
+        = case del v zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1143,18 +1129,17 @@ end;
 
 mpopkva t::tree (k=>v) = '(child, vs) when
     child@_ _ vs = base_mpopkva k v t out_of_bounds;
-    vs = reverse vs; // TODO isn't this wasteful and probably unnecessary?
+    // extract values and reverse
+    vs = ::foldl (flip((:).val)) [] vs;
 end;
 
 base_mpopkva k v t e = pop k v t with
-    del _ vs ws [] = [vs]:reverse ws;
-    del v vs ws (u@(_=>uv):us) = del v (uv:vs) ws us if eq v uv;
-                               = del v vs (u:ws) us otherwise;
+    del v us = split (eq v.val) us; // rotate reversed list of hits to head
     pop k v nil = throw e;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] [] xs of
+        = case del v xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                         child@_ snag w = pop_left r
@@ -1166,7 +1151,7 @@ base_mpopkva k v t e = pop k v t with
     pop k v cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = case del v [] [] ys of
+        = case del v ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                         child@_ snag w = pop_left c
@@ -1174,7 +1159,7 @@ base_mpopkva k v t e = pop k v t with
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = case del v [] [] zs of
+        = case del v zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                         child@_ snag w = pop_left r
@@ -1290,6 +1275,7 @@ public hdeletekv hpopkv;
 hdelete t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
+    // TODO deletel
     del _ _ [] = throw abort; // not found
     del old ws (old:us) = reverse_on us ws;
     del old ws (u:us) = del old (u:ws) us;
@@ -1342,14 +1328,12 @@ hpopk t::tree k = '(child, v) when
 end;
 
 base_hpopk k t e = pop (hash k) k t with
-    del _ _ [] = throw e;
-    del k ws (u@(k=>_):us) = u:reverse_on us ws;
-    del k ws (u:us) = del k (u:ws) us;
+    del k us = popl e (same k.key) us; // throw e if no hits
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k [] xs of
+        = case del k xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1361,7 +1345,7 @@ base_hpopk k t e = pop (hash k) k t with
     pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k [] ys of
+        = case del k ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1369,7 +1353,7 @@ base_hpopk k t e = pop (hash k) k t with
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
-        = case del k [] zs of
+        = case del k zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1394,6 +1378,7 @@ hpopkv t::tree old@(k=>_) = '(child, v) when
 end;
 
 base_hpopkv k old t e = pop (hash k) old t with
+    // optimized popl
     del _ _ [] = throw e; // not found
     del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_on us ws else throw e; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
@@ -1520,14 +1505,12 @@ mhpopkn        t k   = hpopk     t k;
 mhdeletekvo t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
-    del old@(k=>v) hss hs ms (u@(k=>uv):us) = del old (hs:hss) (u:ms) [] us if eq v uv;
-    del old hss hs ms (u:us) = del old hss hs (u:ms) us;
+    del (k=>v) us = popr abort (\(uk=>uv) -> k===uk && eq v uv) us; // throw abort if no hits
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] [] [] xs of
+        = case del old xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1539,7 +1522,7 @@ mhdeletekvo t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] [] [] ys of
+        = case del old ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1547,7 +1530,7 @@ mhdeletekvo t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old [] [] [] zs of
+        = case del old zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1561,14 +1544,13 @@ end;
 mhdeletekvn t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
-    del _ _ [] = throw abort; // not found
-    del (k=>v) ws (u@(k=>uv):us) = u:reverse_on us ws if eq v uv; // else (unlike hdeletekv) we continue searching
-    del old ws (u:us) = del old (u:ws) us;
+    // unlike hdeletekv, we continue searching when keys match but values don't
+    del (k=>v) us = popl abort (\(uk=>uv) -> k===uk && eq v uv) us; // throw abort if no hits
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] xs of
+        = case del old xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1580,7 +1562,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] ys of
+        = case del old ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1588,7 +1570,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old [] zs of
+        = case del old zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1615,14 +1597,12 @@ mhpopko t::tree k = '(child, v) when
 end;
 
 base_mhpopko k t e = pop (hash k) k t with
-    del _ hss hs ms [] = promote hss hs ms; // will abort if hs == [], that is (k=>v) not found
-    del k hss hs ms (u@(k=>_):us) = del k (hs:hss) (u:ms) [] us;
-    del k hss hs ms (u:us) = del k hss hs (u:ms) us;
+    del k us = popr abort (same k.key) us; // throw abort if no hits
     pop h::int k nil = throw e;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] [] xs of
+        = case del k xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1634,7 +1614,7 @@ base_mhpopko k t e = pop (hash k) k t with
     pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
-        = case del k [] [] [] ys of
+        = case del k ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1642,7 +1622,7 @@ base_mhpopko k t e = pop (hash k) k t with
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h k) cur if res == LT2;
-        = case del k [] [] [] zs of
+        = case del k zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1664,18 +1644,17 @@ end;
 
 mhpopkva t::tree old@(k=>_) = '(child, vs) when
     child@_ _ vs = base_mhpopkva k old t out_of_bounds;
-    vs = reverse vs; // TODO isn't this wasteful and probably unnecessary?
+    // extract values and reverse
+    vs = ::foldl (flip((:).val)) [] vs;
 end;
 
 base_mhpopkva k old t e = pop (hash k) old t with
-    del _ vs ws [] = [vs]:reverse ws;
-    del old@(k=>v) vs ws (u@(k=>uv):us) = del old (uv:vs) ws us if eq v uv;
-    del old vs ws (u:us) = del old vs (u:ws) us;
+    del (k=>v) us = split (\(uk=>uv) -> k===uk && eq v uv) us;
     pop h::int old nil = throw e;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] [] xs of
+        = case del old xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                        child@_ snag w = pop_left r
@@ -1687,7 +1666,7 @@ base_mhpopkva k old t e = pop (hash k) old t with
     pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
-        = case del old [] [] ys of
+        = case del old ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                        child@_ snag w = pop_left c
@@ -1695,7 +1674,7 @@ base_mhpopkva k old t e = pop (hash k) old t with
             y:ys = (tri l (yh=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop h old) cur if res == LT2;
-        = case del old [] [] zs of
+        = case del old zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                        child@_ snag w = pop_left r
@@ -1919,14 +1898,43 @@ head3 (t@_ _ _) = t;
 reverse_on bs [] = bs;
 reverse_on bs (x:xs) = reverse_on (x:bs) xs;
 
-// converts ([xn..x1, ... wn..w1], (match:yn..y1), (zn..z1))
-//        --> match : (w1..wn)+(x1..xn)+(y1..yn)+(z1..zn)
-promote _ [] _ = throw abort; // no match to promote
-promote xss (match:ys) zs = match:reassembled with
-    aux [] [] zs = zs;
-    aux [] (xs:xss) zs = aux xs xss zs;
-    aux (y:ys) xss zs = aux ys xss (y:zs);
-    reassembled = aux ys xss (reverse zs);
+findl p [] = throw out_of_bounds;
+findl p (x:xs) = if p x then x else findl p xs;
+
+findr p xs = find p notfound xs with
+    find p w [] = if w===notfound then throw out_of_bounds else w;
+    find p w (x:xs) = find p x xs if p x;
+                    = find p w xs;
+end;
+
+rotater xs = rot xs [] with
+    rot [x] ys = x:reverse ys;
+    rot (x:xs) ys = rot xs (x:ys);
+end;
+
+// throws e when no hits, else leftmost p is rotated to head
+popl e p xs = pop e p xs [] with
+    pop e p [] _ = throw e;
+    pop e p (x:xs) ws = x:reverse_on xs ws if p x;
+                      = pop e p xs (x:ws);
+end;
+
+// throws e when no hits, else rightmost p is rotated to head
+popr e p xs = pop e p xs [] [] [] with
+    pop e p []     _  []     _   = throw e;
+    pop e p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
+    pop e p (x:xs) ms hs     hss = pop e p xs [] (x:ms) (hs:hss) if p x;
+                                 = pop e p xs (x:ms) hs hss otherwise;
+    aux zs []     []       = zs;
+    aux zs []     (xs:xss) = aux zs xs xss;
+    aux zs (y:ys) xss      = aux (y:zs) ys xss;
+end;
+
+split p ys = spl p ys [] [] with
+    spl p []     _  [] = []:ys; // no hits, use original
+    spl p []     ms hs = hs:reverse ms; // insert list of hits at front
+    spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
+                       = spl p xs (x:ms) hs otherwise;
 end;
 
 // zipwith with explicit base; we assume lists are of same length
