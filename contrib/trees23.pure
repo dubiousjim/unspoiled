@@ -26,6 +26,16 @@
 
 
 namespace trees23;
+// namespace avl;
+
+// if you're not using the latest Pure head, or contrib/nonsplicing.pure
+// from my github repository, you'll need to uncomment the following:
+/*
+private outfix {| |};
+def {| x, y |} = '{x, y} when x = x; y = y end;
+*/
+
+
 
 /* Tree constructors: `nil` denotes an empty tree, `bin left x right`
    an interior node with the given left and right subtrees, and
@@ -189,14 +199,12 @@ rmfirst t = head3 $ pop_left t if fullp t;
 
 rmlast t = head3 $ pop_right t if fullp t;
 
-// Note that popped element may be () or a longer tuple.
-
 popfirst t = case pop_left t of
-    child@_ _ w = '(child, w)
+    child@_ _ w = {| w, child |};
 end if fullp t;
 
 poplast t = case pop_right t of
-    child@_ _ w = '(child, w)
+    child@_ _ w = {| w, child |};
 end if fullp t;
 
 
@@ -291,14 +299,12 @@ mrmfirst t = head3 $ mpop_left t if fullp t;
 
 mrmlast t = head3 $ mpop_right t if fullp t;
 
-// Note that popped element may be () or a longer tuple.
-
 mpopfirst t = case mpop_left t of
-    child@_ _ w = '(child, w)
+    child@_ _ w = {| w, child |};
 end if fullp t;
 
 mpoplast t = case mpop_right t of
-    child@_ _ w = '(child, w)
+    child@_ _ w = {| w, child |};
 end if fullp t;
 
 
@@ -747,9 +753,7 @@ deletek t::tree k = catch handle (head3 $ base_popk k t abort) /* child, _, _ */
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-popk t::tree k = '(child, v) when
+popk t::tree k = {| v, child |} when
     child@_ _ (_=>v) = base_popk k t out_of_bounds;
 end;
 
@@ -789,9 +793,7 @@ deletekv t::tree (k=>v) = catch handle (head3 $ base_popkv k v t abort) /* child
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-popkv t::tree (k=>v) = '(child, v) when
+popkv t::tree (k=>v) = {| v, child |} when
     child@_ _ (_=>v) = base_popkv k v t out_of_bounds;
 end;
 
@@ -949,9 +951,7 @@ mdeleteko t::tree k = catch handle (head3 $ base_mpopko k t abort) /* child, _, 
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-mpopko t::tree k = '(child, v) when
+mpopko t::tree k = {| v, child |} when
     child@_ _ (_=>v) = base_mpopko k t out_of_bounds;
 end;
 
@@ -1037,9 +1037,7 @@ mdeletekn t::tree k = catch handle (head3 $ base_mpopkn k t abort) /* child, _, 
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-mpopkn t::tree k = '(child, v) when
+mpopkn t::tree k = {| v, child |} when
     child@_ _ (_=>v) = base_mpopkn k t out_of_bounds;
 end;
 
@@ -1125,9 +1123,7 @@ mdeletekva t::tree (k=>v) = catch handle (head3 $ base_mpopkva k v t abort) /* c
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-mpopkva t::tree (k=>v) = '(child, vs) when
+mpopkva t::tree (k=>v) = {| vs, child |} when
     child@_ _ vs = base_mpopkva k v t out_of_bounds;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;
@@ -1321,9 +1317,7 @@ hdeletek t::tree k = catch handle (head3 $ base_hpopk k t abort) /* child, _, _ 
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-hpopk t::tree k = '(child, v) when
+hpopk t::tree k = {| v, child |} when
     child@_ _ (_=>v) = base_hpopk k t out_of_bounds;
 end;
 
@@ -1371,9 +1365,7 @@ hdeletekv t::tree old@(k=>_) = catch handle (head3 $ base_hpopkv k old t abort) 
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-hpopkv t::tree old@(k=>_) = '(child, v) when
+hpopkv t::tree old@(k=>_) = {| v, child |} when
     child@_ _ (_=>v) = base_hpopkv k old t out_of_bounds;
 end;
 
@@ -1590,9 +1582,7 @@ mhdeleteko t::tree k = catch handle (head3 $ base_mhpopko k t abort) /* child, _
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-mhpopko t::tree k = '(child, v) when
+mhpopko t::tree k = {| v, child |} when
     child@_ _ (_=>v) = base_mhpopko k t out_of_bounds;
 end;
 
@@ -1640,9 +1630,7 @@ mhdeletekva t::tree old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t abo
     handle e = throw e;
 end;
 
-// Note that popped element may be () or a longer tuple.
-
-mhpopkva t::tree old@(k=>_) = '(child, vs) when
+mhpopkva t::tree old@(k=>_) = {| vs, child |} when
     child@_ _ vs = base_mhpopkva k old t out_of_bounds;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;
