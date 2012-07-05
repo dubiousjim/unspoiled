@@ -898,8 +898,9 @@ minsertk t::tree new@(k=>_) = head2 $ ins k new t with
     end;
 end;
 
-// The popkv methods may seem like overkill, but we need them for weak-value dicts.
-// But I'm lazy, we only use mdeletekva/mpopkva.
+// popkv methods may seem like overkill: you already know the k=>v so why isn't
+// deletekv enough? However we do need these methods for weak-value dicts.
+// I only implement mpopkva because that's the only one currently needed.
 public mdelete mdeleteko mdeletekn mpopko mpopkn;
 public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
@@ -1480,8 +1481,9 @@ mhinsertk t::tree new@(k=>_) = head2 $ ins (hash k) new t with
     end;
 end;
 
-// The popkv methods may seem like overkill, but we need them for weak-value dicts.
-// But I'm lazy, we only use mhdeletekva/mhpopkva.
+// popkv methods may seem like overkill: you already know the k=>v so why isn't
+// deletekv enough? However we do need these methods for weak-value dicts.
+// I only implement mhpopkva because that's the only one currently needed.
 public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
 public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
@@ -1895,6 +1897,7 @@ findr p xs = find p notfound xs with
                     = find p w xs;
 end;
 
+// last xs:init xs
 rotater xs = rot xs [] with
     rot [x] ys = x:reverse ys;
     rot (x:xs) ys = rot xs (x:ys);
@@ -1920,7 +1923,7 @@ end;
 
 split p ys = spl p ys [] [] with
     spl p []     _  [] = []:ys; // no hits, use original
-    spl p []     ms hs = hs:reverse ms; // insert list of hits at front
+    spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
     spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
                        = spl p xs (x:ms) hs otherwise;
 end;
