@@ -56,7 +56,7 @@ private head2 head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private reverse_onto zip_onto zip_onto3 promote spaces center tostring;
+private reverse_on zip_on zip_on3 promote spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
 
@@ -251,8 +251,8 @@ end if fullp t;
 /*
 mmembers t::tree = members t [] with
     members nil base = base;
-    members (bin l (_=>xs) r) base = members l (reverse_onto xs (members r base));
-    members (tri l (_=>ys) c (_=>zs) r) base = members l (reverse_onto ys (members c (reverse_onto zs (members r base))));
+    members (bin l (_=>xs) r) base = members l (reverse_on (members r base) xs);
+    members (tri l (_=>ys) c (_=>zs) r) base = members l (reverse_on (members c (reverse_on (members r base) zs)) ys);
 end;
 */
 
@@ -260,14 +260,14 @@ mmembers t::tree = mfoldr ((:)) [] t;
 
 mkeys t::tree = keys t [] with
     keys nil base = base;
-    keys (bin l (_=>xs) r) base = keys l (reverse_onto [x | x=>_ = xs] (keys r base));
-    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (reverse_onto [y | y=>_ = ys] (keys c (reverse_onto [z | z=>_ = zs] (keys r base))));
+    keys (bin l (_=>xs) r) base = keys l (reverse_on (keys r base) [x | x=>_ = xs]);
+    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (reverse_on (keys c (reverse_on (keys r base) [z | z=>_ = zs])) [y | y=>_ = ys]);
 end;
 
 mvals t::tree = vals t [] with
     vals nil base = base;
-    vals (bin l (_=>xs) r) base = vals l (reverse_onto [x | _=>x = xs] (vals r base));
-    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_onto [y | _=>y = ys] (vals c (reverse_onto [z | _=>z = zs] (vals r base))));
+    vals (bin l (_=>xs) r) base = vals l (reverse_on (vals r base) [x | _=>x = xs]);
+    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_on (vals c (reverse_on (vals r base) [z | _=>z = zs])) [y | _=>y = ys]);
 end;
 
 mfirst t = first t with
@@ -1095,7 +1095,7 @@ mdeletekvn t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del v _ [] = throw abort; // (k=>v) not found
-    del v ws (u@(_=>uv):us) = u:reverse_onto ws us if eq v uv;
+    del v ws (u@(_=>uv):us) = u:reverse_on us ws if eq v uv;
                             = del v (u:ws) us otherwise;
     pop k v nil = throw abort;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
@@ -1247,7 +1247,7 @@ hinsertk t::tree new@(k=>_) = catch handle (head2 $ ins (hash k) new t) with
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less pressure on GC
     add new@(u=>v) ws ((u=>uv):us) = if eq v uv then throw abort // keep existing tree
-                                     else new:reverse_onto ws us; // update value
+                                     else new:reverse_on us ws; // update value
     add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
@@ -1291,7 +1291,7 @@ hdelete t::tree old = catch handle (head3 $ pop (hash old) old t) /* child, _, _
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del old ws (old:us) = reverse_onto ws us;
+    del old ws (old:us) = reverse_on us ws;
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1343,7 +1343,7 @@ end;
 
 base_hpopk k t e = pop (hash k) k t with
     del _ _ [] = throw e;
-    del k ws (u@(k=>_):us) = u:reverse_onto ws us;
+    del k ws (u@(k=>_):us) = u:reverse_on us ws;
     del k ws (u:us) = del k (u:ws) us;
     pop h::int k nil = throw abort;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1395,7 +1395,7 @@ end;
 
 base_hpopkv k old t e = pop (hash k) old t with
     del _ _ [] = throw e; // not found
-    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_onto ws us else throw e; // (k=>v) not found
+    del (k=>v) ws (u@(k=>uv):us) = if eq v uv then u:reverse_on us ws else throw e; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw e;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1562,7 +1562,7 @@ mhdeletekvn t::tree old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* ch
     handle abort = t; // throw out_of_bounds;
     handle e = throw e;
     del _ _ [] = throw abort; // not found
-    del (k=>v) ws (u@(k=>uv):us) = u:reverse_onto ws us if eq v uv; // else (unlike hdeletekv) we continue searching
+    del (k=>v) ws (u@(k=>uv):us) = u:reverse_on us ws if eq v uv; // else (unlike hdeletekv) we continue searching
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw abort;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1916,8 +1916,8 @@ head3 (t@_ _ _) = t;
 
 // reverse with explicit base
 
-reverse_onto [] base = base;
-reverse_onto (x:xs) base = reverse_onto xs (x:base);
+reverse_on bs [] = bs;
+reverse_on bs (x:xs) = reverse_on (x:bs) xs;
 
 // converts ([xn..x1, ... wn..w1], (match:yn..y1), (zn..z1))
 //        --> match : (w1..wn)+(x1..xn)+(y1..yn)+(z1..zn)
@@ -1931,13 +1931,13 @@ end;
 
 // zipwith with explicit base; we assume lists are of same length
 
-zip_onto f [] [] base = base;
-zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
+zip_on f bs [] [] = bs;
+zip_on f bs (x:xs) (y:ys) = f x y : zip_on f bs xs ys;
 
 // zipwith3 with explicit base; we assume lists are of same length
 
-zip_onto3 f [] [] [] base = base;
-zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
+zip_on3 f bs [] [] [] = bs;
+zip_on3 f bs (x:xs) (y:ys) (z:zs) = f x y z : zip_on3 f bs xs ys zs;
 
 
 // I derived the following display code from someone else, and have since
@@ -1981,10 +1981,10 @@ end with
         label3 = if label3!(#label3-1) == "." then label3!!(0..#label3-2) + " " else label3;
         a = spaces left_pos + label3 + spaces (right_width - right_pos);
         d = spaces left_pos + "/" + spaces (middle-2) + "\\" + spaces (right_width - right_pos);
-        lines = zip_onto (\left_line right_line ->
+        lines = zip_on (\left_line right_line ->
                     left_line + spaces (width - left_width - right_width) +
                     right_line)
-                left_lines right_lines [d, a];
+                [d, a] left_lines right_lines;
     end;
     recurse (tri left2 j2 center2 k2 right2) istop isleft =
     lines, pos, width when
@@ -2012,10 +2012,10 @@ end with
             spaces (totalspace - spacer1) + "\\" + spaces (right_width - right_pos);
         totalspace = width - left_width - center_width - right_width;
         spacer1 = totalspace div 2;
-        lines = zip_onto3 (\left_line center_line right_line ->
+        lines = zip_on3 (\left_line center_line right_line ->
                     left_line + spaces spacer1 + center_line +
                     spaces (totalspace - spacer1) + right_line)
-                left_lines center_lines right_lines [d, a];
+                [d, a] left_lines center_lines right_lines;
     end;
 end;
 
