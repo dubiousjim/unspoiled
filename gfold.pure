@@ -478,9 +478,9 @@ def process_case f0 _   (_:sawabort:xs) []                rest = f0:sawabort:unw
 def unwind_case (q:p:xs) clauses = unwind_case xs ((p-->q):clauses);
 def unwind_case [x]      clauses = (__case__ x clauses);
 
-def process aux (f:sawabort:(x __when__ clauses):rest) = process_when f aux [f, sawabort, x] clauses rest;
-def process_when f0 aux (f:sawabort:xs) ((p-->q):clauses) rest = process_when f0 aux (process aux $ free (f:sawabort:q:p:xs) 0 0 p) clauses rest;
-def process_when f0 aux (f:sawabort:xs) []                rest = unwind_when f0 aux f sawabort xs [] rest;
+def process aux (f:sawabort:(x __when__ clauses):rest) = process_when f aux [f] [[], sawabort, x] clauses rest;
+def process_when f0 aux [f] (_:sawabort:xs) ((p-->q):clauses) rest = process_when f0 aux (free [f] 0 0 p) (process aux (f:sawabort:q:p:xs)) clauses rest;
+def process_when f0 aux [f] (_:sawabort:xs) []                rest = unwind_when f0 aux f sawabort xs [] rest;
 def unwind_when f0 aux f sawabort (q:p:xs) clauses rest = unwind_when f0 aux f sawabort xs ((p-->q):clauses) rest;
 def unwind_when f0 aux f sawabort [x]      clauses rest = finish f0 (__when__) (process aux (f:sawabort:x:clauses:rest));
 
