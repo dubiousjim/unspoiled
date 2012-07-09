@@ -66,7 +66,7 @@ private head2 head3;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3 eq;
-private reverse_on zip_on zip_on3 findl findr rotater popl popr split;
+private reverse_on zip_on zip_on3 findl findr rotate popl popr split;
 private spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
@@ -400,15 +400,15 @@ hmember t::tree old = mem (hash old) old t with
     mem h::int old (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = mem h old l if res == LT;
-        = any (===old) xs if res == EQ;
+        = any (same old) xs if res == EQ;
         = mem h old r if res == GT;
     end;
     mem h::int old (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = mem h old l if res == LT;
-        = any (===old) ys if res == EQ;
+        = any (same old) ys if res == EQ;
         = mem h old c if res == LT2;
-        = any (===old) zs if res == EQ2;
+        = any (same old) zs if res == EQ2;
         = mem h old r if res == GT2;
     end;
 end;
@@ -961,7 +961,7 @@ base_mpopko k t e = pop k t with
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = case rotater xs of
+        = case rotate xs of
             [x]  = if r===nil then l 1 x
                    else (shrink_right (\_ -> child snag x) (bin l w r) when
                         child@_ snag w = pop_left r
@@ -973,7 +973,7 @@ base_mpopko k t e = pop k t with
     pop k cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k) cur if res == LT;
-        = case rotater ys of
+        = case rotate ys of
             [y]  = if c===nil then (bin l z r) 0 y
                    else (shrink_center (\_ -> child snag y) (tri l w c z r) when
                         child@_ snag w = pop_left c
@@ -981,7 +981,7 @@ base_mpopko k t e = pop k t with
             y:ys = (tri l (yk=>ys) c z r) 0 y;
           end if res == EQ;
         = shrink_center (pop k) cur if res == LT2;
-        = case rotater zs of
+        = case rotate zs of
             [z]  = if r===nil then (bin l y c) 0 z
                    else (shrink_right (\_ -> child snag z) (tri l y c w r) when
                         child@_ snag w = pop_left r
@@ -1874,7 +1874,7 @@ cmp3 a b c = if a<b then LT else (if a<c then MID else GE2);
 
 // Value comparison.
 
-eq u v = case u==v of res::int = res; _ = u===v end;
+eq u v = case u==v of res::int = res; _ = same u v end;
 
 
 // extract head from ins pairs
@@ -1898,7 +1898,7 @@ findr p xs = find p notfound xs with
 end;
 
 // last xs:init xs
-rotater xs = rot xs [] with
+rotate xs = rot xs [] with
     rot [x] ys = x:reverse ys;
     rot (x:xs) ys = rot xs (x:ys);
 end;
