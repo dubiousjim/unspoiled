@@ -1,0 +1,515 @@
+/* gfold macros
+
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   [Add explanation about licensing, or link to
+   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+
+
+Motivation
+----------
+
+Most list operations can be expressed as left- or right-folds, however there
+are some complications and pressures to write the list recursions
+out explicitly instead.
+
+1. The standardly-defined foldl and foldr functions supply their function with
+the accumulated result at each step of the traversal, and the current list head,
+and that's it. Moreover, they always traverse the entire list. It's possible to
+define functions like `any` or `drop` in such terms, but not to do so
+efficiently. More useful for such needs would be a *more general* fold
+function, for example:
+
+    gfoldl f final a xs::list = catch handle (aux xs a) with
+        aux [] a                   = final a;
+        aux (x:xs) a               = aux xs (f a x xs abort);
+        handle u = if u===cell then get cell else throw u;
+        abort u = put cell u $$ throw cell;
+    end when
+        cell = ref ();
+    end;
+
+This supplies the function f with further arguments: not just the current head,
+but also the current tail, and additionally an `abort` function to stop
+traversing the list at that point and return a result directly. The fold
+operation also takes a `final` function to apply to the accumulator at the end
+if the traversal completes without aborting. Armed with this, `any` can be
+expressed as:
+
+    any p xs = gfold (\a x _ abort -> if p x then abort true else a) id false xs;
+
+And `drop n`, for n >= 1, can be expressed as:
+
+    drop n xs = gfold (\n _ xs abort -> if n == 1 then abort xs else n-1) id n xs;
+
+Other familiar list functions would more readily defined in terms of an
+analogous `gfoldr`.
+
+The only serious downside to these functions is the slight overhead of the (\n
+_ xs abort -> ...) closure. For ad hoc usage, this is nothing to worry about.
+But it makes one hesitate to express the basic list library in terms of gfolds.
+It promises to be more efficient to write the recursion out explicitly, and for
+library code one pays attention to small performance differences.
+
+
+2. An additional complication concerns how to implement a right fold. For
+simplicity, I'll focus here on the standard right fold, but the same issues
+apply to its more general version, as well.
+
+The naive way to express a right fold is not tail-safe:
+
+    foldr f a [] = a;
+    foldr f a (x:xs) = f x (foldr f a xs);
+
+But it's easy enough to transform this into a tail-recursive function. Most
+simply, `foldr f a xs` could be implemented as `foldl (flip f) a (reverse xs)`.
+This is essentially what Pure does. Here is the definition of foldr from the
+prelude, with the checks for streams and other improper lists pruned away:
+
+    foldr f a []        = a;
+    foldr f a xs@(_:_)  = tick [] xs with
+      tick zs (x:xs)    = tick (x:zs) xs;
+      tick zs []        = tack zs a;
+      tack (x:xs) a     = tack xs (f x a);
+      tack [] a         = a;
+    end;
+
+Now why wouldn't everyone be happier with the latter?
+
+Well, it can be up to twice as slow and use more memory. (Of course, the more
+complex f itself is, the less differences in the framing fold algorithm will matter.)
+
+For this reason, the authors of OCaml opted to provide the non-tail
+algorithms in the standard libraries they distribute with OCaml. I guess they
+thought if you want to foldr over a list big enough to trigger a stack fault,
+you should probably be using a different data structure, anyway.
+
+Several third-party OCaml libraries replaced those stdlib
+operations with the tail-recursive versions, because they didn't want to
+deal with the threat of stack faults just because they choose their data
+structure poorly.
+
+Can have the best of both worlds? Can one keep stack safety without the
+performance hit of reverse?
+
+A nice proposal by bluestorm in the comments at
+<http://ocaml.janestreet.com/?q=node/71> shows how. Here is a version of that
+proposal translated into Pure:
+
+    foldr f a xs = aux xs a with
+        aux xs a = fold_pre pre_len xs with
+                // fold the previous 4096 elements
+                fold_pre 0 _ = folded_tail;
+                fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+            end when
+                // skip_ahead returns two values
+                // rather than wrap them with a (,) or vector, we just
+                // rely on the fact that `_::int _` won't reduce
+                pre_len@_::int folded_tail = skip_ahead 0 xs
+            end with
+                // first skip 4096 elements and fold the tail
+                skip_ahead n::int [] = n a;
+                skip_ahead 4096 xs = 4096 (aux xs a);
+                skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
+            end;
+    end;
+
+This skips ahead in chunks, here sized 4096. When it gets to the last chunk of
+the list, it folds that in the speedy, non-tail-recursive way. Then it folds
+the preceding chunk onto the result; then the preceding chunk and so on.
+There's a bit more overhead and stack usage than in the naive implementation,
+but when properly tuned this won't overflow your stack and gives us at least
+some of the performance advantages back. In my testing, it tended to perform
+about 15% faster than the implementations in Pure's prelude; and for large
+lists it used substantially less memory.
+
+Of course, this algorithm still does stack up a number of recursive calls to
+aux, but it's order of magnitudes less than the naive non-tail-safe version.
+The Pure manual recommends a stack size of at least 8M on a 32-bit machine, and
+more on a 64-bit machine. On my 64-bit machine, I tested with a stack threshold
+of only 1M. At this threshold, I would get a stack fault with the naive non-tail-safe
+algorithm doing this:
+
+    foldr (*) 0 (1..16067)
+
+At the same settings, I wouldn't get a stack fault using the skip-ahead algorithm
+(with chunks sized 4096, as above) until:
+
+    foldr (*) 0 (1..19931136)
+
+I estimate that the list being folded over here took up 304M of heap (assuming 16 bytes/node).
+With the recommended higher stack threshholds, then, you'll need to be folding over lists
+occupying 2G of heap before you overflow the stack.
+
+The main downside I see to these algorithms is that they're modestly more complex, and
+it's tedious and error-prone to have to write them out everytime one needs a
+right-foldlike function. Of course, one might just do so once, for the most
+general right fold one might need, and then invoke it as we did gfoldl above.
+One would just not worry about the small performance gains that could be
+realized by writing more specific list recursions out explicitly.
+
+
+3. Still, surely we want to have at least the *most familiar* list operations
+implemented as efficiently as possible? `Map` and `append` for instance can be
+efficiently implemented in the skip-ahead right-folding style just illustrated.
+(Implementing map that way gives up left->right evaluation order of the list.
+But to my thinking, left-to-right evaluation order isn't part of the contract
+with `map`. Instead I want the library to give me the most efficient map it
+knows how to perform. If I need left-to-right evaluation order, I can explicitly
+surrender some efficiency by using `foldl` then reversing---or by using `do` if I
+don't need the results.)
+
+But now there's a design question: how many maximally-efficient library functions
+should one supply, and how much should one instead leave to the programmer
+to write when needed? For instance, Haskell has mapAccumL and mapAccumR
+that perform a mix of map and a fold. Should Pure have these too? Or
+should programmers rely on gfold/fold to express such less familiar list
+operations? Another example: in addition to Pure's `index`
+function, it's useful also to have a function that returns the first element
+in a list satisfying an arbitrary predicate. But then what about a function
+that returns the last such item? What about a function that tests not just the
+head at each list position, but also the index of that position? And so on.
+
+I'm happy with a clean, minimal standard library. (I'd only add a few functions
+to what we have now.) What would be nice to have in addition would be an
+implementation of gfoldl and gfoldr *as macros* that generate code as efficient
+as the list recursion written out manually. Then there'd be no reason to
+hesitate from writing even the standard libraries in terms of their gfold
+expressions.
+
+That is what we provide here.
+
+
+The gfold macros
+----------------
+
+4. `gfoldl (\a x xs -> body) final a xs` macro-expands to the
+following:
+
+    aux xs a with
+        aux [] a                   = final a;
+        aux (x:xs) a               = BODY; // see below
+    end;
+
+
+You have to explictly supply a lambda expression for the function, which the macros will
+unpack and inline into the expanded code. The inlined lambda body will use the appropriate
+values for a, x, xs, and will recursively call aux in its non-`abort`ing tail positions.
+
+So for example, `any` can be defined as:
+
+    any p xs = gfoldl (\a x _ -> if p x then abort true else a) id false xs;
+
+Note that we use `abort` in the lambda body without binding it as a lambda paramater. The macro treats this
+like a keyword. This expands to:
+
+    any p xs = aux xs false with
+        aux [] a                   = id a;
+        aux (x:xs) a               = if p x then true else aux xs a;
+    end;
+
+This is nearly as efficient as the hand-written version of `any` in the prelude, which is equivalent to:
+
+    any p xs = aux xs with
+        aux []                     = false;
+        aux (x:xs)                 = if p x then true else aux xs;
+    end;
+
+The gfold macros are smart enough to ignore locally rebound or quoted uses of `abort`. However you can't
+do this:
+
+    any p xs = gfoldl (\a x _ -> if p x then leave true else a with leave v = abort v end) id false xs;
+
+The macro expects you to apply `abort` directly. Similarly, the macro expects that `quote` and `(')` mean
+what they standardly do, that you haven't rebound these to be non-quoting, or rebound some other symbol
+to be quoting.
+
+
+5. The real strength of these macros is in their ability to supply the complex skip-ahead versions of gfoldr.
+`gfoldr (\x xs a -> body) final improper a xs` expands to one of the following, depending on whether you use
+`abort` in the lambda body:
+
+    final (aux xs) with
+        aux xs = fold_pre len_pre xs with
+            fold_pre 0 _           = folded_tail;
+            fold_pre n::int (x:xs) = BODY when a = fold_pre (n-1) xs end;
+        end when
+            len_pre@_ folded_tail  = skip_ahead 0 xs;
+        end;
+        skip_ahead n::int []       = n a;
+        skip_ahead n::int xs@(_:_) = n (aux xs) if n == SKIPSIZE;
+        skip_ahead n::int (x:xs)   = n BODY when a = aux xs& end if thunkp xs;
+                                   = skip_ahead (n+1) xs;
+        skip_ahead n::int xs       = n (improper xs);
+    end;
+
+    catch handle (final (aux xs)) with
+        aux xs = fold_pre len_pre xs with
+            fold_pre 0 _           = folded_tail;
+            fold_pre n::int (x:xs) = BODY when a = fold_pre (n-1) xs end;
+        end when
+            len_pre@_ folded_tail  = skip_ahead 0 xs;
+        end;
+        skip_ahead n::int []       = n a;
+        skip_ahead n::int xs@(_:_) = n (aux xs) if n == SKIPSIZE;
+        skip_ahead n::int (x:xs)   = n BODY when a = aux xs& end if thunkp xs;
+                                   = skip_ahead (n+1) xs;
+        skip_ahead n::int xs       = n (improper xs); // for example, `improper` may be (throw . bad_list_value)
+        handle u = if u===cell then get cell else throw u;
+        abort u = put cell u $$ throw cell;
+    end when
+        cell = ref ();
+    end;
+
+Here the lambda bodies are inlined differently than in the `gfoldl` case. The `abort` applications
+call the local `abort` function in the second expansion, and the non-`abort`ing tail positions
+aren't wrapped. For instance:
+
+    map f xs = gfoldr (\x xs a -> f x:a) id (map f) [] xs
+
+expands to:
+
+    map f xs = id (aux xs) with
+        aux xs = fold_pre len_pre xs with
+            fold_pre 0 _           = folded_tail;
+            fold_pre n::int (x:xs) = f x:a when a = fold_pre (n-1) xs end;
+        end when
+            len_pre@_ folded_tail  = skip_ahead 0 xs;
+        end;
+        skip_ahead n::int []       = n [];
+        skip_ahead n::int xs@(_:_) = n (aux xs) if n == SKIPSIZE;
+        skip_ahead n::int (x:xs)   = n (f x:a) when a = aux xs& end if thunkp xs;
+                                   = skip_ahead (n+1) xs;
+        skip_ahead n::int xs       = n (map f xs);
+    end;
+
+Except for the `id` in the first line and the two `... when a = ... end`, this is exactly the skip-ahead
+version of `map` I'd write out longhand.
+
+
+The backend
+-----------
+
+6. The backend to these operations is a macro `process` that recursively descends an arbitrary Pure expression, and performs three tasks:
+    * It notes whether an unbound use of `abort` was ever applied in a
+    * non-quoted context. It ignores uses of `abort` not in head position, and
+      see the caveats mentioned earlier about local rebindings *to* `abort`, or
+      rebindings of or to `quote`.
+    * It performs any requested substitutions, ignoring symbols that have been
+      locally rebound. These can include substitutions for `abort`.
+    * It wraps any non-aborting tail expressions with the head you provide.
+
+So when you invoke `gfoldl (\a x xs -> body) final a xs`, we call this macro on
+`body` with the request to substitute __id__ for `abort` (that's a macro
+version of `id`), and to wrap non-aborting tail expressions with recursive
+calls to the macro's `aux` function. We don't care about the report whether
+`abort` was applied in the macro body.
+
+When you invoke `gfoldr (\x xs a -> body) final improper a xs`, we call this
+macro on `body` with the request to substitute the macro's own symbols for a,
+x, and xs, to substitute the macro's local version of `abort` for abort, and to
+wrap non-aborting tail expressions with __id__. We use the report whether
+`abort` was applied in the macro body to determine whether to use the simpler
+or the more complex macro expansion.
+
+This macro backend promises to be useful for other systematic transformations,
+as well. For example, this technique suffices to give us a general
+implementation of delimited continuations (of which these gfolds are a special
+application).
+
+
+
+
+// process has three jobs:
+//    (1) detect whether `abort` ever occurs free
+//    (2) wrap tail expressions not headed by (unbound) `abort` with `aux`
+//    (3) perform substitutions of free occurrences of xs-->ys etc
+// the function is called with, and returns, arguments of the form freevars_and_substitutions:sawabort?:expression:...
+
+// TODO: ignore "aborts" bound by lambda vars; when pats in subsequent clauses and s; with and case pats in that q
+// TODO: other short-circuiting constructions?
+//    || && $$
+//    lazy& 'forms (catch h block)
+
+// `abort` will be treated magically but only when it occurs unquoted and unbound, also in `abort2 val with abort2 = abort end`, abort2 won't be magic
+// `::quote` and `(::') will always be treated magically, that is we assume they won't be locally rebound
+//  and their magic can't be transferred to quote2 in same way that abort's can't be transferred to abort2
+//  the magic of `::quote` is just to prevent these macros from seeing `abort` and performing substitutions; its runtime effect is not altered
+
+*/
+
+namespace gfold;
+
+public gfoldl gfoldr;
+public nonfix abort;
+private finish_gfoldr finish_gfoldl;
+private SKIPSIZE; const SKIPSIZE = 4096;
+
+
+private __id__ prune subst free;
+private process process_case unwind_case process_when unwind_when process_with1 process_with2 unwind_with process_op process_app unwind_app;
+private finish finish_if finish_lambda;
+
+#! --quoteargs gfold::gfoldl
+#! --quoteargs gfold::gfoldr
+#! --quoteargs gfold::process
+
+private handle aux fold_pre len_pre folded_tail skip_ahead cell v vs u n;
+
+def gfoldl (\b y ys -> body) final a xs =
+    aux xs a with // TODO document reverse order
+        aux [] u = final u;
+        aux (v:vs) u = finish_gfoldl (process (aux vs) [[(abort-->__id__),(b-->u),(y-->v),(ys-->vs)], 0, body]); // TODO document addl substs
+    end;
+
+def finish_gfoldl [_, _, body] = body;
+
+
+def gfoldr (\y ys b -> body) final improper a xs =
+    finish_gfoldr v vs u final improper a xs (process __id__ [[abort,(b-->u),(y-->v),(ys-->vs)], 0, body]);
+
+def finish_gfoldr v vs u final improper a xs [_, 0, body] =
+    final (aux xs) __with__ [
+        (aux vs   --> fold_pre len_pre vs __with__ [
+            (fold_pre 0 _                     --> folded_tail),
+            (fold_pre (n __type__ int) (v:vs) --> body __when__ [u-->fold_pre (n-1) vs])
+        ] __when__ [
+            (len_pre __as__ _) folded_tail    --> skip_ahead 0 vs
+        ]),
+        (skip_ahead (n __type__ int) []                --> n a),
+        (skip_ahead (n __type__ int) (vs __as__ (_:_)) --> n (aux vs) __if__ n==SKIPSIZE),
+        (skip_ahead (n __type__ int) (v:vs)            --> n body __when__ [u-->aux vs&] __if__ thunkp vs),
+        (skip_ahead (n __type__ int) (v:vs)            --> skip_ahead (n+1) vs),
+        (skip_ahead (n __type__ int) vs                --> n (improper vs))
+    ];
+
+def finish_gfoldr v vs u final improper a xs [_, 1, body] =
+    catch handle (final (aux xs)) __with__ [
+        (aux vs   --> fold_pre len_pre vs __with__ [
+            (fold_pre 0 _                     --> folded_tail),
+            (fold_pre (n __type__ int) (v:vs) --> body __when__ [u-->fold_pre (n-1) vs])
+        ] __when__ [
+            (len_pre __as__ _) folded_tail    --> skip_ahead 0 vs
+        ]),
+        (skip_ahead (n __type__ int) []                --> n a),
+        (skip_ahead (n __type__ int) (vs __as__ (_:_)) --> n (aux vs) __if__ n==SKIPSIZE),
+        (skip_ahead (n __type__ int) (v:vs)            --> n body __when__ [u-->aux vs&] __if__ thunkp vs),
+        (skip_ahead (n __type__ int) (v:vs)            --> skip_ahead (n+1) vs),
+        (skip_ahead (n __type__ int) vs                --> n (improper vs)),
+        (handle u --> __ifelse__ (u===cell) (get cell) (throw u)),
+        (abort u  --> put cell u$$throw cell)
+    ] __when__ [
+        (cell     --> ref ())
+    ];
+
+
+
+def __id__ x = x;
+
+def prune s []         = [];
+def prune s (s:xs)     = xs;
+def prune s ((s-->_):xs) = xs;
+def prune s (x:xs)     = x:prune s xs;
+
+def subst v [] = v;
+def subst v ((v-->w):xs) = w;
+def subst v (x:xs) = subst v xs;
+
+/*
+    free (F:more) selector applying? PATTERN
+    where selector = 0 for interested only in nonheads
+                   = 1 for in outer context, interested in outer head and all nonheads
+                   = 2 for in outer context, interested only in outer head
+
+    // start with F free
+    // free _ 1 0 pat (count both outer head and all nonheads as binding)
+    \var1 -> EXPR1 // inside EXPR1, F-{var1} are free
+    // end with F free; did `abort` appear free in EXPR1?
+
+    // start with set of free symbols F
+    case EXPR0 of // inside EXPR0, F are free
+        // for each line: free _ 0 0 pat
+        head1 var1 -> EXPR1; // inside EXPR1, F-{var1} are free
+        head2 var2 -> EXPR2; // inside EXPR2, F-{var2} are free
+    end;
+    // end with F free; did `abort` appear free in any of EXPR0..EXPR2?
+
+    // start with F free
+    EXPR0 when // inside EXPR2, F-{var1,var2} are free
+        // free _ 0 0 pat, and carry-through
+        head1 var1 <- EXPR1; // inside EXPR1, F are free
+        head2 var2 <- EXPR2; // inside EXPR2, F-{var1} are free
+    end;
+    // end with F free; did `abort` appear free in any of EXPR0..EXPR2?
+
+    // start with F free
+    EXPR0 with // inside EXPR2, F-{head1,head2} are free
+        // free _ 2 0 pat (only want outer head)
+        // then for each line: free 0 0 pat (ignore all heads)
+        head1 var1 => EXPR1; // inside EXPR1, F-{head1,head2,var1} are free
+        head2 var2 => EXPR2; // inside EXPR2, F-{head1,head2,var2} are free
+    end;
+    // end with F free; did `abort` appear free in any of EXPR0..EXPR2?
+
+    complete block should always end with originalF:sawabort?:new_expression:...
+
+*/
+
+def free fs@([]:_) _     _       _            = fs;
+def free fs        sel   app (pat __type__ _) |
+    free fs        sel@2 app (_ __as__ pat)   = free fs sel app pat;
+def free (f:fs)    sel   app (s __as__ pat)   = (free $ prune s f:fs) sel app pat; // sel<2
+def free fs        2     _       (u@_ _)      = free fs 2 1 u; // only selecting outer head
+def free fs        sel   _       (u@_ v)      = (free $ free fs 0 0 v) sel 1 u;
+def free fs        0     1       s            = fs;           // s is an inner head, always ignore
+def free (f:fs)    _     _       s            = prune s f:fs; // s is an outer head, or occurs unapplied
+
+
+def process aux (f:sawabort:(__ifelse__ i t e):rest) = finish_if (process __id__ [f, sawabort, i]) (process aux [f, 0, t]) (process aux [f, 0, e]) rest;
+def finish_if [f0, 0, i] [_, 0, t] [_, 0, e] rest = (f0:0:__ifelse__ i t e:rest);
+def finish_if [f0, _, i] [_, _, t] [_, _, e] rest = (f0:1:__ifelse__ i t e:rest);
+
+def process aux (f:sawabort:(__lambda__ ps x):rest) = finish_lambda f aux ps (process __id__ $ free (f:sawabort:x:rest) 1 0 ps);
+def finish_lambda f0 aux ps (_:sawabort:x:rest) = '(f0:sawabort:aux (__lambda__ ps x):rest);
+
+def process aux (f:sawabort:(__case__ x clauses):rest) = process_case f aux (process __id__ [f, sawabort, x]) clauses rest;
+def process_case f0 aux (_:sawabort:xs) ((p-->q):clauses) rest = process_case f0 aux (process aux $ free (f0:sawabort:q:p:xs) 0 0 p) clauses rest;
+def process_case f0 _   (_:sawabort:xs) []                rest = f0:sawabort:unwind_case xs []:rest;
+def unwind_case (q:p:xs) clauses = unwind_case xs ((p-->q):clauses);
+def unwind_case [x]      clauses = (__case__ x clauses);
+
+def process aux (f:sawabort:(x __when__ clauses):rest) = process_when f aux [f, sawabort, x] clauses rest;
+def process_when f0 aux (f:sawabort:xs) ((p-->q):clauses) rest = process_when f0 aux (process aux $ free (f:sawabort:q:p:xs) 0 0 p) clauses rest;
+def process_when f0 aux (f:sawabort:xs) []                rest = unwind_when f0 aux f sawabort xs [] rest;
+def unwind_when f0 aux f sawabort (q:p:xs) clauses rest = unwind_when f0 aux f sawabort xs ((p-->q):clauses) rest;
+def unwind_when f0 aux f sawabort [x]      clauses rest = finish f0 (__when__) (process aux (f:sawabort:x:clauses:rest));
+
+def process aux (f:sawabort:(x __with__ clauses):rest) = process_with1 f aux [f, sawabort, x] clauses clauses rest;
+def process_with1 f0 aux (f:sawabort:xs) clauses0 ((p-->q):clauses) rest = process_with1 f0 aux (free (f:sawabort:xs) 2 0 p) clauses0 clauses rest;
+def process_with1 f0 aux xs@(f:_)        clauses0 []                rest = process_with2 f0 aux f xs clauses0 rest;
+def process_with2 f0 aux f1 (_:sawabort:xs) ((p-->q):clauses) rest = process_with2 f0 aux f1 (process aux $ free (f1:sawabort:q:p:xs) 0 0 p) clauses rest;
+def process_with2 f0 aux f1 (_:sawabort:xs) []                rest = unwind_with f0 aux f1 sawabort xs [] rest;
+def unwind_with f0 aux f1 sawabort (q:p:xs) clauses rest = unwind_with f0 aux f1 sawabort xs ((p-->q):clauses) rest;
+def unwind_with f0 aux f1 sawabort [x]      clauses rest = finish f0 (__with__) (process aux (f1:sawabort:x:clauses:rest));
+
+def finish f0 op (_:sawabort:x:y:rest) = (f0:sawabort:op x y:rest);
+
+def process aux (f:sawabort:(a $$ b):rest) = process_op ($$) (a) (process aux (f:sawabort:b:rest));
+def process aux (f:sawabort:(a || b):rest) = process_op (||) (a) (process aux (f:sawabort:b:rest));
+def process aux (f:sawabort:(a && b):rest) = process_op (&&) (a) (process aux (f:sawabort:b:rest));
+def process_op op a (f0:sawabort:bs) = finish f0 op (process __id__ (f0:sawabort:a:bs)); // lhs isn't in tail position, so we never apply aux
+
+
+def process aux (f:sawabort:(u@_ v):rest) = process_app aux f sawabort (u [v]) rest;
+def process aux (f:sawabort:v:rest) // v occurred bare, we'll ignore `abort` in this context
+    = f:sawabort:aux (subst v f):rest;
+
+def process_app aux f           sawabort (u@_ v ws) rest   = process_app aux f sawabort (u (v:ws)) rest; // recurse down to head
+def process_app aux f@(abort:_)    sawabort (abort ws) rest      = unwind_app f __id__ abort       (process __id__ (f:1:ws)) rest; // abort is unbound head
+def process_app aux f@((abort-->v):_) sawabort (abort ws) rest   = unwind_app f __id__ v           (process __id__ (f:1:ws)) rest; // abort is unbound head
+def process_app aux f           sawabort (quote ws) rest   = unwind_app f aux    quote       (process __id__ ([]:sawabort:ws)) rest; // quote is (we assume unbound) head
+def process_app aux f           sawabort ('ws)      rest   = unwind_app f aux    (')         (process __id__ ([]:sawabort:ws)) rest; // quote is (we assume unbound) head
+def process_app aux f           sawabort (v@_ ws) rest     = unwind_app f aux    (subst v f) (process __id__ (f:sawabort:ws)) rest;
+
+def unwind_app f0 aux vs (_:sawabort:[w]) rest = f0:sawabort:aux (vs w):rest;
+def unwind_app f0 aux vs (f:sawabort:w:ws) rest = unwind_app f0 aux (vs w) (process __id__ (f:sawabort:ws)) rest;
+
