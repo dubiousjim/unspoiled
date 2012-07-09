@@ -1,12 +1,534 @@
+/* Additional list functions
+
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   [Add explanation about licensing, or link to
+   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+
+   These extend and in some cases replace list functions from prelude.pure.
+
+   Many of them use the skip-ahead technique described at
+   <http://ocaml.janestreet.com/?q=node/71>, in order to achieve safety
+   from stack overflows without needing to reverse.
+
+   These functions aim to be stream-aware. Some of them are inherently eager
+   and throw a bad_list_value when given unforceable improper lists.
+
+   For functions that return multiple values, these will
+   be returned as (nonsplicing) rowvectors rather than comma-tuples. In some
+   cases either of those would work, but in other cases the automatic splicing
+   of comma-tuples could make trouble (e.g. if one of the return values
+   is a ()).
+
+   Adding a thunk to a comma-tuple also unwraps one layer of the thunk, which
+   is sometimes undesired.
+
+   So for consistency we always return vectors. Functions that have optional
+   return values, like popl and popr, return {} for the failure case.
+
+   In some cases, we know in advance that a vector's components aren't
+   splicable, for instance in { n, xs } if n::int and xs::list. But to
+   document our intention, we use the nonsplicing {| |} constructor
+   even in these cases. There is no runtime penalty.
+
+
+   Other gotchas when programming with streams:
+   // this will completely force a stream !?
+   forced_len xs = len xs 0 with
+        len xs n     = n if thunkp xs;
+        len [] n     = n;
+        len (x:xs) n = len xs (n+1);
+   end;
+   // but this won't
+   forced_len xs = len xs 0 with
+        len xs n     = n if thunkp xs;
+        len xs n     = case xs of
+                         []  = n;
+                         (x:xs) = len xs (n+1);
+                       end;
+   end;
+
+
+   reverse_on [4,5,6] [3,2,1] -> [1,2,3,4,5,6]
+   this is used often in the prelude by the name "tack"
+   reverse lst === reverse_on [] lst
+
+   we provide + (list append) and cat using skip-ahead
+   we also provide a stream-based lazy append, `chain`
+
+   just use prelude's foldl and foldl1
+   we provide a further foldl2, foldl3
+   zip xs ys === reverse $ foldl2 (\zs x y->(x,y):zs) [] xs ys;
+
+   we provide foldr and foldr1 using skip-ahead
+   we also provide foldr2, foldr3
+
+   gfoldl and gfoldr are generalized folds
+   they pass the function not only the current head and the accumulator but
+   also the list's tail at that position, and an abort function to stop the
+   traversal and yield immediately
+   these fold operations also take a finalizer function to process the
+   result if the traversal finished without aborting
+
+   for example:
+   > gfoldl (\a x xs abort -> if x == 0 then abort (a,x,xs) else x+a)
+   >        (done) 0 [1,2,3,4,5];
+   done 15
+   > gfoldl (\a x xs abort -> if x == 0 then abort (a,x,xs) else x+a)
+   >        (done) 0 [1,2,0,4,5]; // since we abort, `done` is not applied
+   3,0,[4,5]
+   > gfoldr (\x xs a abort -> if x == 0 then abort (a,x,xs) else x+a)
+   >        (done) 0 [1,2,0,4,5]; // since we abort, `done` is not applied
+   9,0,[4,5]
+
+   We also provide gfoldl2 and gfoldr2. These take an additional
+   argument, which if () means to stop at the shortest list, as Pure's
+   zip functions do. If it's any other value, that value is thrown if the
+   lists are different lengths.
+
+   In addition to the prelude's index function, it's sometimes useful
+   to have a simple member function for lists. This can be expressed
+   as: any (element==) lst. Or one might want to fallback to using
+   === when == isn't defined. In that case, one can use:
+
+   equalish x y = case x == y of res::int = res; _ = x===y; end;
+   member xs y = any (equalish y) xs;
+
+   It's also useful sometimes to supply not an element to be matched but a
+   predicate, and to retrieve the first element that satisfies it. This is
+   expressible using the gfold functions (and using them one could also
+   calculate the element's index). But for convenience we provide find*,
+   delete*, and pop* methods:
+
+   findl p lst -- return first element from left satisfying p, or
+                  throw out_of_bounds
+   deletel p lst -- return lst with first element from left satisfying
+                  p excised. Following the set/dict behavior, return
+                  the original list silently if no element satisfies p.
+   popl p lst -- return {findl p lst, deletel p lst}, or {} if
+                 no element satisfies p
+
+   findr, deleter, and popr are similar but operate on first element
+   from the right that satisfies p. deleter and popr use the
+   skip-ahead technique.
+
+   It's natural to also look for a findall, deleteall, and popall. The
+   first already exists as `filter`, the second is just `filter` with
+   a negated predicate, and the third is provided here under the
+   name `splitby`. That is:
+
+   splitby p lst = {filter p lst, filter ((~).p) lst}
+
+   We provide versions of filter and splitby that use the skip-ahead
+   technique instead of reversing.
+
+   We also provide skip-ahead versions of all these:
+   map -- Note: skip-ahead version doesn't guarantee left-to-right evaluation
+          order. If you need that then just explicitly use foldl and reverse.
+   zipwith and zipwith3 -- OCaml uses "combine" for zip and "map2" for zipwith
+   init
+   take
+   subseq
+   takewhile
+
+   We also provide:
+
+   split n xs = {take n xs, drop n xs}
+
+   rotate [1,2,3,4] -> [4,1,2,3] aka 4:[1,2,3]
+   Equivalent to last xs:init xs (but only traverses the list once). Provides
+   a version of what Okasaki calls "txen", or might also have called "unsnoc",
+   where snoc [1,2,3] 4 -> [1,2,3,4].
+   This does a "right rotate". A "left rotate", mapping [1,2,3,4] to [2,3,4,1],
+   would just be (\(x:xs) -> xs+[x]).
+
+   ?? scan functions (scanl, scanl1, scanr, scanr1)
+   ?? mapfold/accumulate (left/right)
+ */
+
+
+// TODO inspect everything for streams, improper lists
+
+// Why does Albert so often use []/xs@(_:_) definitions instead of xs::list? Just for performance, or is there some semantic subtlety with streams etc? I notice also the stream thunks call the outermost function with those definitions, rather than the "tick" auxiliaries, is this only because the "tick"s weren't lambda-lifted?
+
+// I noticed performance differences when testing trees23 when I lambda-lifted functions by hand. How do things stand with the compiler here?
+
+
+
+namespace lists;
+
+private SKIPSIZE; const SKIPSIZE = 1000;
+
+// if you're not using the latest Pure head, or contrib/nonsplicing.pure
+// from my github repository, you'll need to uncomment the following:
 /*
-  additional list functions
- */ 
+private outfix {| |};
+def {| x, y, z |} = '{x, y, z} when x = x; y = y; z = z end;
+def {| x, y |} = '{x, y} when x = x; y = y end;
+*/
 
-public member map_onto zipfoldl zipfoldr zipfoldl3 zipfoldr3;
 
-// just says whether y is a member
-// whereas index returns the position 0..#xs-1, or -1 if not found
-// also, index requires == is defined between the xs and y
+////////// reverse, append //////////////////////////////////////////////////////
+
+
+// reverse_on = foldl (flip(:))
+// reverse onto explicit base ("tack" in prelude)
+reverse_on bs [] = bs;
+reverse_on bs (x:xs) = reverse_on (x:bs) xs;
+
+// see also map_on, zip_on, zip3_on below
+
+
+/*
+// TODO
+[]+ys       = ys;
+xs@(_:_)+ys = tick [] xs ys
+with
+  tick zs (x:xs) ys = tack (x:zs) ((xs+ys)&) if thunkp xs;
+                        = tick (x:zs) xs ys;
+  tick zs [] ys     = tack zs ys;
+  // Handle an improper list tail (xs+ys is in normal form here).
+  tick zs xs ys     = tack zs (xs+ys);
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+
+
+// TODO
+cat []          = [];
+cat xs@(_:_)        = foldr (tick []) [] xs
+with
+  // Unfortunately, the global list concatenation operator (+) isn't fully
+  // lazy in Pure, because it's also used for arithmetic operations. Using it
+  // here would make foldr (and hence cat) eager. Therefore we use our own
+  // concatenation operation here, which properly deals with the case that ys
+  // is an infinite stream when applied recursively.
+  tick zs (x:xs) ys = tack (x:zs) (tick [] xs ys&) if thunkp xs;
+                        = tick (x:zs) xs ys;
+  tick zs [] ys     = tack zs ys;
+  tick zs xs ys     = tack zs (xs+ys);
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+  // We also use a slightly modified foldr function here, so that we can
+  // handle the case that xs is an improper list more gracefully.
+  foldr f a []      = a;
+  foldr f a xs@(_:_)    = tick [] xs
+  with
+    tick zs (x:xs)  = tack (x:zs) (foldr f a xs&) if thunkp xs;
+                        = tick (x:zs) xs;
+    tick zs []      = tack zs a;
+    tick zs xs      = tack zs (foldr f a xs);
+    tack (x:xs) y   = tack xs (f x y);
+    tack [] y       = y;
+  end;
+  foldr (tick _) [] x   = cat x;
+end;
+*/
+
+
+// constructing the chain is trivial
+// constructing then `list` is 3-4x as long as using plain append
+// constructing then `last` is about the same as with plain append
+chain (x:xs) ys = x:chain xs ys&;
+
+
+////////// folds ////////////////////////////////////////////////////////////////
+
+// foldl f a xs = gfoldl (\a x _ _ -> f a x) id a xs;
+// foldl2 f a xs ys = gfoldl2 (\a x _ y _ _ -> f a x y) id a xs ys ();
+
+/*
+// from prelude
+foldl f a []        = a;
+foldl f a (x:xs)    = foldl f (f a x) xs;
+
+foldl1 f (x:xs)     = foldl f x xs;
+*/
+
+// inherently eager
+foldl2 f a _ [] | foldl2 f a [] _ = a;
+foldl2 f a (x:xs) (y:ys) = foldl2 f (f a x y) xs ys;
+
+foldl3 f a _ _ [] | foldl3 f a _ [] _ | foldl3 f a [] _ _ = a;
+foldl3 f a (x:xs) (y:ys) (z:zs) = foldl3 f (f a x y z) xs ys zs;
+
+
+// foldr f a xs = gfoldr (\x _ a _ -> f x a) id a xs;
+// foldr2 f a xs ys = gfoldr2 (\x _ y _ a _ -> f x y a) id a xs ys ();
+
+/*
+// non-tail
+foldr f a [] = a;
+foldr f a (x:xs) = f x (foldr f a xs);
+
+// with reverse
+foldr f a xs = foldl (flip f) a (reverse xs);
+
+// from prelude, essentially "with reverse"
+foldr f a []        = a;
+foldr f a xs@(_:_)  = tick [] xs
+with
+  tick zs (x:xs)    = tack (x:zs) (foldr f a xs&) if thunkp xs;
+                    = tick (x:zs) xs;
+  tick zs []        = tack zs a;
+  tick zs xs        = tack zs (foldr f a xs); // improper tail
+  tack (x:xs) y     = tack xs (f x y);
+  tack [] y     = y;
+end;
+
+foldr1 f [x]        = x;
+foldr1 f xs@(_:_)   = tick [] xs
+with
+  // Do the thunkp check first, before probing the tail. Note that the first
+  // foldr1 rule above ensures that the topmost tail is already evaluated, so
+  // that we always make some progress here.
+  tick zs ys@(_:xs) = tack zs (foldr1 f ys&) if thunkp xs;
+  tick zs xs        = case xs of
+                 [x]  = tack zs x;
+                 x:xs = tick (x:zs) xs;
+                 _    = tack zs (foldr1 f xs);
+              end;
+  tack (x:xs) y     = tack xs (f x y);
+  tack [] y     = y;
+end;
+
+// checks types as in prelude, but isn't yet optimized
+foldr2 f a _ [] | foldr2 f a [] _ = a;
+foldr2 f a xs@(_:_) ys@(_:_) = tick f a [] xs ys
+with
+  tick f a us (x:xs) (y:ys) = tack f (x:y:us) (foldr2 f a xs ys&)
+                              if thunkp xs || thunkp ys;
+                            = tick f a (x:y:us) xs ys;
+  tick f a us _ [] | tick f a us [] _ = tack f us a;
+  tick f a us xs ys = tack f us (foldr2 f a xs ys); // improper tail
+  tack f (x:y:us) a = tack f us (f x y a);
+  tack f [] a = a;
+end;
+*/
+
+foldr f a xs::list = aux f a xs with
+    aux f a xs = fold_pre len_pre xs with
+        // fold the previous SKIPSIZE elements
+        fold_pre 0 _ = folded_tail;
+        fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+    end when
+        {len_pre, folded_tail} = skip_ahead f a 0 xs;
+    end;
+    // first skip SKIPSIZE elements and fold the tail
+    skip_ahead f a n::int [] = {| n, a |};
+    skip_ahead f a n::int xs@(_:_) = {| n, aux f a xs |} if n == SKIPSIZE;
+    skip_ahead f a n::int (x:xs) = {| n, f x (aux f a xs&) |}
+                                   if thunkp xs;
+                                 = skip_ahead f a (n+1) xs;
+    skip_ahead f a n::int xs     = {| n, foldr f a xs |}; // improper tail
+end;
+
+
+// TODO
+foldr1 f [x]        = x;
+foldr1 f xs@(_:_)   = tick [] xs
+with
+  /* Do the thunkp check first, before probing the tail. Note that the first
+     foldr1 rule above ensures that the topmost tail is already evaluated, so
+     that we always make some progress here. */
+  tick zs ys@(_:xs) = tack zs (foldr1 f ys&) if thunkp xs;
+  tick zs xs        = case xs of
+                            [x]  = tack zs x;
+                            x:xs = tick (x:zs) xs;
+                            _    = tack zs (foldr1 f xs);
+                          end;
+  tack (x:xs) y     = tack xs (f x y);
+  tack [] y     = y;
+end;
+
+
+foldr2 f a xs::list ys::list = aux f a xs ys with
+    aux f a xs ys = fold_pre len_pre xs ys with
+        fold_pre 0 _ _ = folded_tail;
+        fold_pre n::int (x:xs) (y:ys) = f x y (fold_pre (n-1) xs ys);
+    end when
+        {len_pre, folded_tail} = skip_ahead f a 0 xs ys;
+    end;
+    skip_ahead f a n::int [] _ |
+    skip_ahead f a n::int _ [] = {| n, a |};
+    skip_ahead f a n::int xs@(_:_) ys@(_:_)
+                            = {| n, aux f a xs ys |} if n == SKIPSIZE;
+    skip_ahead f a n::int (x:xs) (y:ys)
+                            = {| n, f x y (aux f a xs ys&) |}
+                              if thunkp xs || thunkp ys;
+                            = skip_ahead f a (n+1) xs ys;
+    skip_ahead f a n::int xs ys
+                            = {| n, foldr2 f a xs ys |}; // improper tail
+end;
+
+foldr3 f a xs::list ys::list zs::list = aux f a xs ys zs with
+    aux f a xs ys zs = fold_pre len_pre xs ys zs with
+        fold_pre 0 _ _ _ = folded_tail;
+        fold_pre n::int (x:xs) (y:ys) (z:zs) = f x y z (fold_pre (n-1) xs ys zs);
+    end when
+        {len_pre, folded_tail} = skip_ahead f a 0 xs ys zs;
+    end;
+    skip_ahead f a n::int [] _ _ |
+    skip_ahead f a n::int _ [] _ |
+    skip_ahead f a n::int _ _ [] = {| n, a |};
+    skip_ahead f a n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                            = {| n, aux f a xs ys zs |} if n == SKIPSIZE;
+    skip_ahead f a n::int (x:xs) (y:ys) (z:zs)
+                            = {| n, f x y z (aux f a xs ys zs&) |}
+                              if thunkp xs || thunkp ys || thunkp zs;
+                            = skip_ahead f a (n+1) xs ys zs;
+    skip_ahead f a n::int xs ys zs
+                            = {| n, foldr3 f a xs ys zs |}; // improper tail
+end;
+
+
+////////// gfolds ///////////////////////////////////////////////////////////////
+
+/*
+// f returns either type, no disadvantage for gfoldl
+gfoldl f final a xs = aux a xs
+with
+    aux a [] = final a;
+    aux a (x:xs) = case f a x xs of
+        More a = aux a xs;
+        Abort a = a;
+    end;
+end;
+
+// cps, f called with abortk and morek
+gfoldl f final a xs k = aux xs a
+with
+    aux [] a = k (final a);
+    aux (x:xs) a = f a x xs k (aux xs);
+end;
+*/
+
+gfoldl f final a xs::list = catch handle (aux a xs)
+with
+    aux a [] = final a;
+    aux a (x:xs) = aux (f a x xs abort) xs;
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+// if exn is (), stopping at shortest list
+// else throws exn when lists are unequal
+gfoldl2 f final a xs::list ys::list exn =
+    catch handle (final (aux a xs ys))
+with
+    aux a [] [] = a;
+    aux a [] _ | aux a _ [] = if exn===() then a else throw exn;
+    aux a (x:xs) (y:ys) = aux (f a x xs y ys abort) xs ys;
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+
+/*
+// non-tail
+gfoldr f final a xs = catch handle (final (aux a xs))
+with
+    aux a [] = a;
+    aux a (x:xs) = f x xs (aux a xs) abort;
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+// simple tail-safe version available when we have xs:::x
+gfoldr f final a xs = catch handle (aux a xs)
+with
+    aux a [] = final a;
+    aux a (xs:::x) = aux (f x xs a abort) xs;
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+// f returns either type, with gfoldr we still traverse the whole list
+gfoldr f final a xs = case aux a xs of
+    More a = final a;
+    Abort a = a;
+end with
+    aux a [] = More a;
+    aux a (x:xs) = case aux a xs of
+        b@(Abort _) = b;
+        More a = f x xs a;
+    end;
+end;
+*/
+
+gfoldr f final a xs::list = catch handle (final (aux xs))
+with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _ = folded_tail;
+        fold_pre n::int (x:xs) = f x xs (fold_pre (n-1) xs) abort;
+    end when
+        {len_pre, folded_tail} = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int [] = {| n, a |};
+    skip_ahead n::int xs@(_:_) = {| n, aux xs |} if n == SKIPSIZE;
+    skip_ahead n::int (x:xs)   = {| n, f x xs (aux xs&) abort |}
+                                 if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = throw (bad_list_value xs); // improper tail
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+// if exn is (), stopping at shortest list
+// else throws exn when lists are unequal
+gfoldr2 f final a xs::list ys::list exn = catch handle (final (aux xs ys))
+with
+    aux xs ys = fold_pre len_pre xs ys with
+        fold_pre 0 _ _ = folded_tail;
+        fold_pre n::int (x:xs) (y:ys) = f x xs y ys (fold_pre (n-1) xs ys) abort;
+    end when
+        {len_pre, folded_tail} = skip_ahead 0 xs ys;
+    end;
+    skip_ahead n::int [] [] = {| n, a |};
+    skip_ahead n::int [] _ | skip_ahead n::int _ [] =
+        if exn===() then {| n, a |} else throw exn;
+    skip_ahead n::int xs ys = {| n, aux xs ys |} if n == SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys) = {| n, f x xs y ys (aux xs ys&) abort |}
+                                      if thunkp xs || thunkp ys;
+                                    = skip_ahead (n+1) xs ys;
+    skip_ahead n::int _::list xs |
+    skip_ahead n::int xs _       = throw (bad_list_value xs); // improper tail
+    handle e = if e===result then get result else throw e;
+    abort v = put result v $$ throw result;
+end when
+    result = ref ();
+end;
+
+
+////////// finds ////////////////////////////////////////////////////////////////
+
+/*
+// from prelude
+// Search an element in a list. Returns the index 0..#xs-1 of leftmost
+// occurrence, or -1 if not found.
+index [] _      = -1;
+index (x:xs) y      = search 0 (x:xs) with
+  search _ []       = -1;
+  search n::int (x:xs)  = n if x==y;
+                        = search (n+1) xs;
+  search _ xs       = index xs y;
+end;
+
+// Just return whether y is a member, also unlike index we don't require
+// == to be defined on elements.
+equalish x y = case x == y of res::int = res; _ = x===y; end;
+member xs y = any (equalish y) xs;
+
+// inline into expansion of any
 member [] y = 0;
 member (x:xs) y = case x == y of
                     res::int = 1 if res;
@@ -20,61 +542,558 @@ member (x:xs) y = case x == y of
                     // for structures whose == is undefined
                              = member xs y otherwise;
                   end;
-
-#! --ifndef DEFINED_REVERSE_ONTO
-#! --enable DEFINED_REVERSE_ONTO
-public reverse_onto;
-// reverse with explicit base
-reverse_onto [] base = base;
-reverse_onto (x:xs) base = reverse_onto xs (x:base);
-#! --endif
-
-// map with explicit base
-// not tail call
-map_onto f [] base = base;
-map_onto f (x:xs) base = f x : map_onto f xs base;
-
-/*
-// zipwith/map2 with explicit base, stopping when shortest list expires
-// zip_onto f xs ys base == zipfoldr (\x y b -> f x y : b) base xs ys
-// zip_onto3 f xs ys zs base == zipfoldr3 (\x y z b -> f x y z : b) base xs ys zs
-
-zip_onto f [] _ base | zip_onto f _ [] base = base;
-zip_onto f (x:xs) (y:ys) base = f x y : zip_onto f xs ys base;
-
-zip_onto3 f [] _ _ base | zip_onto3 f _ [] _ base | zip_onto3 f _ _ [] base = base;
-zip_onto3 f (x:xs) (y:ys) (z:zs) base = f x y z : zip_onto3 f xs ys zs base;
 */
 
+private nonfix notfound;
 
-// foldl and foldr on two lists in parallel, like zip/zipwith[3]
-// stops when shortest list expires
-zipfoldl f a _ [] | zipfoldl f a [] _ = a;
-zipfoldl f a (x:xs) (y:ys) = zipfoldl f (f a x y) xs ys;
+// findl p xs = gfoldl (\e x _ abort -> if p x then abort x else e) throw out_of_bounds xs;
 
-zipfoldr f a _ [] | zipfoldr f a [] _ = a;
-zipfoldr f a xs@(_:_) ys@(_:_) = tick [] xs ys
-with
-  tick zs (x:xs) (y:ys) = tack (x:y:zs) (zipfoldr f a xs ys&)
-                          if thunkp xs || thunkp ys;
-                        = tick (x:y:zs) xs ys;
-  tick zs _ [] | tick zs [] _ = tack zs a;
-  tick zs xs ys = tack zs (zipfoldr f a xs ys);
-  tack (x:y:zs) a = tack zs (f x y a);
-  tack [] a = a;
+findl p [] = throw out_of_bounds;
+findl p (x:xs) = if p x then x else findl p xs;
+
+/*
+// popl p xs = gfoldl (\ws x xs abort -> if p x then abort {x, reverse_on xs ws} else x:ws) (cst {}) [] xs;
+
+// faster version available when we have ws+++xs, ws:::x
+// popl p xs = gfoldl (\ws x xs abort -> if p x then abort {x, ws+++xs} else ws:::x) (cst {}) [] xs;
+
+// non-tail
+popl p xs = case aux xs of
+    {notfound, _} = {};
+    res = res;
+end with
+    aux [] = {notfound, []};
+    aux (x:xs) = {x, xs} if p x;
+               = {sofar, x:xs} when {sofar, xs} = aux xs end;
+end;
+*/
+
+// returns {} when no match
+// we don't provide skip-ahead version
+popl p xs::list = pop p xs [] with
+    pop p [] _ = {};
+    pop p (x:xs) ws = {| x, reverse_on xs ws |} if p x;
+                    = pop p xs (x:ws);
 end;
 
-zipfoldl3 f a _ _ [] | zipfoldl3 f a _ [] _ | zipfoldl3 f a [] _ _ = a;
-zipfoldl3 f a (x:xs) (y:ys) (w:ws) = zipfoldl3 f (f a x y w) xs ys ws;
-
-zipfoldr3 f a _ _ [] | zipfoldr3 f a _ [] _ | zipfoldr3 f a [] _ _ = a;
-zipfoldr3 f a xs@(_:_) ys@(_:_) ws@(_:_) = tick [] xs ys ws
-with
-  tick zs (x:xs) (y:ys) (w:ws) = tack (x:y:w:zs) (zipfoldr3 f a xs ys ws&)
-                          if thunkp xs || thunkp ys || thunkp ws;
-                        = tick (x:y:w:zs) xs ys ws;
-  tick zs _ _ [] | tick zs _ [] _ | tick zs [] _ _ = tack zs a;
-  tick zs xs ys ws = tack zs (zipfoldr3 f a xs ys ws);
-  tack (x:y:w:zs) a = tack zs (f x y w a);
-  tack [] a = a;
+// returns original when no match
+// we don't provide skip-ahead version
+deletel p ys::list = del p ys ys [] with
+    del p ys [] _ = ys;
+    del p ys (x:xs) ws = reverse_on xs ws if p x;
+                       = del p ys xs (x:ws);
 end;
+
+
+// findr p xs = gfoldr (\x _ e abort -> if p x then abort x else e) throw out_of_bounds xs;
+
+findr p xs::list = find p xs notfound with
+    find p [] w = if w===notfound then throw out_of_bounds else w;
+    find p (x:xs) w = find p xs (if p x then x else w);
+end;
+
+/*
+// popr p xs = gfoldr (\x xs ws abort -> if p x then abort {x, xs+ws} else x:ws) (cst {}) [] xs;
+
+// non-tail
+popr p xs = case pop p xs of
+    notfound = {};
+    y:ys = {| y, ys |};
+end with
+    pop p []           = notfound;
+    pop p xx@(x:xs)    = case pop p xs of
+                            notfound = if p x then xx else notfound;
+                            y:ys = y:x:ys;
+                         end;
+end;
+
+// with reverse
+popr p xs = pop p xs [] [] [] with
+    pop p []     _  []     _   = {};
+    pop p []     ms (h:hs) hss = {| h, aux (reverse ms) hs hss |};
+    pop p (x:xs) ms hs     hss = pop p xs [] (x:ms) (hs:hss) if p x;
+                               = pop p xs (x:ms) hs hss otherwise;
+    aux zs []     []       = zs;
+    aux zs []     (xs:xss) = aux zs xs xss;
+    aux zs (y:ys) xss      = aux (y:zs) ys xss;
+end;
+
+*/
+
+// returns {} when no match
+popr p xs::list = case aux p xs of
+    notfound = {};
+    y:ys = {| y, ys |};
+end with
+    aux p xs = case skip_ahead p 0 xs of
+        {len_pre, notfound} = pop_pre len_pre xs with
+            pop_pre 0 _ = notfound;
+            pop_pre n::int xx@(x:xs) = case pop_pre (n-1) xs of
+                                          notfound = if p x then xx else notfound;
+                                          y:ys = y:x:ys;
+                                       end;
+        end;
+        {len_pre, y:ys} = y:append len_pre xs ys;
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead p n::int [] = {| n, notfound |};
+    skip_ahead p n::int xs = {| n, aux p xs |} if n == SKIPSIZE;
+    skip_ahead p n::int (_:xs) = skip_ahead p (n+1) xs;
+    // TODO improper tail
+end;
+
+// returns original when no match
+deleter p ys::list = case aux p ys of
+    notfound = ys;
+    ys = ys;
+end with
+    aux p xs = case skip_ahead p 0 xs of
+        {len_pre, notfound} = pop_pre len_pre xs with
+            pop_pre 0 _ = notfound;
+            pop_pre n::int (x:xs) = case pop_pre (n-1) xs of
+                                       notfound = if p x then xs else notfound;
+                                       ys = x:ys;
+                                    end;
+        end;
+        {len_pre, ys} = append len_pre xs ys;
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead p n::int [] = {| n, notfound |};
+    skip_ahead p n::int xs = {| n, aux p xs |} if n == SKIPSIZE;
+    skip_ahead p n::int (_:xs) = skip_ahead p (n+1) xs;
+    // TODO improper tail
+end;
+
+
+/*
+// findall --> filter, OCaml calls "find_all"
+// deleteall --> filter.negate with negate = ((~).) end
+
+// non-tail
+filter p xs::list   = aux p xs with
+    add p x hs      = if p x then x:hs else hs;
+    aux p (x:xs)    = add p x (filter p xs&) if thunkp xs;
+                    = add p x (aux p xs);
+    aux p []        = [];
+    aux p xs        = throw (bad_list_value xs);
+end;
+
+// prelude is equivalent to:
+filter p xs::list   = aux p xs [] with
+    add p x hs      = if p x then x:hs else hs;
+    aux p (x:xs) hs = reverse_on (filter p xs&) (add p x hs) if thunkp xs;
+                    = aux p xs (add p x hs);
+    aux p [] hs     = reverse hs;
+    aux p xs _      = throw (bad_list_value xs);
+end;
+*/
+
+filter p xs::list = aux p xs with
+    add p x hs = if p x then x:hs else hs;
+    aux p xs = sift_pre len_pre xs with
+        sift_pre 0 _ = filtered_tail;
+        sift_pre n::int (x:xs) = add p x (sift_pre (n-1) xs);
+    end when
+        {len_pre, filtered_tail} = skip_ahead p 0 xs;
+    end;
+    skip_ahead p n::int [] = {| n, [] |};
+    skip_ahead p n::int xs@(_:_) = {| n, aux p xs |} if n == SKIPSIZE;
+    skip_ahead p n::int (x:xs) = {| n, add p x (aux p xs&) |}
+                                 if thunkp xs;
+                               = skip_ahead p (n+1) xs;
+    skip_ahead p n::int xs     = throw (bad_list_value xs); // improper tail
+end;
+
+/*
+// popall --> splitby, OCaml calls "partition", Haskell calls "span/break"
+splitby p ys::list = spl p ys ys [] [] with
+    spl p ys []     [] _  = { ys, [] }; // no misses, use original
+    spl p ys []     _  [] = { [], ys }; // no hits, use original
+    spl p ys []     ms hs = { reverse hs, reverse ms };
+    spl p ys (x:xs) ms hs
+        = if p x
+          then { reverse_on (filter p xs&) (x:hs), reverse_on (filter ((~).p) xs&) ms }
+          else { reverse_on (filter p xs&) hs, reverse_on (filter ((~).p) xs&) (x:ms) } if thunkp xs;
+        = if p x
+          then spl p ys xs ms (x:hs)
+          else spl p ys xs (x:ms) hs;
+end;
+*/
+
+splitby p xs::list = case aux p xs of
+    yes:no = {| yes, no |};
+end with
+    add p x (yes:no) = if p x then (x:yes):no else yes:(x:no);
+    aux p xs = sift_pre len_pre xs with
+        sift_pre 0 _ = split_tails;
+        sift_pre n::int (x:xs) = add p x (sift_pre (n-1) xs);
+    end when
+        {len_pre, split_tails} = skip_ahead p 0 xs;
+    end;
+    skip_ahead p n::int [] = {| n, []:[] |};
+    skip_ahead p n::int xs@(_:_) = {| n, aux p xs |} if n == SKIPSIZE;
+    skip_ahead p n::int (x:xs)
+                      = {| n, add p x (filter p xs&:filter ((~).p) xs&) |} if thunkp xs;
+                      = skip_ahead p (n+1) xs;
+    skip_ahead p n::int xs     = throw (bad_list_value xs); // improper tail
+end;
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+/*
+// from prelude
+map f []        = [];
+map f xs@(_:_)      = tick [] xs
+with
+  tick zs (x:xs)    = tack (f x:zs) (map f xs&) if thunkp xs;
+                    = tick (f x:zs) xs;
+  tick zs []        = tack zs [];
+  tick zs xs        = tack zs (map f xs);
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+*/
+
+// map f xs = map_on f [] xs
+map f xs::list = aux f xs with
+    aux f xs = fold_pre len_pre xs with
+        fold_pre 0 _ = mapped_tail;
+        fold_pre n::int (x:xs) = f x:fold_pre (n-1) xs;
+    end when
+        {len_pre, mapped_tail} = skip_ahead f 0 xs;
+    end;
+    skip_ahead f n::int []       = {| n, [] |};
+    skip_ahead f n::int xs@(_:_) = {| n, aux f xs |} if n == SKIPSIZE;
+    skip_ahead f n::int (x:xs)   = {| n, f x:aux f xs& |}
+                                   if thunkp xs;
+                                 = skip_ahead f (n+1) xs;
+    skip_ahead f n::int xs       = {| n, map f xs |}; // improper tail
+end;
+
+// TODO listmap
+
+/*
+// from prelude
+zipwith f [] _      |
+zipwith f _ []      = [];
+zipwith f xs@(_:_) ys@(_:_)
+                    = tick [] xs ys
+with
+  tick us (x:xs) (y:ys) = tack (f x y:us) (zipwith f xs ys&)
+                            if thunkp xs || thunkp ys;
+                        = tick (f x y:us) xs ys;
+  tick us [] _      |
+  tick us _ []      = tack us [];
+  tick us xs ys     = tack us (zipwith f xs ys);
+  tack (u:us) vs    = tack us (u:vs);
+  tack [] vs        = vs;
+end;
+
+
+zipwith3 f [] _ _       |
+zipwith3 f _ [] _       |
+zipwith3 f _ _ []       = [];
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
+                        = tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)
+                        = tack (f x y z:us) (zipwith3 f xs ys zs&)
+                            if thunkp xs || thunkp ys || thunkp zs;
+                        = tick (f x y z:us) xs ys zs;
+  tick us [] _ _    |
+  tick us _ [] _    |
+  tick us _ _ []    = tack us [];
+  tick us xs ys zs  = tack us (zipwith3 f xs ys zs);
+  tack (u:us) vs    = tack us (u:vs);
+  tack [] vs        = vs;
+end;
+*/
+
+zipwith f xs::list ys::list = aux f xs ys with
+    aux f xs ys = fold_pre len_pre xs ys with
+        fold_pre 0 _ _ = zipped_tail;
+        fold_pre n::int (x:xs) (y:ys) = f x y:fold_pre (n-1) xs ys;
+    end when
+        {len_pre, zipped_tail} = skip_ahead f 0 xs ys;
+    end;
+    skip_ahead f n::int [] _ |
+    skip_ahead f n::int _ [] = {| n, [] |};
+    skip_ahead f n::int xs@(_:_) ys@(_:_)
+                            = {| n, aux f xs ys |} if n == SKIPSIZE;
+    skip_ahead f n::int (x:xs) (y:ys)
+                            = {| n, f x y:aux f xs ys& |}
+                              if thunkp xs || thunkp ys;
+                            = skip_ahead f (n+1) xs ys;
+    skip_ahead f n::int xs ys
+                            = {| n, zipwith f xs ys |}; // improper tail
+end;
+
+zipwith3 f xs::list ys::list zs::list = aux f xs ys zs with
+    aux f xs ys zs = fold_pre len_pre xs ys zs with
+        fold_pre 0 _ _ _ = zipped_tail;
+        fold_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:fold_pre (n-1) xs ys zs;
+    end when
+        {len_pre, zipped_tail} = skip_ahead f 0 xs ys zs;
+    end;
+    skip_ahead f n::int [] _ _ |
+    skip_ahead f n::int _ [] _ |
+    skip_ahead f n::int _ _ [] = {| n, [] |};
+    skip_ahead f n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                            = {| n, aux f xs ys zs |} if n == SKIPSIZE;
+    skip_ahead f n::int (x:xs) (y:ys) (z:zs)
+                            = {| n, f x y z:aux f xs ys zs& |}
+                              if thunkp xs || thunkp ys || thunkp zs;
+                            = skip_ahead f (n+1) xs ys zs;
+    skip_ahead f n::int xs ys zs
+                            = {| n, zipwith3 f xs ys zs |}; // improper tail
+end;
+
+
+/*
+// from prelude
+init [x]        = [];
+init xs@(_:_)       = tick [] xs
+with
+  tick zs ys@(_:xs) = tack zs (init ys&) if thunkp xs;
+  tick zs xs        = case xs of
+                        [x]  = tack zs [];
+                        x:xs = tick (x:zs) xs;
+                        _    = tack zs (init xs);
+                      end;
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+*/
+
+init xs@(_:_) = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _ = chopped_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        {len_pre, chopped_tail} = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int [_] = {| n, [] |};
+    skip_ahead n::int xs@(_:_) = {| n, aux xs |} if n == SKIPSIZE;
+    skip_ahead n::int (x:xs) = {| n, x:aux xs& |}
+                               if thunkp xs;
+                             = skip_ahead (n+1) xs;
+    skip_ahead n::int xs     = {| n, init xs |}; // improper tail
+end;
+
+/*
+rotate xs@(_:_) = rot xs [] with
+    rot [x] ys = x:reverse ys;
+    rot (x:xs) ys = rot xs (x:ys);
+end;
+*/
+
+// inherently eager
+rotate xs@(_:_) = aux xs with
+    aux xs = lastx:fold_pre len_pre xs with
+        fold_pre 0 _ = chopped_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        {len_pre, lastx:chopped_tail} = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int x@[_] = {| n, x |};
+    skip_ahead n::int xs@(_:_) = {| n, aux xs |} if n == SKIPSIZE;
+    skip_ahead n::int (x:xs) = skip_ahead (n+1) xs;
+    skip_ahead n::int xs     = {| n, init xs |}; // improper tail
+end;
+
+
+/*
+// non-tail
+take n::int []          = [];
+take n::int xs@(_:_)    = tick n xs
+with
+  tick n::int xs        = [] if n<=0;
+                        = (take n xs&) if thunkp xs;
+                        = case xs of
+                            []   = [];
+                            x:xs = x:tick (n-1) xs;
+                            _    = take n xs;
+                          end;
+end;
+
+// from prelude
+take n::int []          = [];
+take n::int xs@(_:_)    = tick n [] xs
+with
+  tick n::int zs xs     = tack zs [] if n<=0;
+                        = tack zs (take n xs&) if thunkp xs;
+                        = case xs of
+                            []   = tack zs [];
+                            x:xs = tick (n-1) (x:zs) xs;
+                            _    = tack zs (take n xs);
+                          end;
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+*/
+
+take m::int xs::list = aux m xs with
+    aux 0 xs = [];
+    aux m::int xs = fold_pre len_pre xs with
+        fold_pre 0      _      = front_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        {len_pre, front_tail} = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int xs       = {| n, [] |} if m <= 0 || null xs;
+    skip_ahead m::int n::int xs@(_:_) = {| n, aux m xs |} if n == SKIPSIZE;
+    skip_ahead m::int n::int (x:xs)   = {| n, x:aux (m-1) xs& |} if thunkp xs;
+                                      = skip_ahead (m-1) (n+1) xs;
+    skip_ahead m::int n::int xs       = {| n, take m xs |}; // improper tail
+end;
+
+/*
+split n xs = xs!!(0..n-1); // that is, subseq xs 0 (n-1);
+
+split n xs = gfoldl (\(n, ws) x xs abort -> if n then (n-1, x:ws) else abort {| reverse ws, xs |}) (cst xs) (n, []) xs;
+
+split _::int xs@[] |
+split 0 xs         = {| [], xs |};
+split n::int (x:xs) = {| x:front, back |} when
+    {front, back} = split (n-1) xs;
+end;
+
+split n::int xs = aux n [] xs with
+    aux _::int ws []    = {| xs, [] |}; // use original
+    aux 0 ws xs         = {| reverse ws, xs |};
+    aux n::int ws (x:xs) = aux (n-1) (x:ws) xs;
+end;
+*/
+
+split m::int xs::list = case aux m xs of
+    front:back = {| front, back |};
+end with
+    add x (front:back) = (x:front):back;
+    aux m::int xs = fold_pre len_pre xs with
+        fold_pre 0      _      = split_tails;
+        fold_pre n::int (x:xs) = add x (fold_pre (n-1) xs);
+    end when
+        {len_pre, split_tails} = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int xs = {| n, []:xs |} if m <= 0 || null xs;
+    skip_ahead m::int n::int xs@(_:_) = {| n, aux m xs |} if n == SKIPSIZE;
+    skip_ahead m::int n::int (x:xs)
+                           = {| n, (x:take (m-1) xs&):drop (m-1) xs& |}
+                             if thunkp xs;
+                           = skip_ahead (m-1) (n+1) xs;
+    skip_ahead m::int n::int xs     = throw bad_list_value (n, split m xs); // improper tail
+end;
+
+
+// TODO
+subseq [] a::int b::int = [];
+subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
+  // This is a version of take modified to expand thunked tails. It uses the
+  // same basic logic to make it tail-recursive.
+  take n::int []    = [];
+  take n::int xs@(_:_)  = tick n [] xs;
+  tick n::int zs xs = tack zs [] if n<=0;
+                        = case xs of
+                            []   = tack zs [];
+                            x:xs = tick (n-1) (x:zs) xs;
+                            _    = tack zs (take n xs);
+                          end;
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+subseq x a b = slice x (a..b);
+
+
+
+/*
+takewhile p []  = [];
+takewhile p xs@(_:_)    = tick [] xs
+with
+  tick zs xs        = tack zs (takewhile p xs&) if thunkp xs;
+                        = case xs of
+                            []   = tack zs [];
+                            x:xs = tick (x:zs) xs if p x;
+                                 = tack zs [];
+                            _    = tack zs (takewhile p xs);
+                          end;
+  tack (x:xs) ys    = tack xs (x:ys);
+  tack [] ys        = ys;
+end;
+*/
+
+takewhile p xs::list = aux p xs with
+    aux p xs = fold_pre len_pre xs with
+        fold_pre 0      _      = front_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        {len_pre, front_tail} = skip_ahead p 0 xs;
+    end;
+    skip_ahead p n::int []       = {| n, [] |};
+    skip_ahead p n::int xs@(_:_) = {| n, aux p xs |} if n == SKIPSIZE;
+    skip_ahead p n::int (x:xs)
+            = if p x then {| n, x:aux p xs& |} else {| n, [] |} if thunkp xs;
+            = skip_ahead p (n+1) xs;
+    skip_ahead p n::int xs     = {| n, takewhile p xs |}; // improper tail
+end;
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+// catmap, implements map.filter
+// TODO
+
+/*
+also zip/zip3 (OCaml calls "combine") == zipwith (,)
+unzip, unzip3 (OCaml calls "split") use foldr
+also scan functions
+also mapfold, Haskell calls "mapAccumL/R"
+
+
+// map_on -- like map, but uses supplied base list instead of []
+map_on f base xs = foldr ((:).f) base xs
+
+// zipwith onto explicit base, stopping at shortest list
+zip_on f bs xs ys == foldr2 (\x y bs -> f x y : bs) bs xs ys
+zip3_on f bs xs ys zs == foldr3 (\x y z bs -> f x y z : bs) bs xs ys zs
+
+*/
+
+// bisects in single traversal, front may be shorter
+bisect xs::list = aux [] xs xs with aux ws xs [] | aux ws xs [_] = {reverse ws, xs}; aux ws (x:xs) (_:_:ys) = aux (x:ws) xs ys end;
+
+// map onto explicit base
+map_on f bs xs::list = aux f bs xs with
+    aux f bs xs = fold_pre len_pre xs with
+        fold_pre 0 _ = mapped_tail;
+        fold_pre n::int (x:xs) = f x:fold_pre (n-1) xs;
+    end when
+        {len_pre, mapped_tail} = skip_ahead f bs 0 xs;
+    end;
+    skip_ahead f bs n::int []       = {| n, bs |};
+    skip_ahead f bs n::int xs@(_:_) = {| n, aux f bs xs |} if n == SKIPSIZE;
+    skip_ahead f bs n::int (x:xs)   = {| n, f x:aux f bs xs& |}
+                                      if thunkp xs;
+                                    = skip_ahead f bs (n+1) xs;
+    skip_ahead f bs n::int xs       = {| n, map_on f bs xs |}; // improper tail
+end;
+
+
+/*
+// implements map.iterwhile
+> iterwhile (<1024) (2*) 1;
+[1,2,4,8,16,32,64,128,256,512]
+> unfold (\z->if z<1024 then {2*z} else {}) 1;
+[2,4,8,16,32,64,128,256,512,1024]
+> unfold (\z->if z<1024 then {z*10,2*z} else {}) 1;
+[10,20,40,80,160,320,640,1280,2560,5120]
+*/
+unfold f x = case f x of
+    {a,b} = a:unfold f b;
+    {a} = a:unfold f a; // tail of iterwhile
+    res = [] if res==={}; // stop iteration
+end;
+
