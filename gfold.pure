@@ -355,10 +355,11 @@ private finish finish_if finish_lambda;
 
 private handle aux fold_pre len_pre folded_tail skip_ahead cell v vs u n;
 
-def gfoldl (\b y ys -> body) final a xs =
-    aux xs a with // TODO document reverse order
+def gfoldl (\b y ys -> body) final improper a xs =
+    aux xs a with
         aux [] u = final u;
         aux (v:vs) u = finish_gfoldl (process (aux vs) [[(abort-->__id__),(b-->u),(y-->v),(ys-->vs)], 0, body]); // TODO document addl substs
+        aux vs u = improper u vs;
     end;
 
 def finish_gfoldl [_, _, body] = body;
