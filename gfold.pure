@@ -182,42 +182,46 @@ That is what we provide here.
 The gfold macros
 ----------------
 
-4. `gfoldl (\a x xs -> body) final a xs` macro-expands to the
+4. `gfoldl (\a x xs -> body) final improper a xs` macro-expands to the
 following:
 
     aux xs a with
         aux [] a                   = final a;
         aux (x:xs) a               = BODY; // see below
+        aux xs a                   = improper a xs;
     end;
-
 
 You have to explictly supply a lambda expression for the function, which the macros will
 unpack and inline into the expanded code. The inlined lambda body will use the appropriate
 values for a, x, xs, and will recursively call aux in its non-`abort`ing tail positions.
 
-So for example, `any` can be defined as:
+For `improper` you might use (\_ xs -> throw (bad_list_value xs)), or something more apppropriate to the particular case.
 
-    any p xs = gfoldl (\a x _ -> if p x then abort true else a) id false xs;
+For example, `any` can be defined as:
+
+    any p xs::list = gfoldl (\a x _ -> if p x then abort true else a) id (cst(any p)) false xs;
 
 Note that we use `abort` in the lambda body without binding it as a lambda paramater. The macro treats this
 like a keyword. This expands to:
 
-    any p xs = aux xs false with
+    any p xs::list = aux xs false with
         aux [] a                   = id a;
         aux (x:xs) a               = if p x then true else aux xs a;
+        aux xs a                   = cst (any p) a xs;
     end;
 
 This is nearly as efficient as the hand-written version of `any` in the prelude, which is equivalent to:
 
-    any p xs = aux xs with
+    any p xs::list = aux xs with
         aux []                     = false;
         aux (x:xs)                 = if p x then true else aux xs;
+        aux xs a                   = any p xs;
     end;
 
 The gfold macros are smart enough to ignore locally rebound or quoted uses of `abort`. However you can't
 do this:
 
-    any p xs = gfoldl (\a x _ -> if p x then leave true else a with leave v = abort v end) id false xs;
+    any p xs::list = gfoldl (\a x _ -> if p x then leave true else a with leave v = abort v end) id (cst(any p)) false xs;
 
 The macro expects you to apply `abort` directly. Similarly, the macro expects that `quote` and `(')` mean
 what they standardly do, that you haven't rebound these to be non-quoting, or rebound some other symbol
@@ -253,7 +257,7 @@ to be quoting.
         skip_ahead n::int xs@(_:_) = n (aux xs) if n == SKIPSIZE;
         skip_ahead n::int (x:xs)   = n BODY when a = aux xs& end if thunkp xs;
                                    = skip_ahead (n+1) xs;
-        skip_ahead n::int xs       = n (improper xs); // for example, `improper` may be (throw . bad_list_value)
+        skip_ahead n::int xs       = n (improper xs);
         handle u = if u===cell then get cell else throw u;
         abort u = put cell u $$ throw cell;
     end when
@@ -264,11 +268,11 @@ Here the lambda bodies are inlined differently than in the `gfoldl` case. The `a
 call the local `abort` function in the second expansion, and the non-`abort`ing tail positions
 aren't wrapped. For instance:
 
-    map f xs = gfoldr (\x xs a -> f x:a) id (map f) [] xs
+    map f xs::list = gfoldr (\x xs a -> f x:a) id (map f) [] xs
 
 expands to:
 
-    map f xs = id (aux xs) with
+    map f xs::list = id (aux xs) with
         aux xs = fold_pre len_pre xs with
             fold_pre 0 _           = folded_tail;
             fold_pre n::int (x:xs) = f x:a when a = fold_pre (n-1) xs end;
