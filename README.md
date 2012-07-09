@@ -11,11 +11,11 @@ The `contrib` folder includes some things I've contributed to the Pure distribut
 
 I do plan some further developments for trees23 (see below).
 
-The toplevel includes things I'm working on, or are provided here just for the random interested browser.
+The rest are things I'm working on, or are provided here just for the random interested browser.
 
- *   try.pure -- try/succeeds/finally macros (NEW)
- *   gfolds.pure -- gfold-writing macros (NEW)
- *   delimcc.pure -- delimited continuations (shift/reset) (IN PROGRESS)
+ *   macros/try.pure -- try/succeeds/finally macros (NEW)
+ *   macros/gfolds.pure -- gfold-writing macros (NEW)
+ *   macros/delimcc.pure -- delimited continuations (shift/reset) (IN PROGRESS)
  *   lists.pure -- additional list methods (IN PROGRESS)
  *   weakdict.pure -- weak references, and weak-key and weak-value dicts (This may also be merged into the standard distribution. It already works but I still need to write tests/better docs. Also, I hope to integrate the developments in lists.pure into trees23 and avltrees and all the set/bag/dict interfaces.)
  *   hashtable.pure -- mutable hashtable
