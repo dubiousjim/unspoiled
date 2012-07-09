@@ -53,8 +53,8 @@ def __vector2__ xs = __aux__::__vector2__ {} (__list__ xs);
 // non-splicing vector constructor
 // nonfix {||}; def {||} = {}; // not really necessary
                                // note that {| |} wouldn't be accepted in any case
-public outfix {| |}; def {| xs |} = __vector__ xs;
-public outfix {: :}; def {: xs :} = __vector2__ xs;
+public outfix {| |}; def {| xs |} = __vector2__ xs;
+public outfix {: :}; def {: xs :} = __vector__ xs;
 
 // another alternative is:
 //   prefix 1190 vect; def vect t = __vector__ t;
