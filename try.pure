@@ -79,7 +79,7 @@ public try succeeds;
 public nonfix finally;
 
 private triage process3 process2 process1 process0;
-private r f d e other deliver value value2;
+private r f d e other deliver value value2; // should these be gensyms, or lexically generated?
 private nonfix nil;
 
 // 0 has neither succeeds nor finally
@@ -104,6 +104,7 @@ def process2 r d pre ((h-->hx __if__ t):cs) clauses = process2 r d pre cs ((d h-
 def process2 r d pre ((h@(_ _)-->hx):cs) clauses = process2 r d pre cs ((d h-->catch r hx):clauses);
 def process2 r d pre ((h-->hx):cs) clauses = process2 r d pre cs ((d head-->catch r hx __if__ head===h):clauses);
 #! --quoteargs try::process3
+// 3 has everything
 def process3 _ _ _ pre [] clauses post = pre __with__ clauses __when__ post;
 def process3 r f d pre ((h@(_ _)-->hx __if__ t):cs) clauses post = process3 r f d pre cs ((d h-->catch r (put f hx$$f) __if__ t):clauses) post;
 def process3 r f d pre ((h-->hx __if__ t):cs) clauses post = process3 r f d pre cs ((d h-->catch r (put f hx$$f) __if__ head===h&&t):clauses) post;
