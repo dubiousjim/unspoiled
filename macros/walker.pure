@@ -1,0 +1,178 @@
+/* syntax walker
+
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   [Add explanation about licensing, or link to
+   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+
+   `walker` is a combination of a Reader monad and Writer monad that walks and converts a Pure syntax tree.
+
+    The Reader part consists of a list of symbols and/or (symbol-->expression)s. This is automatically pruned as walker encounters any binding constructions that shadow symbols in the list.
+
+    The Writer part consists of a `state` argument that can be whatever you want.
+
+    The Converter function is passed each atomic Pure expression in the tree. This function is also passed the current Reader and Writer states, and two boolean values:
+
+    * q is 1 if the current expression is in a quotation context
+    * h is 1 if the current expression is an applied head; nullary functions always behave as applied heads but are not specially indicated
+    * t is 1 if the current expression is in a tail position for the initial expression being walked
+
+The Converter should return a value of the form:
+
+    Possibly_New_Writer_State, Possibly_New_Expression
+
+If t was 1, the Converter should additionally return a macro or expression to wrap around the whole tail expression (the head together with all its arguments), so then the return value has the form:
+
+    Possibly_New_Writer_State, Possibly_New_Expression, Wrapper
+
+For example, if one expression in tail position is:
+
+    HEAD VAL1 VAL2 VAL3
+
+Converter will be passed each of those 4 expressions, with h and t set to 1 for HEAD, and to 0 for the others. If Converter returns Wrapper for HEAD, and HEAD', VAL1', VAL2', VAL3' for each of the transformed expressions, then the final syntax tree will contain:
+
+    Wrapper (HEAD' VAL1' VAL2' VAL3')
+
+If you don't want to insert any substantial Wrapper, just return the __id__ macro here.
+
+Converter will also be passed (quoted) lambda constructions, but no other block syntax or complex expressions. It is the Converter's responsibility to __eval__ the quoted lambda.
+
+At the end, walker will return a value of the form Final_State:Converted_Pure_Expression.
+
+*/
+
+namespace __macro__;
+public __id__ __head__ __tail__;
+
+def __id__ x = x;
+def __head__ (x:xs) = x;
+def __tail__ (x:xs) = xs;
+public walker;
+
+namespace __macro__::walker;
+using namespace macro;
+
+private prune subst free;
+private process process_case unwind_case process_when unwind_when process_with1 process_with2 unwind_with process_op process_app unwind_app;
+private finish finish_if finish_lambda finish_conv;
+
+#! --quoteargs __macro__::walker
+// all the process* macros are call-by-name
+#! --quoteargs __macro__::walker::process
+#! --quoteargs __macro__::walker::process_case
+#! --quoteargs __macro__::walker::process_when
+#! --quoteargs __macro__::walker::process_with1
+#! --quoteargs __macro__::walker::process_with2
+#! --quoteargs __macro__::walker::process_tailop
+#! --quoteargs __macro__::walker::process_app
+
+def __macro__::walker symbol_list state converter expression = __macro__::__tail__ (process converter 0 0 1 (symbol_list:state:expression));
+
+def prune s []         = [];
+def prune s (s:xs)     = xs;
+def prune s ((s-->_):xs) = xs;
+def prune s (x:xs)     = x:prune s xs;
+
+def subst v [] = v;
+def subst v ((v-->w):xs) = w;
+def subst v (x:xs) = subst v xs;
+
+/*
+    free (F:more) selector applying? PATTERN
+    where selector = 0 for interested only in nonheads
+                   = 1 for in outer context, interested in outer head and all nonheads
+                   = 2 for in outer context, interested only in outer head
+
+    // start with F free
+    // free _ 1 0 pat (count both outer head and all nonheads as binding)
+    \var1 -> EXPR1 // inside EXPR1, F-{var1} are free
+    // end with F free
+
+    // start with set of free symbols F
+    case EXPR0 of // inside EXPR0, F are free
+        // for each line: free _ 0 0 pat
+        head1 var1 -> EXPR1; // inside EXPR1, F-{var1} are free
+        head2 var2 -> EXPR2; // inside EXPR2, F-{var2} are free
+    end;
+    // end with F free
+
+    // start with F free
+    EXPR0 when // inside EXPR2, F-{var1,var2} are free
+        // free _ 0 0 pat, and carry-through
+        head1 var1 <- EXPR1; // inside EXPR1, F are free
+        head2 var2 <- EXPR2; // inside EXPR2, F-{var1} are free
+    end;
+    // end with F free
+
+    // start with F free
+    EXPR0 with // inside EXPR2, F-{head1,head2} are free
+        // free _ 2 0 pat (only want outer head)
+        // then for each line: free 0 0 pat (ignore all heads)
+        head1 var1 => EXPR1; // inside EXPR1, F-{head1,head2,var1} are free
+        head2 var2 => EXPR2; // inside EXPR2, F-{head1,head2,var2} are free
+    end;
+    // end with F free
+
+    complete block should always end with originalF:new_state:new_expression:...
+
+*/
+
+def free fs@([]:_) _     _       _            = fs;
+def free fs        sel   app (pat __type__ _) |
+    free fs        sel@2 app (_ __as__ pat)   = free fs sel app pat;
+def free (f:fs)    sel   app (s __as__ pat)   = (free $ prune s f:fs) sel app pat; // sel<2
+def free fs        2     _       (u@_ _)      = free fs 2 1 u; // only selecting outer head
+def free fs        sel   _       (u@_ v)      = (free $ free fs 0 0 v) sel 1 u;
+def free fs        0     1       s            = fs;           // s is an inner head, always ignore
+def free (f:fs)    _     _       s            = prune s f:fs; // s is an outer head, or occurs unapplied
+
+def finish_conv f0 1 (state,expression,wrap) rest = f0:state:expression:wrap:rest; // FIXME
+def finish_conv f0 0 (state,expression) rest = f0:state:expression:rest;
+
+def process conv q h t (f:state:(__ifelse__ i t e):rest) = finish_if (process conv q 0 0 [f, state, i]) (process conv q h t [f, 0, t]) (process conv q h t [f, 0, e]) rest;
+def finish_if [f0, 0, i] [_, 0, t] [_, 0, e] rest = (f0:0:__ifelse__ i t e:rest);
+def finish_if [f0, _, i] [_, _, t] [_, _, e] rest = (f0:1:__ifelse__ i t e:rest);
+
+def process conv q h t (f:state:(__lambda__ ps x):rest) = finish_lambda f (conv q h) t ps (process conv q 0 0 $ free (f:state:x:rest) 1 0 ps);
+def finish_lambda f0 cqh t ps (_:state:x:rest) = finish_conv f0 t (cqh t f0 state ('__lambda__ ps x)) rest;
+
+def process conv q h t (f:state:(__case__ x clauses):rest) = process_case f (process conv q h t) rest clauses $ process conv q 0 0 [f, state, x];
+def process_case f0 pcqht rest ((p-->y):clauses) (_:state:xs) = process_case f0 pcqht rest clauses $ pcqht $ free (f0:state:y:p:xs) 0 0 p;
+def process_case f0 _    rest []                (_:state:xs) = f0:state:unwind_case xs []:rest;
+def unwind_case (y:p:xs) clauses = unwind_case xs ((p-->y):clauses);
+def unwind_case [x]      clauses = (__case__ x clauses);
+
+def process conv q h t (f:state:(x __when__ clauses):rest) = process_when f (process conv q) h t rest clauses [f] [[], state, 'x];
+def process_when f0 pcq h t [f] rest ((p-->y):clauses) (_:state:xs) = (process_when f0 pcq h t rest clauses $ free [f] 0 0 p) $ pcq 0 0 (f:state:y:p:xs);
+def process_when f0 pcq h t [f] rest []                (_:state:xs) = unwind_when f0 (pcq h t) f state xs [] rest;
+def unwind_when f0 pcqht f state (y:p:xs) clauses rest = unwind_when f0 pcqht f state xs ((p-->y):clauses) rest;
+def unwind_when f0 pcqht f state ['x]     clauses rest = finish f0 (__when__) (pcqht (f:state:x:clauses:rest));
+
+def process conv q h t (f:state:(x __with__ clauses):rest) = process_with1 f (process conv q h) h t rest clauses clauses [f, state, 'x];
+def process_with1 f0 pcq h t rest clauses0 ((p-->y):clauses) (f:state:xs) = process_with1 f0 pcq h t rest clauses0 clauses $ free (f:state:xs) 2 0 p;
+def process_with1 f0 pcq h t rest clauses0 []                xs@(f:_)     = process_with2 f0 pcq h t f rest clauses0 xs;
+def process_with2 f0 pcq h t f1 rest ((p-->y):clauses) (_:state:xs) = process_with2 f0 pcq h t f1 rest clauses $ pcq 0 0 $ free (f1:state:y:p:xs) 0 0 p;
+def process_with2 f0 pcq h t f1 rest []                (_:state:xs) = unwind_with f0 (pcq h t) f1 state xs [] rest;
+def unwind_with f0 pcqht f1 state (y:p:xs) clauses rest = unwind_with f0 pcqht f1 state xs ((p-->y):clauses) rest;
+def unwind_with f0 pcqht f1 state ['x]     clauses rest = finish f0 (__with__) (pcqht (f1:state:x:clauses:rest));
+
+def finish f0 op (_:state:x:y:rest) = (f0:state:op x y:rest);
+
+def process conv q h t (f:state:(a $$ b):rest) = process_tailop ($$) (a) (process conv q) $ process conv q h t (f:state:b:rest);
+def process conv q h t (f:state:(a || b):rest) = process_tailop (||) (a) (process conv q) $ process conv q h t (f:state:b:rest);
+def process conv q h t (f:state:(a && b):rest) = process_tailop (&&) (a) (process conv q) $ process conv q h t (f:state:b:rest);
+def process_tailop op a pcq (f0:state:bs) = finish f0 op (pcq 0 0 (f0:state:a:bs)); // lhs isn't in tail position
+
+def process conv q h t (f:state:(u@_ v):rest) = process_app conv q h t f state rest (u [v]);
+def process_app conv q h t f           state rest (u@_ v ws)  = process_app conv q h t f state rest (u (v:ws)); // recurse down to head
+// we assume user doesn't rebind quote, or expect us to treat any other symbols as quoters
+def process_app conv q h t f           state rest (quote ws)  = unwind_app f (process conv 1) t __macro__::__id__ quote  rest (process conv 1 0 0 ([]:state:ws));
+def process_app conv q h t f           state rest ('ws)       = unwind_app f (process conv 1) t __macro__::__id__ (')    rest (process conv 1 0 0 ([]:state:ws));
+def process_app conv q h t f           state rest (v@_ ws)    = unwind_app f (process conv q) t __macro__::__id__ __macro__::__id__ rest (process conv q 1 t (f:state:v:ws));
+def unwind_app f0 pcq 1 _    vs rest (f:state:w:wrap:ws) = unwind_app f0 pcq 0 wrap (vs w) rest (pcq 0 0 (f:state:ws));
+def unwind_app f0 pcq 0 wrap vs rest (f:state:w:ws)      = unwind_app f0 pcq 0 wrap (vs w) rest (pcq 0 0 (f:state:ws));
+def unwind_app f0 pcq 0 wrap vs rest (_:state:[w])       = f0:state:wrap (vs w):rest;
+
+// def process_app conv q h t f@(abort:_)    state (abort ws) rest      = unwind_app f __id__ abort       (process conv 0 (f:1:ws)) rest; // abort is unbound head
+// def process_app conv q h t f@((abort-->v):_) state (abort ws) rest   = unwind_app f __id__ v           (process conv 0 (f:1:ws)) rest; // abort is unbound head
+
+def process conv q h t (f:state:v:rest)       = finish_conv f t (conv q h t f state v) rest;
