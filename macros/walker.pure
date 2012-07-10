@@ -172,51 +172,51 @@ def free fs        0     1       s            = fs;           // s is an inner h
 def free (f:fs)    _     _       s            = prune s f:fs; // s is an outer head, or occurs unapplied
 
 def process conv q t (f:state:(__ifelse__ i y n):rest) = process_if rest (process conv q t) [] [y, n] $ process conv q 0 [f, state, i];
-def process_if rest pcqt []     [y, n] [f, state, i] = process_if rest pcqt [i]    [n] $ pcqt [f, state, y];
-def process_if rest pcqt [i]    [n]    [f, state, y] = process_if rest pcqt [y, i] []  $ pcqt [f, state, n];
-def process_if rest pcqt [y, i] []     [f, state, n] = f:state:__ifelse__ i y n:rest;
+def process_if rest pcqt []     [y, n] [f, state, i]   = process_if rest pcqt [i]    [n] $ pcqt [f, state, y];
+def process_if rest pcqt [i]    [n]    [f, state, y]   = process_if rest pcqt [y, i] []  $ pcqt [f, state, n];
+def process_if rest pcqt [y, i] []     [f, state, n]   = f:state:__ifelse__ i y n:rest;
 
-def process conv q t (f:state:(__case__ x clauses):rest) = process_case rest f (process conv q t) clauses $ process conv q 0 [f, state, x];
+def process conv q t (f:state:(__case__ x clauses):rest)     = process_case rest f (process conv q t) clauses $ process conv q 0 [f, state, x];
 def process_case rest f0 pcqt ((p-->y):clauses) (_:state:xs) = process_case rest f0 pcqt clauses $ pcqt $ free (f0:state:y:p:xs) 0 0 p;
 def process_case rest f0 _    []                (_:state:xs) = f0:state:unwind_case xs []:rest;
-def unwind_case (y:p:xs) clauses = unwind_case xs ((p-->y):clauses);
-def unwind_case [x]      clauses = (__case__ x clauses);
+def unwind_case (y:p:xs) clauses                             = unwind_case xs ((p-->y):clauses);
+def unwind_case [x]      clauses                             = (__case__ x clauses);
 
-def process conv q t (f:state:(x __when__ clauses):rest) = process_when rest f (process conv q) t clauses [f] [[], state, 'x];
+def process conv q t (f:state:(x __when__ clauses):rest)          = process_when rest f (process conv q) t clauses [f] [[], state, 'x];
 def process_when rest f0 pcq t ((p-->y):clauses) [f] (_:state:xs) = (process_when rest f0 pcq t clauses $ free [f] 0 0 p) $ pcq 0 (f:state:y:p:xs);
 def process_when rest f0 pcq t []                [f] (_:state:xs) = unwind_when rest f0 (pcq t) f state xs [];
-def unwind_when rest f0 pcqt f state (y:p:xs) clauses = unwind_when rest f0 pcqt f state xs ((p-->y):clauses);
-def unwind_when rest f0 pcqt f state ['x]     clauses = finish f0 0 (__when__) clauses (pcqt (f:state:x:rest));
+def unwind_when rest f0 pcqt f state (y:p:xs) clauses             = unwind_when rest f0 pcqt f state xs ((p-->y):clauses);
+def unwind_when rest f0 pcqt f state ['x]     clauses             = finish f0 0 (__when__) clauses (pcqt (f:state:x:rest));
 
-def process conv q t (f:state:(x __with__ clauses):rest) = process_with1 rest f (process conv q) t clauses clauses [f, state, 'x];
+def process conv q t (f:state:(x __with__ clauses):rest)                = process_with1 rest f (process conv q) t clauses clauses [f, state, 'x];
 def process_with1 rest f0 pcq t clauses0 ((p-->y):clauses) (f:state:xs) = process_with1 rest f0 pcq t clauses0 clauses $ free (f:state:xs) 2 0 p;
 def process_with1 rest f0 pcq t clauses0 []                xs@(f:_)     = process_with2 rest f0 pcq t f clauses0 xs;
-def process_with2 rest f0 pcq t f1 ((p-->y):clauses) (_:state:xs) = process_with2 rest f0 pcq t f1 clauses $ pcq 0 $ free (f1:state:y:p:xs) 0 0 p;
-def process_with2 rest f0 pcq t f1 []                (_:state:xs) = unwind_with rest f0 (pcq t) f1 state xs [];
-def unwind_with rest f0 pcqt f1 state (y:p:xs) clauses = unwind_with rest f0 pcqt f1 state xs ((p-->y):clauses);
-def unwind_with rest f0 pcqt f1 state ['x]     clauses = finish f0 0 (__with__) clauses (pcqt (f1:state:x:rest));
+def process_with2 rest f0 pcq t f1 ((p-->y):clauses) (_:state:xs)       = process_with2 rest f0 pcq t f1 clauses $ pcq 0 $ free (f1:state:y:p:xs) 0 0 p;
+def process_with2 rest f0 pcq t f1 []                (_:state:xs)       = unwind_with rest f0 (pcq t) f1 state xs [];
+def unwind_with rest f0 pcqt f1 state (y:p:xs) clauses                  = unwind_with rest f0 pcqt f1 state xs ((p-->y):clauses);
+def unwind_with rest f0 pcqt f1 state ['x]     clauses                  = finish f0 0 (__with__) clauses (pcqt (f1:state:x:rest));
 
-def process conv q t (f:state:(a $$ b):rest) = process_tailop ($$) (b) rest (process conv q t) $ process conv q 0 [f, state, a]; // lhs isn't in tail position
-def process conv q t (f:state:(a || b):rest) = process_tailop (||) (b) rest (process conv q t) $ process conv q 0 [f, state, a];
-def process conv q t (f:state:(a && b):rest) = process_tailop (&&) (b) rest (process conv q t) $ process conv q 0 [f, state, a];
+def process conv q t (f:state:(a $$ b):rest)     = process_tailop ($$) (b) rest (process conv q t) $ process conv q 0 [f, state, a]; // lhs isn't in tail position
+def process conv q t (f:state:(a || b):rest)     = process_tailop (||) (b) rest (process conv q t) $ process conv q 0 [f, state, a];
+def process conv q t (f:state:(a && b):rest)     = process_tailop (&&) (b) rest (process conv q t) $ process conv q 0 [f, state, a];
 def process_tailop op b rest pcqt [f0, state, a] = finish f0 1 op a (pcqt (f0:state:b:rest));
 
 def finish f0 1 op x (_:state:y:rest) |
     finish f0 0 op y (_:state:x:rest) = (f0:state:op x y:rest);
 
 def process conv q t (f:state:(__lambda__ ps x):rest) = finish_lambda rest f (conv q) t ps (process conv q 0 $ free [f, state, x] 1 0 ps);
-def finish_lambda rest f0 cq t ps [_, state, x] = f0:cq t f0 state (('__lambda__ ps x):rest);
+def finish_lambda rest f0 cq t ps [_, state, x]       = f0:cq t f0 state (('__lambda__ ps x):rest);
 
-def process conv q t (f:state:(us@_ v):rest) = process_app rest conv q t f state (us [v]);
-def process_app rest conv q t f           state ((us@_ v) vs)  = process_app rest conv q t f state (us (v:vs)); // recurse down to head
+def process conv q t (f:state:(us@_ v):rest)        = process_app rest conv q t f state (us [v]);
+def process_app rest conv q t f state ((us@_ v) vs) = process_app rest conv q t f state (us (v:vs)); // recurse down to head
 // we assume user doesn't rebind quote, or expect us to treat any other symbols as quoters
-def process_app rest conv q t f           state (quote vs)    = unwind_app rest f (process conv 1) t __id__ __id__ (process conv q t ([]:state:quote:vs));
-def process_app rest conv q t f           state ((') vs)      = unwind_app rest f (process conv 1) t __id__ __id__ (process conv q t ([]:state:('):vs));
-def process_app rest conv q t f           state (v@_ vs)        = unwind_app rest f (process conv q) t __id__ __id__ (process conv q t (f:state:v:vs));
+def process_app rest conv q t f state (quote vs)    = unwind_app rest f (process conv 1) t __id__ __id__ (process conv q t ([]:state:quote:vs));
+def process_app rest conv q t f state ((') vs)      = unwind_app rest f (process conv 1) t __id__ __id__ (process conv q t ([]:state:('):vs));
+def process_app rest conv q t f state (v@_ vs)      = unwind_app rest f (process conv q) t __id__ __id__ (process conv q t (f:state:v:vs));
 
 def unwind_app rest f0 pcq 1 _    us (f:state:wrap:v:w:ws) = unwind_app rest f0 pcq 0 wrap (us v) (__append__ (pcq 0 [f, state, w]) ws);
-def unwind_app rest f0 pcq 0 wrap us (_:state:[v])         = f0:state:wrap (us v):rest;
 def unwind_app rest f0 pcq 0 wrap us (f:state:v:w:ws)      = unwind_app rest f0 pcq 0 wrap (us v) (__append__ (pcq 0 [f, state, w]) ws);
+def unwind_app rest f0 pcq 0 wrap us (_:state:[v])         = f0:state:wrap (us v):rest;
 
 def process conv q 1 (f:state:[v])      = finish_conv f (conv q 1 f state [v]);
 def process conv q t (f:state:vs)       = f:conv q t f state vs;
