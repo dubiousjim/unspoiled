@@ -17,7 +17,8 @@ This function is also passed the current Reader and Writer states, and two
 boolean values:
 
     * q is 1 if the current expression is in a quotation context
-    * t is 1 if the current expression is in a tail position for the initial expression being walked
+    * t is 1 if the current expression is in a tail position for the initial
+      expression being walked
 
     The format in which arguments are passed is:
 
@@ -31,9 +32,9 @@ The Converter should return a value of the form:
     Possibly_New_Writer_State:Possibly_New_Expression:Possibly_Different_Argument_List
 
 You can add or subtract elements to Possibly_Different_Argument_List, and this
-list will be walked next. If you want to insert new expressions that aren't
+list will be walked next. If you want to insert new expressions that *aren't* to be
 walked, just return a complex expression for Possibly_New_Expression. Don't add
-elements as an argument list of an expression that was not passed to Converter
+an argument list to an expression that was not passed to Converter
 as a head. (Though as just mentioned, you can return a complex expression for
 Possibly_New_Expression.) Also, there is no facility for excising a head,
 though you can replace it with the __id__ macro.
@@ -56,28 +57,49 @@ tree will contain:
 
     Wrapper (HEAD' VAL1' VAL2' VAL3')
 
-If you don't want to insert any substantial Wrapper, just return the __id__ macro here.
+If you don't want to insert any substantial Wrapper, just return the __id__
+macro here.
 
-Converter won't be passed ($$) (||) or (&&) heads; walker handles these internally.
+Converter won't be passed ($$) (||) or (&&) heads; walker handles these
+internally.
 
-Converter will be passed (quoted) lambda constructions, but no other block
-syntax or complex expressions. It is the Converter's responsibility to __eval__
-the quoted lambda.
+In Pure syntax, block constructs can occur as heads, as in ((if x then succ
+else pred) y). And these applications sometimes occur in tail position.
+However, the arms of the block construct are not in such cases passed to
+Converter as heads (unless they are heads inside the block), and they aren't
+passed as being in tail position either. So for example, if the expression:
 
-The top expression of when and with blocks are passed as heads when appropriate. For example,
-for:
+    (case a of p1 = b c; p2 = d end) e
 
-    (a when a = b c end) d
+is in tail position, Converter will be passed the lists [a], [b, c], [c], [d],
+and [e], and the tail position flag will be 0 for all of them.
 
-Converter will be passed the lists [b, c], [c], [a, d], and [d]. The same treatment is given
-to the final expression in a ($$) (||) or (&&) expression.
+The final expression in a ($$) (||) or (&&) expression, on the other hand, may
+be passed as being a head because of later expressions, and may also be passed
+as being in tail position. That is, if the expression:
 
-But the arms of if and case constructs are regarded as non-heads, even if the construct
-itself is a head. That is, for:
+    (a || b) c
 
-    (if a then b c else d) e
+is in tail position, Converter will be passed the lists [a], [b, c], and [c],
+and exactly the second will be flagged as in tail position.
 
-Converter will be passed the lists [a], [b, c], [c], [d], and [e].
+Converter will be passed (quoted) lambda constructions, for example if the expression:
+, but no other block
+syntax or complex expressions. That is, if the expression:
+
+    (\a -> b c) d
+
+is in tail position, Converter will be passed the lists [b, c], [c], ['(\a -> b
+c), d], and [d], and exactly the third will be flagged as in tail position. It
+is the Converter's responsibility to __eval__ the quoted lambda.
+
+(TODO: Should I just require that Converters be declared quoteargs?)
+
+Converter won't be passed any other block syntax, nor indeed any complex
+expressions, as the current expressions to be converted (at the head of its
+expression list). When the current expression is a head, later
+not-yet-processed values in the expression list may be complex or block
+expressions.
 
 At the end, walker will return a value of the form Final_State:Converted_Pure_Expression.
 
