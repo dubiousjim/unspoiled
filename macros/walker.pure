@@ -1,8 +1,7 @@
 /* syntax walker
 
    Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
-   [Add explanation about licensing, or link to
-   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+   BSD License at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
 
    `walker` is a combination of a Reader monad and Writer monad that walks and converts a Pure syntax tree.
 

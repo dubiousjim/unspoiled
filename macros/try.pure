@@ -1,6 +1,9 @@
 /*
   try/succeeds/finally macros
 
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   BSD License at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
+
 I like the clean simplicity of Pure's exception syntax. In typical cases, one
 would do something like this:
 

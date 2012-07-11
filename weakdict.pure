@@ -1,6 +1,9 @@
 /*
   weakdict.pure
 
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   BSD License at https://github.com/dubiousjim/unspoiled/blob/master/LICENSE
+
     Low-level conventions
     ---------------------
     * original object x gets a sentry box (this can chain a regular sentry)
