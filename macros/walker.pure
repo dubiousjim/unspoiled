@@ -231,17 +231,13 @@ def unwind_when rest f0 c q t f state (y:p:xs) clauses                 = unwind_
 def unwind_when []   f0 c q t f state ['x]     clauses                 = finish_w []   f0 c q t (__when__) clauses (process c q t [f, state, x]);
 def unwind_when rest f0 c q t f state ['x]     clauses                 = finish_w rest f0 c q t (__when__) clauses (process c q 0 [f, state, x]);
 
-// Should the local definitions in a with block be eligible to count as in tail position? I can see arguments on both sides of this.
-// I will count them as so eligible, though, because that fits my actual needs.
-
 def process c q t (f:state:(x __with__ clauses):rest)                  = process_with1 rest f c q t clauses clauses [f, state, 'x];
 def process_with1 rest f0 c q t clauses0 ((p-->y):clauses) f_s_x       = process_with1 rest f0 c q t clauses0 clauses (free f_s_x 2 0 p);
 def process_with1 rest f0 c q t clauses0 []                f_s_x@(f:_) = process_with2 rest f0 c q t f [] clauses0 f_s_x;
-// when the with-block is a head, we always count its clauses as non-tail
-def process_with2 []   f0 c q t f1 xs ((p-->y):clauses) [_, state, x]  = process_with2 []   f0 c q t f1 (p:x:xs) clauses (process c q t $ free [f1, state, y] 0 0 p);
 def process_with2 rest f0 c q t f1 xs ((p-->y):clauses) [_, state, x]  = process_with2 rest f0 c q t f1 (p:x:xs) clauses (process c q 0 $ free [f1, state, y] 0 0 p);
 def process_with2 rest f0 c q t f1 xs []                [_, state, x]  = unwind_with rest f0 c q t f1 state (x:xs) [];
 def unwind_with   rest f0 c q t f1 state (y:p:xs) clauses              = unwind_with rest f0 c q t f1 state xs ((p-->y):clauses);
+// when the with-block is a head, we always count its main clause as non-tail
 def unwind_with   []   f0 c q t f1 state ['x]     clauses              = finish_w []   f0 c q t (__with__) clauses (process c q t [f1, state, x]);
 def unwind_with   rest f0 c q t f1 state ['x]     clauses              = finish_w rest f0 c q t (__with__) clauses (process c q 0 [f1, state, x]);
 
