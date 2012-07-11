@@ -1,55 +1,72 @@
 /*
   try/succeeds/finally macros
 
-I like the clean simplicity of Pure's exception syntax. In typical cases, one would do something like this:
+I like the clean simplicity of Pure's exception syntax. In typical cases, one
+would do something like this:
 
     catch handle ... with
         handle (HEAD1 V) = ...;
         handle other = throw other;
     end;
 
-to catch a one-argument exception with head HEAD1. Or, if you want to catch a no-argument exception:
+to catch a one-argument exception with head HEAD1. Or, if you want to catch a
+no-argument exception:
 
     catch handle ... with
         handle h = ... if h === HEAD0;
         handle other = throw other;
     end;
 
-However, once one moves a bit beyond these simple cases it's tricky to be sure you're catching all the exceptions you should, relaying the ones you shouldn't be catching, and cleaning up where you need to. It'd be useful to build some higher-level idioms on top of the basic syntax, and centralize all the careful analysis into the design of those idioms. Python is good guide here, with their try/except/else/finally constructs.
+However, once one moves a bit beyond these simple cases it's tricky to be sure
+you're catching all the exceptions you should, relaying the ones you shouldn't
+be catching, and cleaning up where you need to. It'd be useful to build some
+higher-level idioms on top of the basic syntax, and centralize all the careful
+analysis into the design of those idioms. Python is good guide here, with their
+try/except/else/finally constructs.
 
-The following macros bring such idioms to Pure. The following complex example displays all the possible variations:
+The following macros bring such idioms to Pure. The following complex example
+displays all the possible variations:
 
     using try;
     using namespace try;
     try (case BODY of
-        HEAD1 V = HANDLE1 V if TEST1;
+        HEAD1 V = HANDLE1 if TEST1;
         HEAD0 = HANDLE0 if TEST0;
-        succeeds V = SUCC V;
+        succeeds V = SUCC;
         finally = CLEANUP;
     end);
 
-While evaluating BODY, any exceptions of the form HEAD1 _ or HEAD0 (where the latter must be matched literally) will be caught and handled as indicated (if the optional test clauses are satisfied). Other exceptions will be relayed onwards. If no exceptions were thrown by BODY, then the result will be passed to the `succeeds` clause. During the evaluation of that clause, exceptions are not caught. In every case, whether an unhandled exception, an exception matching the HEAD clauses, or no exceptions thrown, the `finally` clause will be evaluated as control leaves this block.
+While evaluating BODY, any exceptions of the form HEAD1 _ or HEAD0 (where the
+latter must be matched literally) will be caught and handled as indicated (if
+the optional test clauses are satisfied). Other exceptions will be relayed
+onwards. If no exceptions were thrown by BODY, then the result will be passed
+to the `succeeds` clause. During the evaluation of that clause, exceptions are
+not caught. In every case, whether an unhandled exception, an exception
+matching the HEAD clauses, or no exceptions thrown, the `finally` clause will
+be evaluated as control leaves this block.
 
-Here's how we implement all of that (this is the macro expansion of the `try` block just displayed):
+Here's how we implement all of that (this is the macro expansion of the `try`
+block just displayed):
 
     deliver (catch handle BODY) with
         relay e = CLEANUP $$ throw e;
         deliver value = CLEANUP $$ get failed if value === failed;
-        deliver value = CLEANUP $$ value2 when value2 = catch relay (SUCC V when V = value end) end;
-        handle (HEAD1 V) = catch relay (put failed (HANDLE1 V) $$ failed) if TEST1;
+        deliver value = CLEANUP $$ value2 when value2 = catch relay (SUCC when V = value end) end;
+        handle (HEAD1 V) = catch relay (put failed (HANDLE1) $$ failed) if TEST1;
         handle h = catch relay (put failed (HANDLE0) $$ failed) if h === HEAD0 && TEST0;
         handle other = relay other;
     end when
         failed = ref ();
     end;
 
-Simpler expansions are used in cases where the `finally` clause, or the `succeeds` clause, or both, are missing.
+Simpler expansions are used in cases where the `finally` clause, or the
+`succeeds` clause, or both, are missing.
 
     // with finally but no succeeds
     deliver (catch handle BODY) with
         relay e = CLEANUP $$ throw e;
         deliver value = CLEANUP $$ value;
-        handle (HEAD1 V) = catch relay (HANDLE1 V) if TEST1;
+        handle (HEAD1 V) = catch relay (HANDLE1) if TEST1;
         handle h = catch relay (HANDLE0) if h === HEAD0 && TEST0;
         handle other = relay other;
     end;
@@ -57,8 +74,8 @@ Simpler expansions are used in cases where the `finally` clause, or the `succeed
     // with succeeds but no finally
     deliver (catch handle BODY) with
         deliver value = get failed if value === failed;
-        deliver value = SUCC V when V = value end;
-        handle (HEAD1 V) = put failed (HANDLE1 V) $$ failed if TEST1;
+        deliver value = SUCC when V = value end;
+        handle (HEAD1 V) = put failed (HANDLE1) $$ failed if TEST1;
         handle h = put failed (HANDLE0) $$ failed if h === HEAD0 && TEST0;
         handle other = throw other;
     end when
@@ -67,7 +84,7 @@ Simpler expansions are used in cases where the `finally` clause, or the `succeed
 
     // without finally or succeeds
     catch handle BODY with
-        handle (HEAD1 V) = HANDLE1 V if TEST1;
+        handle (HEAD1 V) = HANDLE1 if TEST1;
         handle h = HANDLE0 if h === HEAD0 && TEST0;
         handle other = throw other;
     end;
@@ -79,7 +96,7 @@ public try succeeds;
 public nonfix finally;
 
 private triage process3 process2 process1 process0;
-private r f d e other deliver value value2; // should these be gensyms, or lexically generated?
+private r f d e other deliver value value2; // should these be gensyms?
 private nonfix nil;
 
 // 0 has neither succeeds nor finally
