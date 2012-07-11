@@ -190,6 +190,10 @@ def prune s (x:xs)     = x:prune s xs;
 
     complete block should always end with originalF:new_state:new_expression:...
 
+    FIXME?
+    __as__ patterns `show` funny (they print with namespace:: at the binding
+    site but not at the use sites), but seem to work properly
+
 */
 
 def free fs@([]:_) _     _       _            = fs;
