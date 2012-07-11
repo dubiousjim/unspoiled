@@ -300,16 +300,18 @@ Except for the `id` in the first line and the two `... when a = ... end`, this
 is exactly the skip-ahead version of `map` I'd write out longhand.
 
 
-6. There are also gfold::left2 and gfold::right2 functions. These take an additional
-parameter `exn`. If it's (), they will stop at the shortest list, as Pure's
-zip functions already do. If it's any other value, that value is thrown if
-the lists are different lengths.
+6. There are also gfold::left2, gfold::left3, gfold::right2, and gfold::right3
+functions. These take an additional parameter `exn`. If it's (), they will stop
+at the shortest list, as Pure's zip functions already do. If it's any other
+value, that value is thrown if the lists are different lengths.
 
 Here are the signatures of these macros:
 
     gfold::left2 (\a x xs y ys -> ...) final improper a xs ys exn
+    gfold::left3 (\a x xs y ys z zs -> ...) final improper a xs ys zs exn
 
     gfold::right2 (\x xs y ys a -> ...) final improper a xs ys exn
+    gfold::right3 (\x xs y ys z zs a -> ...) final improper a xs ys zs exn
 
 As with the single-list versions, the expansions of these macros also detect
 improper tails and, in the case of the right-folds, streams. It is up to your
@@ -333,18 +335,18 @@ information about it and/or rewriting it. We use this to perform three tasks:
     * We may wrap non-aborting tail expressions with a new head.
 
 When you invoke `gfold::left (\a x xs -> body) final improper a xs`, we call
-the walker macro on `body` with the requests to substitute the macro's own symbols for
-a, x, and xs, to substitute an __id__ macro for `abort`, and to wrap
-non-aborting tail expressions with recursive calls to the macro's `aux`
+the walker macro on `body` with the requests to substitute the macro's own
+symbols for a, x, and xs, to substitute an __id__ macro for `abort`, and to
+wrap non-aborting tail expressions with recursive calls to the macro's `aux`
 function. We don't need to track whether `abort` was in fact applied in the
 macro body.
 
 When you invoke `gfold::right (\x xs a -> body) final improper a xs`, we call
-the walker macro on `body` with the requests to substitute the macro's own symbols for
-a, x, and xs, to substitute the macro's local version of `abort` for abort, and
-to wrap non-aborting tail expressions with __id__. Here we do track whether
-`abort` was applied in the macro body, to determine whether to use the simpler
-or the more complex macro expansion.
+the walker macro on `body` with the requests to substitute the macro's own
+symbols for a, x, and xs, to substitute the macro's local version of `abort`
+for abort, and to wrap non-aborting tail expressions with __id__. Here we do
+track whether `abort` was applied in the macro body, to determine whether to
+use the simpler or the more complex macro expansion.
 
 This backend promises to be useful for other systematic code transformations,
 as well.
@@ -356,17 +358,20 @@ namespace gfold;
 using walker;
 using namespace __macro__;
 
-public left right left2 right2;
+public left right left2 right2 left3 right3;
 public nonfix abort;
-private finish_left finish_right finish_right2 convert_left convert_right;
+private finish_left finish_right finish_right2 finish_right3;
+private convert_left convert_right;
 private SKIPSIZE; const SKIPSIZE = 4096;
 
 #! --quoteargs gfold::left
 #! --quoteargs gfold::right
 #! --quoteargs gfold::left2
 #! --quoteargs gfold::right2
+#! --quoteargs gfold::left3
+#! --quoteargs gfold::right3
 
-private handle aux fold_pre len_pre folded_tail skip_ahead cell v vs u w ws n;
+private handle aux fold_pre len_pre folded_tail skip_ahead cell v vs u w ws r rs n;
 
 
 def convert_left wrap 0 1 ((abort-->v):_) () (abort:rest@(_:_)) = ():__id__:v:rest;
@@ -402,6 +407,16 @@ def left2 (\b y ys z zs -> body) final improper a x1s x2s exn =
         aux vs ws u = improper u vs ws;
     end;
 
+def left3 (\b y ys z zs q qs -> body) final improper a x1s x2s x3s exn =
+    aux x1s x2s x3s a with
+        aux [] [] [] u = final u;
+        aux [] _ _ u | aux _ [] _ u | aux _ _ [] u
+            = if exn===() then final u else throw exn;
+        aux (v:vs) (w:ws) (r:rs) u = finish_left (walker (convert_left (aux vs ws rs))
+            [(abort-->__id__),(b-->u),(y-->v),(ys-->vs),(z-->w),(zs-->ws),(q-->r),(qs-->rs)] () body);
+        aux vs ws rs u = improper u vs ws rs;
+    end;
+
 def finish_left [_, body] = body;
 
 
@@ -418,6 +433,9 @@ def right2 (\y ys z zs b -> body) final improper a x1s x2s exn =
     finish_right2 v vs w ws u final improper a x1s x2s exn (walker convert_right
         [abort,(b-->u),(y-->v),(ys-->vs),(z-->w),(zs-->ws)] 0 body);
 
+def right3 (\y ys z zs q qs b -> body) final improper a x1s x2s x3s exn =
+    finish_right3 v vs w ws r rs u final improper a x1s x2s x3s exn (walker convert_right
+        [abort,(b-->u),(y-->v),(ys-->vs),(z-->w),(zs-->ws),(q-->r),(qs-->rs)] 0 body);
 
 
 def finish_right v vs u final improper a xs [0, body] =
@@ -493,6 +511,56 @@ def finish_right2 v vs w ws u final improper a x1s x2s exn [1, body] =
         (skip_ahead (n __type__ int) (_ __type__ list) vs
                                                        --> n (improper vs)),
         (skip_ahead (n __type__ int) vs _              --> n (improper vs)),
+        (handle u --> __ifelse__ (u===cell) (get cell) (throw u)),
+        (abort u  --> put cell u$$throw cell)
+    ] __when__ [
+        (cell     --> ref ())
+    ];
+
+def finish_right3 v vs w ws r rs u final improper a x1s x2s x3s exn [0, body] =
+        final (aux x1s x2s x3s) __with__ [
+            (aux vs ws rs --> fold_pre len_pre vs ws rs __with__ [
+                (fold_pre 0 _ _ _                        --> folded_tail),
+                (fold_pre (n __type__ int) (v:vs) (w:ws) (r:rs) --> body __when__ [u-->fold_pre (n-1) vs ws rs])
+            ] __when__ [
+                (len_pre __as__ _) folded_tail    --> skip_ahead 0 vs ws rs
+            ]),
+            (skip_ahead (n __type__ int) [] [] []          --> n a),
+            (skip_ahead (n __type__ int) [] _  _           --> __ifelse__ (exn===()) (n a) (throw exn)),
+            (skip_ahead (n __type__ int) _  [] _           --> __ifelse__ (exn===()) (n a) (throw exn)),
+            (skip_ahead (n __type__ int) _  _  []          --> __ifelse__ (exn===()) (n a) (throw exn)),
+            (skip_ahead (n __type__ int) (vs __as__ (_:_)) (ws __as__ (_:_)) (rs __as__ (_:_))
+                                                           --> n (aux vs ws rs) __if__ n==SKIPSIZE),
+            (skip_ahead (n __type__ int) (v:vs) (w:ws) (r:rs) --> n body __when__ [u-->aux vs ws rs&] __if__ (thunkp vs || thunkp ws || thunkp rs)),
+            (skip_ahead (n __type__ int) (v:vs) (w:ws) (r:rs) --> skip_ahead (n+1) vs ws rs),
+            (skip_ahead (n __type__ int) (_ __type__ list) (_ __type__ list) vs
+                                                           --> n (improper vs)),
+            (skip_ahead (n __type__ int) (_ __type__ list) vs _
+                                                           --> n (improper vs)),
+            (skip_ahead (n __type__ int) vs _ _            --> n (improper vs))
+        ];
+
+def finish_right3 v vs w ws r rs u final improper a x1s x2s x3s exn [1, body] =
+    catch handle (final (aux x1s x2s x3s)) __with__ [
+        (aux vs ws rs --> fold_pre len_pre vs ws rs __with__ [
+            (fold_pre 0 _ _ _                        --> folded_tail),
+            (fold_pre (n __type__ int) (v:vs) (w:ws) (r:rs) --> body __when__ [u-->fold_pre (n-1) vs ws rs])
+        ] __when__ [
+            (len_pre __as__ _) folded_tail    --> skip_ahead 0 vs ws rs
+        ]),
+        (skip_ahead (n __type__ int) [] [] []          --> n a),
+        (skip_ahead (n __type__ int) [] _  _           --> __ifelse__ (exn===()) (n a) (throw exn)),
+        (skip_ahead (n __type__ int) _  [] _           --> __ifelse__ (exn===()) (n a) (throw exn)),
+        (skip_ahead (n __type__ int) _  _  []          --> __ifelse__ (exn===()) (n a) (throw exn)),
+        (skip_ahead (n __type__ int) (vs __as__ (_:_)) (ws __as__ (_:_)) (rs __as__ (_:_))
+                                                       --> n (aux vs ws rs) __if__ n==SKIPSIZE),
+        (skip_ahead (n __type__ int) (v:vs) (w:ws) (r:rs) --> n body __when__ [u-->aux vs ws rs&] __if__ (thunkp vs || thunkp ws || thunkp rs)),
+        (skip_ahead (n __type__ int) (v:vs) (w:ws) (r:rs) --> skip_ahead (n+1) vs ws rs),
+        (skip_ahead (n __type__ int) (_ __type__ list) (_ __type__ list) vs
+                                                       --> n (improper vs)),
+        (skip_ahead (n __type__ int) (_ __type__ list) vs _
+                                                       --> n (improper vs)),
+        (skip_ahead (n __type__ int) vs _ _            --> n (improper vs)),
         (handle u --> __ifelse__ (u===cell) (get cell) (throw u)),
         (abort u  --> put cell u$$throw cell)
     ] __when__ [
