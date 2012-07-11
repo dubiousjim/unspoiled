@@ -132,18 +132,18 @@ private process_tailop;
 private process_app unwind_app1 unwind_app2;
 private finish_w finish_tailop finish_lambda finish_bare;
 
-#! --quoteargs __macro__::walker
-// all the process* macros are call-by-name
 #! --quoteargs __macro__::walker::process
-#! --quoteargs __macro__::walker::process_if1
-#! --quoteargs __macro__::walker::process_if2
-#! --quoteargs __macro__::walker::process_if3
-#! --quoteargs __macro__::walker::process_case
-#! --quoteargs __macro__::walker::process_when
-#! --quoteargs __macro__::walker::process_with1
-#! --quoteargs __macro__::walker::process_with2
-#! --quoteargs __macro__::walker::process_tailop
-#! --quoteargs __macro__::walker::process_app
+// #! --quoteargs __macro__::walker
+// all the process* macros are call-by-name
+// #! --quoteargs __macro__::walker::process_if1
+// #! --quoteargs __macro__::walker::process_if2
+// #! --quoteargs __macro__::walker::process_if3
+// #! --quoteargs __macro__::walker::process_case
+// #! --quoteargs __macro__::walker::process_when
+// #! --quoteargs __macro__::walker::process_with1
+// #! --quoteargs __macro__::walker::process_with2
+// #! --quoteargs __macro__::walker::process_tailop
+// #! --quoteargs __macro__::walker::process_app
 
 def __macro__::walker converter symbol_list state expression = __tail__ (process converter 0 1 [symbol_list,state,expression]);
 
