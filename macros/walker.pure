@@ -47,24 +47,24 @@ together with all its arguments), so then the return value has the form:
 
 For example, if one expression in tail position is:
 
-    HEAD1 VAL2 (HEAD2 VAL3) VAL4
+    HEAD1 VAL1 (HEAD2 VAL2) VAL3
 
-Converter will be passed each of these lists: [HEAD1, VAL2, HEAD2 VAL3, VAL4],
-[VAL2], [HEAD2, VAL3], [VAL3], and [VAL4], with t set to 1 for [HEAD1,...] and
-0 for the rest. If Converter returns Wrapper for HEAD, and HEAD', VAL1',
-VAL2', VAL3' for each of the transformed expressions, then the final syntax
+Converter will be passed each of these lists: [HEAD1, VAL1, HEAD2 VAL2, VAL3],
+[VAL1], [HEAD2, VAL2], [VAL2], and [VAL3], with t set to 1 for [HEAD1,...] and
+0 for the rest. If Converter returns Wrapper for HEAD1, and HEAD1', VAL1',
+HEAD2', VAL2', VAL3' for each of the transformed expressions, then the final syntax
 tree will contain:
 
-    Wrapper (HEAD' VAL1' VAL2' VAL3')
+    Wrapper (HEAD1' VAL1' (HEAD2' VAL2') VAL3')
 
 If you don't want to insert any substantial Wrapper, just return the __id__
 macro here.
 
-Converter won't be passed ($$) (||) or (&&) heads; walker handles these
+Converter won't be passed ($$) (||) or (&&) as heads; walker handles these
 internally.
 
-In Pure syntax, block constructs can occur as heads, as in ((if x then succ
-else pred) y). And these applications sometimes occur in tail position.
+In Pure syntax, block constructs can occur as heads, as in ((if a then succ
+else pred) e). And these applications sometimes occur in tail position.
 However, the arms of the block construct are not in such cases passed to
 Converter as heads (unless they are heads inside the block), and they aren't
 passed as being in tail position either. So for example, if the expression:
@@ -83,25 +83,23 @@ as being in tail position. That is, if the expression:
 is in tail position, Converter will be passed the lists [a], [b, c], and [c],
 and exactly the second will be flagged as in tail position.
 
-Converter will be passed (quoted) lambda constructions, for example if the expression:
-, but no other block
-syntax or complex expressions. That is, if the expression:
+Converter will be passed lambda constructions, for example if the
+expression:
 
     (\a -> b c) d
 
-is in tail position, Converter will be passed the lists [b, c], [c], ['(\a -> b
-c), d], and [d], and exactly the third will be flagged as in tail position. It
-is the Converter's responsibility to __eval__ the quoted lambda.
+is in tail position, Converter will be passed the lists [b, c], [c], [(\a -> b
+c), d], and [d], and exactly the third will be flagged as in tail position. If
+you want to pattern match the lambda construction, Converter will need to be
+declared quoteargs.
 
-(TODO: Should I just require that Converters be declared quoteargs?)
+Converter won't be passed any other block syntax---nor indeed any complex
+expressions---as the topmost expression. When the topmost expression is a head,
+though, later not-yet-processed values in the expression list may be complex or
+block expressions.
 
-Converter won't be passed any other block syntax, nor indeed any complex
-expressions, as the current expressions to be converted (at the head of its
-expression list). When the current expression is a head, later
-not-yet-processed values in the expression list may be complex or block
-expressions.
-
-At the end, walker will return a value of the form Final_State:Converted_Pure_Expression.
+At the end, walker will return a value of the form
+Final_State:Converted_Pure_Expression.
 
 */
 
@@ -246,7 +244,7 @@ def process_tailop op b rest pcqt [f0, state, a] = finish_tailop op a (pcqt (f0:
 def finish_tailop op a (f0:state:b:rest) = f0:state:op a b:rest;
 
 def process conv q t (f:state:(__lambda__ ps x):rest) = finish_lambda rest f (conv q) t ps (process conv q 0 $ free [f, state, x] 1 0 ps);
-def finish_lambda rest f0 cq t ps [_, state, x]       = f0:cq t f0 state (('__lambda__ ps x):rest);
+def finish_lambda rest f0 cq t ps [_, state, x]       = f0:cq t f0 state ((__lambda__ ps x):rest);
 
 // We need to keep the head u in a head position so that we can use the pattern
 // (quote ...) to match it literally. Potentially the head might be a macro

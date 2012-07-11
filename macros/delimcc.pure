@@ -79,9 +79,6 @@ def convert_reset q 0 (_:shift:_) nil (op@shift:arg:rest) |
     convert_reset q 0 (_:control0:_) nil (op@control0:arg:rest) |
     convert_reset q 0 (control0:_) nil (op@control0:arg:rest) = op arg:v:rest;
 
-def convert_reset q 1 symbols state (('x):rest) = state:__id__:__eval__ x:rest;
-def convert_reset q 0 symbols state (('x):rest) = state:__eval__ x:rest;
-
 def convert_reset q 1 symbols state xs = state:__id__:xs;
 def convert_reset q 0 symbols state xs = state:xs;
 
