@@ -1,0 +1,119 @@
+/* delimcc macros
+
+   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+   [Add explanation about licensing, or link to
+   https://github.com/dubiousjim/unspoiled/blob/master/LICENSE].
+
+
+These macros use a similar rewriting technique to the one used in gfold.pure.
+Ideally we should abstract away the differences and use a single rewriting macro
+backend.
+
+reset/shift:
+
+    reset (middle (shift (\k -> inside) moreshift...) moremiddle...)
+
+(where reset doesn't occur in middle, inside, moreshift or moremiddle) is transformed to:
+
+    catch handle (shifted captured_middle moreshift...) with
+        shifted k = inside2; // just like `inside` except head occurrences of k are replaced by (abort.k)
+        captured_middle v = middle v moremiddle...;
+        handle v = if v===cell then get v else throw v;
+        abort v = put cell v $$ throw cell;
+    end with
+        cell = ref ();
+    end;
+
+*/
+
+namespace delimcc;
+using walker;
+using namespace __macro__;
+
+public reset reset0;
+public nonfix shift shift0 control control0 abort;
+
+private convert_reset finish_reset finish_reset0 v k;
+private nonfix nil;
+
+/*
+def subst v [] = v;
+def subst v ((v-->w):xs) = w;
+def subst v (x:xs) = subst v xs;
+
+def unwind us (v:vs) = unwind (us v) vs;
+def unwind us [] = us;
+*/
+
+def convert_reset q 1 (abort:_) nil (op@abort:arg:rest) = op arg:__id__:v:rest;
+
+def convert_reset q 1 (_:shift:_) nil (op@shift:arg:rest) |
+    convert_reset q 1 (shift:_) nil (op@shift:arg:rest) |
+    convert_reset q 1 (_:_:control:_) nil (op@control:arg:rest) |
+    convert_reset q 1 (_:control:_) nil (op@control:arg:rest) |
+    convert_reset q 1 (control:_) nil (op@control:arg:rest) |
+    convert_reset q 1 (_:_:_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 1 (_:_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 1 (_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 1 (shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 1 (_:_:_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 1 (_:_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 1 (_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 1 (_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 1 (control0:_) nil (op@control0:arg:rest) = op arg:__id__:v:rest;
+
+def convert_reset q 0 (abort:_) nil (op@abort:arg:rest) = op arg:v:rest;
+
+def convert_reset q 0 (_:shift:_) nil (op@shift:arg:rest) |
+    convert_reset q 0 (shift:_) nil (op@shift:arg:rest) |
+    convert_reset q 0 (_:_:control:_) nil (op@control:arg:rest) |
+    convert_reset q 0 (_:control:_) nil (op@control:arg:rest) |
+    convert_reset q 0 (control:_) nil (op@control:arg:rest) |
+    convert_reset q 0 (_:_:_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 0 (_:_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 0 (_:shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 0 (shift0:_) nil (op@shift0:arg:rest) |
+    convert_reset q 0 (_:_:_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 0 (_:_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 0 (_:_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 0 (_:control0:_) nil (op@control0:arg:rest) |
+    convert_reset q 0 (control0:_) nil (op@control0:arg:rest) = op arg:v:rest;
+
+def convert_reset q 1 symbols state (('x):rest) = state:__id__:__eval__ x:rest;
+def convert_reset q 0 symbols state (('x):rest) = state:__eval__ x:rest;
+
+def convert_reset q 1 symbols state xs = state:__id__:xs;
+def convert_reset q 0 symbols state xs = state:xs;
+
+def finish_reset [nil, body] = body;
+
+def finish_reset0 [nil, body] = body;
+
+def finish_reset [abort value, body] =
+    reset(value);
+
+def finish_reset0 [abort value, body] =
+    reset0(value);
+
+def finish_reset [shift kbody, body]  =
+    reset(kbody k __with__ [(k v --> reset body)]);
+def finish_reset [shift0 kbody, body] =
+    reset(kbody k __with__ [(k v --> reset0 body)]);
+
+def finish_reset [control kbody, body]  |
+    finish_reset [control0 kbody, body] =
+    reset(kbody k __with__ [(k v --> body)]);
+
+def finish_reset0 [shift kbody, body]  =
+    reset0(kbody k __with__ [(k v --> reset body)]);
+def finish_reset0 [shift0 kbody, body] =
+          (kbody k __with__ [(k v --> reset0 body)]);
+
+def finish_reset0 [control kbody, body]  =
+    reset0(kbody k __with__ [(k v --> body)]);
+def finish_reset0 [control0 kbody, body] =
+          (kbody k __with__ [(k v --> body)]);
+
+def reset expression = finish_reset (walker convert_reset [abort,shift,control,shift0,control0] nil expression);
+def reset0 expression = finish_reset0 (walker convert_reset [abort,shift,control,shift0,control0] nil expression);
+

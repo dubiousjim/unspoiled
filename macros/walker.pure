@@ -260,6 +260,9 @@ def process_app rest conv q t f state ((') vs)      = unwind_app1 rest f (proces
 def process_app rest conv q t f state (u@_ vs)      = unwind_app1 rest f (process conv q) __id__ t (process conv q t (f:state:u:vs));
 def unwind_app1 rest f0 pcq _    1         (f:state:wrap:u:v:vs) |
     unwind_app1 rest f0 pcq wrap 0         (f:state:u:v:vs)      = unwind_app2 rest f0 pcq wrap u      vs (pcq 0 [f, state, v]);
+// the following is possible if the conv function removes the vs
+def unwind_app1 rest f0 pcq _    1         (f:state:wrap:u:[])   |
+    unwind_app1 rest f0 pcq wrap 0         (f:state:u:[])        = f0:state:wrap u:rest;
 def unwind_app2 rest f0 pcq wrap us (v:vs) (f:state:[w])         = unwind_app2 rest f0 pcq wrap (us w) vs (pcq 0 [f, state, v]);
 def unwind_app2 rest f0 pcq wrap us []     (_:state:[w])         = f0:state:wrap (us w):rest;
 
