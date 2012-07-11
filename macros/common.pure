@@ -1,0 +1,25 @@
+/* Common macro utilities.
+
+*/
+
+namespace __macro__;
+public __id__ __head__ __tail__ __flip__ __append__ __subst__;
+
+def __id__ x = x;
+
+def __head__ (x:xs) = x;
+
+def __tail__ (x:xs) = xs;
+
+def __flip__ head b a = head a b;
+
+def __append__ (v:w:x:y:ys) zs = v:w:x:y:(__append__ ys zs);
+def __append__ (w:x:y:ys) zs = w:x:y:(__append__ ys zs);
+def __append__ (x:y:ys) zs = x:y:(__append__ ys zs);
+def __append__ (y:ys) zs = y:(__append__ ys zs);
+def __append__ [] zs = zs;
+
+def __subst__ v [] = v;
+def __subst__ v ((v-->w):xs) = w;
+def __subst__ v (x:xs) = __subst__ v xs;
+

@@ -357,7 +357,7 @@ using namespace __macro__;
 
 public left right;
 public nonfix abort;
-private finish_left finish_right convert_left convert_right subst;
+private finish_left finish_right convert_left convert_right;
 private SKIPSIZE; const SKIPSIZE = 4096;
 
 #! --quoteargs gfold::left
@@ -369,15 +369,15 @@ private handle aux fold_pre len_pre folded_tail skip_ahead cell v vs u n;
 def convert_left wrap 0 1 ((abort-->v):_) () (abort:rest@(_:_)) = ():__id__:v:rest;
 // the gfoldl expansion doesn't handle `abort`s other than tail applications
 def convert_left wrap _ _ ((abort-->v):_) () (abort:rest) = ():abort:rest;
-def convert_left wrap 0 1 symbols () (w:rest) = ():wrap:subst w symbols:rest;
+def convert_left wrap 0 1 symbols () (w:rest) = ():wrap:__subst__ w symbols:rest;
 // note we substitute even in quotation contexts
-def convert_left wrap _ _ symbols () (w:rest) = ():subst w symbols:rest;
+def convert_left wrap _ _ symbols () (w:rest) = ():__subst__ w symbols:rest;
 
 def convert_right 0 1 (abort:_) _ (abort:rest) = 1:__id__:abort:rest;
 def convert_right 0 0 (abort:_) _ (abort:rest) = 1:abort:rest;
-def convert_right 0 1 symbols saw (w:rest) = saw:__id__:subst w symbols:rest;
+def convert_right 0 1 symbols saw (w:rest) = saw:__id__:__subst__ w symbols:rest;
 // note we substitute even in quotation contexts
-def convert_right _ _ symbols saw (w:rest) = saw:subst w symbols:rest;
+def convert_right _ _ symbols saw (w:rest) = saw:__subst__ w symbols:rest;
 
 
 def left (\b y ys -> body) final improper a xs =
@@ -428,9 +428,5 @@ def finish_right v vs u final improper a xs [1, body] =
         (cell     --> ref ())
     ];
 
-
-def subst v [] = v;
-def subst v ((v-->w):xs) = w;
-def subst v (x:xs) = subst v xs;
 
 
