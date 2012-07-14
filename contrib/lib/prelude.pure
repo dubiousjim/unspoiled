@@ -139,7 +139,7 @@ infixr  1500   || ;                // logical or (short-circuit)
 infixr  1600   && ;                // logical and (short-circuit)
 prefix  1700   ~ ;                 // logical negation
 infix   1800   < > <= >= == ~= ;   // relations
-infix   1800   === ~== ;           // syntactic equality
+infix   1800   === ~== ==? ~=? ;   // fine- and coarse-grained equality
 infixr  1900   : ;                 // list cons
 infix   2000   +: <: ;             // complex numbers (cf. math.pure)
 infixl  2100   << >> ;             // bit shifts
@@ -593,17 +593,23 @@ def void [x] | void {x} = void x;
    .. function:: infix == /list x y
       		 infix ~= /list x y
 
-      Equality and inequality of lists and tuples. These compare two lists or
-      tuples by recursively comparing their members, so '\ :func:`==`\ ' must
+      Equality and inequality of lists and tuples. These compare two lists
+      or tuples by recursively comparing their members, so '\ :func:`==`\ ' must
       be defined on the list or tuple members if you want to use these
-      operations. Also note that these operations are inherently eager, so
-      applying them to two infinite lists may take an infinite amount of
-      time. ::
+      operations. ::
 
         > reverse [a,b,c] == [c,b,a];
 	1
 	> (a,b,c) == ();
 	0
+
+      '\ :func: `==?`\ ' is another alternative, that checks whether the
+      members of the tuples are '\ :func:`==`\ ', or when that's not
+      defined, whether they are '\ :func:`===`\ '.
+
+      Note that all these operations are inherently eager, so
+      applying them to two infinite lists may take an infinite amount of
+      time.
 
    .. index:: list; size
    .. index:: tuple; size
@@ -850,7 +856,31 @@ def void [x] | void {x} = void x;
    ``x=>(y=>z)``. Also note that '\ :cons:`,`\ ' has lower precedence than
    '\ :cons:`=>`\ ', so to include a tuple as key or value in a hash pair, the
    tuple must be parenthesized, as in ``"foo"=>(1,2)`` (whereas ``"foo"=>1,2``
-   denotes a tuple whose first element happens to be a hash pair). */
+   denotes a tuple whose first element happens to be a hash pair).
+
+
+   Coarse-grained equality
+   -----------------------
+
+   .. function:: infix ==? x y
+                 infix ~=? x y
+
+      A coarser-grained equality than `===`. This tracks :func:`==` when it's
+      defined but otherwise falls back to func:`===`. The implementation
+      is optimized for native Pure aggregates (lists, comma-tuples, hash
+      pairs, and matrices) so as not to have to traverse the
+      aggregate twice when :func:`==` isn't defined on all the members.
+
+      Unlike func:`===`, this will for example group together sets that whose
+      implementing balanced trees happen to have different structures. Unlike
+      func:`==`, this is defined on all Pure expressions.
+
+      See |equality|_ at the Pure wiki for further discussion of these
+      predicates.
+
+   .. |equality| replace:: Equality
+   .. _equality: http://code.google.com/p/pure-lang/wiki/Equality
+*/
 
 /* The hash rocket. This constructor is declared here so that it can be used
    in other standard library modules to denote special kinds of pairs which
@@ -1698,6 +1728,44 @@ with
   check (foldr _ _ us)	= throw (bad_list_value us);
   check us		= throw (bad_tuple_value us);
 end;
+
+
+/* Coarse-grained equality. We optimize the definitions for native aggregates
+   so as not to have to traverse them twice, when `==` isn't defined for all
+   members. */
+
+x::smatrix ==? y::matrix |
+x::matrix ==? y::smatrix = 0 if dim x ~= dim y;
+			 = compare 0 with
+			   compare i::int = 1 if i>=n;
+			     = 0 if x!i ~=? y!i;
+			     = compare (i+1);
+			   end when n::int = #x end;
+
+x::smatrix ~=? y::matrix |
+x::matrix ~=? y::smatrix = ~(x ==? y);
+
+(x=>v)==?(y=>w)	= x==?y && v==?w;
+(x=>v)~=?(y=>w)	= x~=?y || v~=?w;
+
+(x,xs)==?(y,ys)	= x==?y && xs==?ys;
+(x,xs)~=?(y,ys)	= x~=?y || xs~=?ys;
+
+(x:xs)==?(y:ys)	= x==?y && xs==?ys;
+(x:xs)~=?(y:ys)	= x~=?y || xs~=?ys;
+
+// the general cases
+
+x ==? y = case x == y of
+            res::int = res;
+            _ = same x y;
+          end;
+
+x ~=? y = case x == y of
+            res::int = res == 0;
+            _ = ~same x y;
+          end;
+
 
 /* Add below any extra stuff which doesn't belong elsewhere, or needs to be
    defined after all the basic prelude operations have been loaded. */

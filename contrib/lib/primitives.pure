@@ -263,7 +263,7 @@ using namespace __C;
    Predicates
    ~~~~~~~~~~
 
-   A syntactic equality test is provided, as well as various type checking
+   A fine-grained equality test is provided, as well as various type checking
    predicates. Note that type definitions are provided for most of the type
    checking predicates which don't denote built-in types; see `Prelude Types`_
    for details.
@@ -272,12 +272,17 @@ using namespace __C;
                  infix === x y
                  infix ~== x y
 
-      Syntactic equality. In contrast to :func:`==` and :func:`~=`, this is
-      defined on all Pure expressions. Basically, two expressions are
-      syntactically equal if they print out the same in the interpreter. In
-      the special case of pointer objects and closures, which do not always
-      have a syntactic representation in Pure, ``x`` and ``y`` must be the
-      same object (same pointer value or function).
+      Fine-grained equality. In contrast to :func:`==` and :func:`~=`, this is
+      defined on all Pure expressions. Two expressions are fine-grained
+      equal if they have the same structures and all their components are
+      fine-grained equal, where simple immutable values are fine-grained equal
+      based on their value, and pointer objects and closures are fine-grained
+      equal based on their physical identity. Some expressions print out the
+      same in the interpreter despite not being fine-grained equal (such as
+      symbols with global and local rule bindings, or the same symbol quoted).
+
+      Coarser-grained equality predicates :func:`==?` and :func:`~=?` are
+      defined in prelude.pure.
 
    .. function:: typep ty x
 
@@ -1064,7 +1069,7 @@ extern expr* pure_force(expr*) = force;
 
 extern void exit(int status);
 
-/* Syntactic equality. */
+/* Fine-grained equality. */
 
 extern bool same(expr* x, expr* y);
 x === y		= same x y;
