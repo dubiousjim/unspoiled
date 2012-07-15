@@ -867,14 +867,12 @@ subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
   // same basic logic to make it tail-recursive.
   take n::int []	= [];
   take n::int xs@(_:_)	= tick n [] xs;
-  tick n::int zs xs	= tack zs [] if n<=0;
+  tick n::int zs xs	= reverse_onto [] zs if n<=0;
 			= case xs of
-			    []   = tack zs [];
+			    []   = reverse_onto [] zs;
 			    x:xs = tick (n-1) (x:zs) xs;
-			    _    = tack zs (take n xs);
+			    _    = reverse_onto (take n xs) zs;
 			  end;
-  tack (x:xs) ys	= tack xs (x:ys);
-  tack [] ys		= ys;
 end;
 subseq x a b = slice x (a..b);
 
