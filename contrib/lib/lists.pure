@@ -245,8 +245,21 @@
    In addition, the prelude provides conversion operations between lists,
    tuples, and streams. */
 
-
-
+/* We default to using the existing, reverse-based algorithms. If one
+   runs the interpreter using --enable=list-opt, we instead use
+   algorithms based on the skip-ahead technique described at
+   <http://ocaml.janestreet.com/?q=node/71>. This protects against
+   stack overflows without needing to reverse, gaining some speed
+   and using substantially less memory.
+*/
+#! --ifndef list-opt
+#! --disable list-opt
+#! --endif
+#! --if list-opt
+namespace __std__;
+const SKIPSIZE = 4096;
+namespace;
+#! --endif
 
 /* Lists are the usual "conses" written using the infix ':' operator. '[]'
    denotes the empty list. Moreover, the parser provides the customary sugar
@@ -284,8 +297,8 @@ end;
 
 
 /* List reversal. This is a strict operation, of course, so it will loop on
-   infinite lists. Also, this is one of the few list operations which throws
-   an exception for improper lists, since in that case there really isn't any
+   infinite lists. Also, these are some of the few list operations which throw
+   an exception for improper lists xs, since in that case there really isn't any
    meaningful value to return. */
 
 reverse_onto base []     = base;
@@ -301,11 +314,12 @@ reverse xs@(_:_)	 = reverse_onto [] xs;
 
 /* List concatenation. For a robust implementation which works with both
    ordinary lists and streams, we want this to be tail-recursive *and*
-   non-strict. So we first walk down the list, popping elements from the first
+   non-strict. */
+[]+ys		= ys;
+#! --ifnot list-opt
+/* This implementation first walks down the list, popping elements from the first
    operand until we find an empty or thunked tail ('tick'), then walk back up
    again, pushing elements in front of the result list ('reverse_onto'). */
-
-[]+ys		= ys;
 xs@(_:_)+ys	= tick [] xs ys
 with
   tick zs (x:xs) ys	= reverse_onto ((xs+ys)&) (x:zs) if thunkp xs;
@@ -314,6 +328,10 @@ with
   /* Handle an improper list tail (xs+ys is in normal form here). */
   tick zs xs ys		= reverse_onto (xs+ys) zs;
 end;
+
+#! --else
+// skip-ahead
+#! --endif
 
 
 
@@ -493,6 +511,8 @@ dropwhile p ys@(x:xs)	= dropwhile p xs if p x;
 			= ys otherwise;
 
 filter p []		= [];
+#! --ifnot list-opt
+// reverse-based
 filter p xs@(_:_)	= tick [] xs
 with
   add p x xs		= if p x then x:xs else xs;
@@ -502,12 +522,22 @@ with
   tick _ xs		= throw (bad_list_value xs);
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
+
+// These are inherently eager.
+
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
 
 foldl1 f (x:xs)		= foldl f x xs;
 
 foldr f a []		= a;
+foldr1 f [x]		= x;
+#! --ifnot list-opt
+// reverse-based
 foldr f a xs@(_:_)	= tick [] xs
 with
   tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
@@ -518,7 +548,6 @@ with
   tack [] y		= y;
 end;
 
-foldr1 f [x]		= x;
 foldr1 f xs@(_:_)	= tick [] xs
 with
   /* Do the thunkp check first, before probing the tail. Note that the first
@@ -534,9 +563,15 @@ with
   tack [] y		= y;
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
 head (x:xs)		= x;
 
 init [x]		= [];
+#! --ifnot list-opt
+// reverse-based
 init xs@(_:_)		= tick [] xs
 with
   tick zs ys@(_:xs)	= reverse_onto (init ys&) zs if thunkp xs;
@@ -547,10 +582,17 @@ with
 			  end;
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
 last [x]		= x;
 last (x:xs)		= last xs;
 
+
 map f []		= [];
+#! --ifnot list-opt
+// reverse-based
 map f xs@(_:_)		= tick [] xs
 with
   tick zs (x:xs)	= reverse_onto (map f xs&) (f x:zs) if thunkp xs;
@@ -559,6 +601,12 @@ with
   tick zs xs		= reverse_onto (map f xs) zs;
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
+
+// no skip-ahead implementations yet, I'm lazy
 scanl f a []		= [a];
 scanl f a xs@(_:_)	= tick a [] xs
 with
@@ -615,9 +663,14 @@ with
   tack [] ys		= ys;
 end;
 
+
 tail (x:xs)		= xs;
 
+
 take n::int []		= [];
+takewhile p []	= [];
+#! --ifnot list-opt
+// reverse-based
 take n::int xs@(_:_)	= tick n [] xs
 with
   tick n::int zs xs	= reverse_onto [] zs if n<=0;
@@ -629,7 +682,6 @@ with
 			  end;
 end;
 
-takewhile p []	= [];
 takewhile p xs@(_:_)	= tick [] xs
 with
   tick zs xs		= reverse_onto (takewhile p xs&) zs if thunkp xs;
@@ -641,9 +693,16 @@ with
 			  end;
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
+
 /* Concatenate a list of lists. */
 
 cat []			= [];
+#! --ifnot list-opt
+// reverse-based
 cat xs@(_:_)		= foldr (tick []) [] xs
 with
   /* Unfortunately, the global list concatenation operator (+) isn't fully
@@ -670,15 +729,26 @@ with
   foldr (tick _) [] x	= cat x;
 end;
 
+#! --else
+// skip-ahead
+#! --endif
+
+
 /* Map a function to a list and concatenate the results. This is used by list
    comprehensions. */
 
 catmap f []		= [];
+#! --ifnot list-opt
+// reverse-based
 catmap f xs@(_:_)	= cat (map f xs);
-
 /* NOTE: This definition (from the Haskell prelude) is better, but doesn't
    preserve left-to-right execution order. */
 //catmap f xs@(_:_)	= foldr ((+).f) [] xs;
+
+#! --else
+// skip-ahead
+#! --endif
+
 
 /* Map a function to a list, like map, but first promote the argument to a
    list if possible. This is used by list comprehensions. */
@@ -769,6 +839,7 @@ cycle ys@(x:xs)		= x : (xs+cycle ys)&;
    takewhile/take and the above, but are implemented directly for maximum
    efficiency. */
 
+// no skip-ahead implentations yet, I'm lazy
 iterwhile p f x		= accum [] p f x with
 			    accum xs p f x = accum (x:xs) p f (f x) if p x;
 				           = reverse xs otherwise;
@@ -842,8 +913,19 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
 */
 
+
 zip [] _		|
 zip _ []		= [];
+zip3 [] _ _		|
+zip3 _ [] _		|
+zip3 _ _ []		= [];
+zipwith f [] _		|
+zipwith f _ []		= [];
+zipwith3 f [] _ _		|
+zipwith3 f _ [] _		|
+zipwith3 f _ _ []		= [];
+#! --ifnot list-opt
+// reverse-based
 zip xs@(_:_) ys@(_:_)	= tick [] xs ys
 with
   tick us (x:xs) (y:ys)	= reverse_onto (zip xs ys&) ((x,y):us)
@@ -854,9 +936,6 @@ with
   tick us xs ys		= reverse_onto (zip xs ys) us;
 end;
 
-zip3 [] _ _		|
-zip3 _ [] _		|
-zip3 _ _ []		= [];
 zip3 xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
@@ -870,8 +949,6 @@ with
   tick us xs ys zs	= reverse_onto (zip3 xs ys zs) us;
 end;
 
-zipwith f [] _		|
-zipwith f _ []		= [];
 zipwith f xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
@@ -883,9 +960,6 @@ with
   tick us xs ys		= reverse_onto (zipwith f xs ys) us;
 end;
 
-zipwith3 f [] _ _		|
-zipwith3 f _ [] _		|
-zipwith3 f _ _ []		= [];
 zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
@@ -899,12 +973,9 @@ with
   tick us xs ys zs	= reverse_onto (zipwith3 f xs ys zs) us;
 end;
 
-dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
-dowith f _ _		= () otherwise;
-
-dowith3 f (x:xs) (y:ys) (z:zs)
-			= f x y z $$ dowith3 f xs ys zs;
-dowith3 f _ _ _		= () otherwise;
+#! --else
+// skip-ahead
+#! --endif
 
 unzip []		= [],[];
 unzip us@(_:_)		= foldr accum ([],[]) us
@@ -930,3 +1001,10 @@ with
   check (foldr _ _ us)	= throw (bad_list_value us);
   check us		= throw (bad_tuple_value us);
 end;
+
+dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
+dowith f _ _		= () otherwise;
+
+dowith3 f (x:xs) (y:ys) (z:zs)
+			= f x y z $$ dowith3 f xs ys zs;
+dowith3 f _ _ _		= () otherwise;
