@@ -244,7 +244,15 @@
 
 */
 
+#! --ifndef trees23
+#! --disable trees23
+#! --endif
+
+#! --if trees23
+using trees23;
+#! --else
 using avltrees;
+#! --endif
 
 // These should be considered private.
 public Set Bag HSet HBag;
@@ -260,10 +268,10 @@ hbagp x = typep hbag x;
 xsetp x = typep xset x;
 
 // create an empty set
-emptyset  = Set  avl::emptytree;
-emptybag  = Bag  avl::emptytree;
-emptyhset = HSet avl::emptytree;
-emptyhbag = HBag avl::emptytree;
+emptyset  = Set  baltree::emptytree;
+emptybag  = Bag  baltree::emptytree;
+emptyhset = HSet baltree::emptytree;
+emptyhbag = HBag baltree::emptytree;
 
 // conversions between the different set types
 public members;
@@ -280,66 +288,66 @@ hset xs::rlist = foldl insert emptyhset xs;
 hbag xs::rlist = foldl insert emptyhbag xs;
 
 // insert a member
-insert (Set  m) y = Set  (avl::insert   m y);
-insert (Bag  m) y = Bag  (avl::minsert  m y);
-insert (HSet m) y = HSet (avl::hinsert  m y);
-insert (HBag m) y = HBag (avl::mhinsert m y);
+insert (Set  m) y = Set  (baltree::insert   m y);
+insert (Bag  m) y = Bag  (baltree::minsert  m y);
+insert (HSet m) y = HSet (baltree::hinsert  m y);
+insert (HBag m) y = HBag (baltree::mhinsert m y);
 
 // delete a member
-delete (Set  m) y = Set  (avl::delete   m y);
-delete (Bag  m) y = Bag  (avl::mdelete  m y);
-delete (HSet m) y = HSet (avl::hdelete  m y);
-delete (HBag m) y = HBag (avl::mhdelete m y);
+delete (Set  m) y = Set  (baltree::delete   m y);
+delete (Bag  m) y = Bag  (baltree::mdelete  m y);
+delete (HSet m) y = HSet (baltree::hdelete  m y);
+delete (HBag m) y = HBag (baltree::mhdelete m y);
 
 // delete all instances of a given member
-delete_all (Set  m) y = Set  (avl::delete    m y);
-delete_all (Bag  m) y = Bag  (avl::mdeletea  m y);
-delete_all (HSet m) y = HSet (avl::hdelete   m y);
-delete_all (HBag m) y = HBag (avl::mhdeletea m y);
+delete_all (Set  m) y = Set  (baltree::delete    m y);
+delete_all (Bag  m) y = Bag  (baltree::mdeletea  m y);
+delete_all (HSet m) y = HSet (baltree::hdelete   m y);
+delete_all (HBag m) y = HBag (baltree::mhdeletea m y);
 
 // check for the empty set
 null (Set  m) | null (Bag  m) |
-null (HSet m) | null (HBag m) = avl::null m;
+null (HSet m) | null (HBag m) = baltree::null m;
 
 // get size
-#(Set  m) = avl::size  m;
-#(Bag  m) = avl::msize m;
-#(HSet m) = avl::hsize m;
-#(HBag m) = avl::hsize m;
+#(Set  m) = baltree::size  m;
+#(Bag  m) = baltree::msize m;
+#(HSet m) = baltree::hsize m;
+#(HBag m) = baltree::hsize m;
 
 // membership test
-member (Set  m) y = avl::member  m y;
-member (Bag  m) y = avl::memberk m y;
-member (HSet m) y = avl::hmember m y;
-member (HBag m) y = avl::hmember m y;
+member (Set  m) y = baltree::member  m y;
+member (Bag  m) y = baltree::memberk m y;
+member (HSet m) y = baltree::hmember m y;
+member (HBag m) y = baltree::hmember m y;
 
 // get all members of a set as a list
-members (Set  m) = avl::members  m;
-members (Bag  m) = avl::mmembers m;
-members (HSet m) = avl::hmembers m;
-members (HBag m) = avl::hmembers m;
+members (Set  m) = baltree::members  m;
+members (Bag  m) = baltree::mmembers m;
+members (HSet m) = baltree::hmembers m;
+members (HBag m) = baltree::hmembers m;
 
 list m::xset = members m;
 
 // get the first and last member
-first (Set  m) = avl::first  m;
-first (Bag  m) = avl::mfirst m;
-last  (Set  m) = avl::last   m;
-last  (Bag  m) = avl::mlast  m;
-first (HSet m) = avl::hfirst m;
-first (HBag m) = avl::hfirst m;
-last  (HSet m) = avl::hlast  m;
-last  (HBag m) = avl::hlast  m;
+first (Set  m) = baltree::first  m;
+first (Bag  m) = baltree::mfirst m;
+last  (Set  m) = baltree::last   m;
+last  (Bag  m) = baltree::mlast  m;
+first (HSet m) = baltree::hfirst m;
+first (HBag m) = baltree::hfirst m;
+last  (HSet m) = baltree::hlast  m;
+last  (HBag m) = baltree::hlast  m;
 
 // remove the first and last member
-rmfirst (Set  m) = Set  (avl::rmfirst  m);
-rmfirst (Bag  m) = Bag  (avl::mrmfirst m);
-rmlast  (Set  m) = Set  (avl::rmlast   m);
-rmlast  (Bag  m) = Bag  (avl::mrmlast  m);
-rmfirst (HSet m) = HSet (avl::hrmfirst m);
-rmfirst (HBag m) = HBag (avl::hrmfirst m);
-rmlast  (HSet m) = HSet (avl::hrmlast  m);
-rmlast  (HBag m) = HBag (avl::hrmlast  m);
+rmfirst (Set  m) = Set  (baltree::rmfirst  m);
+rmfirst (Bag  m) = Bag  (baltree::mrmfirst m);
+rmlast  (Set  m) = Set  (baltree::rmlast   m);
+rmlast  (Bag  m) = Bag  (baltree::mrmlast  m);
+rmfirst (HSet m) = HSet (baltree::hrmfirst m);
+rmfirst (HBag m) = HBag (baltree::hrmfirst m);
+rmlast  (HSet m) = HSet (baltree::hrmlast  m);
+rmlast  (HBag m) = HBag (baltree::hrmlast  m);
 
 // comparisons
 m1@(Set _)  == m2@(Set _)  |

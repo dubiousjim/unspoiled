@@ -34,7 +34,12 @@
    http://en.wikipedia.org/wiki/AA_tree
    http://demakov.com/snippets/aatree.html */
 
+#! --if trees23
+namespace baltree;
+#! --else
 namespace trees23;
+#! --endif
+
 
 /* Tree constructors: `nil` denotes an empty tree, `bin left x right`
    an interior node with the given left and right subtrees, and
