@@ -134,9 +134,8 @@
       the members of the lists are '\ :func:`==`\ ', or when that's not
       defined, whether they are '\ :func:`===`\ '.
 
-      Note that all these operations are inherently eager, so
-      applying them to two infinite lists may take an infinite amount of
-      time.
+      Note that applying these operations to two infinite lists
+      may take an infinite amount of time.
 
    .. index:: list; size
 
@@ -242,6 +241,8 @@
         > reverse_onto [20,10] (3..5);
         [5, 4, 3, 20, 10]
 
+      Note: This operation and '\ :func:`reverse`\ ' are both inherently eager.
+
    In addition, the prelude provides conversion operations between lists,
    tuples, and streams. */
 
@@ -251,6 +252,11 @@
    <http://ocaml.janestreet.com/?q=node/71>. This protects against
    stack overflows without needing to reverse, gaining some speed
    and using substantially less memory.
+
+   Note that with --enable=list-opt, you no longer are guaranteed
+   left-to-right evaluation order for `map` and `catmap`. If you need
+   that, you can just explicitly use `foldl` and `reverse`, or
+   disable the optimizations.
 */
 #! --ifndef list-opt
 #! --disable list-opt
@@ -296,10 +302,10 @@ end;
 
 
 
-/* List reversal. This is a strict operation, of course, so it will loop on
-   infinite lists. Also, these are some of the few list operations which throw
-   an exception for improper lists xs, since in that case there really isn't any
-   meaningful value to return. */
+/* List reversal. These are inherently eager operations, so they will loop on
+   an infinite final argument. Also, these are some of the few list operations
+   which throw an exception when that argument is an improper list, since in
+   that case there really isn't any meaningful value to return. */
 
 reverse_onto base []     = base;
 reverse_onto base (x:xs) = accum (x:base) xs with
@@ -357,6 +363,33 @@ end;
    the first edition of the Bird/Wadler book, and is very similar to what you
    can find in the Haskell prelude. Some functions have slightly different
    names, though, and of course everything is typed dynamically.
+
+   Along with '\ :func:`#`\ ', '\ :func:`reverse`\ ', and
+   '\ :func:`reverse_onto`\ ', above, the following functions are inherently
+   eager: '\ :func:`bisect`\ ', '\ :func:`deleter`\ ', '\ :func:`do`\ ',
+   '\ :func:`dowith`\ ', '\ :func:`dowith3`\ ', '\ :func:`findr`\ ',
+   '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
+   '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`popr`\ ', and
+   '\ :func:`rotate`\ '. The other list functions will force stream arguments
+   only as far as necessary.
+
+   The indexing function '\ :func:`!`\ ' mentioned above throws the
+   exception ``out_of_bounds`` when given an invalid index. The functions
+   '\ :func:`findl`\ ' and '\ :func:`findr`\ ' throw this same exception
+   if no member of the list satisfies the supplied predicate.
+
+   Additionally, the following functions will throw the exception
+   ``bad_list_value`` when given an improper list:
+   '\ :func:`reverse`\ ', '\ :func:`reverse_onto`\ ', '\ :func:`deleter`\ ',
+   '\ :func:`findr`\ ', '\ :func:`popl`\ ', '\ :func:`popr`\ ',
+   '\ :func:`scanr`\ ', '\ :func:`scanr1`\ ', '\ :func:`unzip`\ ',
+   '\ :func:`unzip3`\ '. The other list functions will simply return a
+   not-further-reduced expression.
+
+   '\ :func:`unzip`\ ' and '\ :func:`unzip3`\ ' will also throw the
+   exception ``bad_tuple_value`` if their argument isn't a list whose
+   members are of the form ``x, y`` or ``x, y, z``, respectively.
+
 
    Common List Functions
    ~~~~~~~~~~~~~~~~~~~~~
@@ -608,7 +641,7 @@ all p (x:xs)		= p x && all p xs;
 any p []		= 0;
 any p (x:xs)		= p x || any p xs;
 
-
+// inherently eager
 bisect [] = [];
 bisect xs@(_:_) = res if matrixp res when
     res = aux [] xs xs;
@@ -617,6 +650,7 @@ end with
     aux ws (x:xs) (_:_:ys) = aux (x:ws) xs ys;
 end;
 
+// inherently eager
 do f []			= ();
 do f (x:xs)		= f x $$ do f xs;
 
@@ -680,7 +714,9 @@ deletel p ys@(_:_) = tick ys [] with
     tick xs ws = reverse_onto (deletel p xs) ws;
 end;
 
-// we have to juggle a bit to keep notfound private but let these methods access it
+/* We have to juggle a bit to keep `notfound` private but let these methods access
+   it. All of `findr`, `deleter`, and `popr` are inherently eager. */
+
 public findr popr deleter;
 namespace __std__;
 private nonfix notfound;
@@ -772,7 +808,7 @@ end;
 namespace;
 
 
-// These are inherently eager.
+// All the left-folding functions are inherently eager.
 
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
@@ -943,6 +979,7 @@ init xs@(_:_) = aux xs with
 end;
 #! --endif
 
+// inherently eager
 last [x]		= x;
 last (x:xs)		= last xs;
 
@@ -1638,6 +1675,7 @@ with
   check us		= throw (bad_tuple_value us);
 end;
 
+// `dowith` and `dowith3` are inherently eager
 dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
 dowith f _ _		= () otherwise;
 
