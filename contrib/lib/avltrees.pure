@@ -57,7 +57,7 @@ private bin;
 
 /* Private helper functions. */
 
-private adjusti adjustd init rotate cmp replace;
+private adjusti adjustd init rotate cmp replace popl popr splitby;
 
 /* Operations to construct an empty tree, and to check for an empty tree.
    These are the same for all variations of the data structure. */
@@ -78,7 +78,8 @@ null (bin _ _ _ _) = 0;
 /* Basic AVL tree operations, single value per key. */
 
 public foldl foldl1 foldr foldr1;
-public size members keys vals first last rmfirst rmlast;
+public size members keys vals;
+public first last rmfirst rmlast popfirst poplast;
 
 
 // General folds.
@@ -123,7 +124,8 @@ keys t = foldr ((:).(::key)) [] t;
 
 vals t = foldr ((:).(::val)) [] t;
 
-// Get the first and the last member of a tree.
+// Get the first and the last member of a tree. Like head/last for [],
+// the following two functions just fail to reduce when applied to nil.
 
 first t = first t with
   first (bin x _ nil _) = x;
@@ -151,10 +153,30 @@ rmlast t = rmlast t!0 with
     when [newr, rightHasChanged] = rmlast r end;
 end;
 
+popfirst nil = {};
+popfirst t = case popfirst t of
+  [y, t, _] = {| y, t |};
+end with
+  popfirst (bin x _ nil r) = [x, r, 1];
+  popfirst (bin x b l r) = y:adjustd leftHasChanged (bin x b newl r) (-1)
+    when [y, newl, leftHasChanged] = popfirst l end;
+end;
+
+poplast nil = {};
+poplast t = case poplast t of
+  [y, t, _] = {| y, t |};
+end with
+  poplast (bin x _ l nil) = [x, l, 1];
+  poplast (bin x b l r) = y:adjustd rightHasChanged (bin x b l newr) 1
+    when [y, newr, rightHasChanged] = poplast r end;
+end;
+
+
 /* Basic AVL tree operations, multiple values per key. */
 
 public mfoldl mfoldl1 mfoldr mfoldr1;
-public msize mmembers mkeys mvals mfirst mlast mrmfirst mrmlast;
+public msize mmembers mkeys mvals;
+public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
 mfoldl f a t = tick a t with
     tick a nil = a;
@@ -193,6 +215,9 @@ mvals t = foldr f [] t with
     f xs a = map_onto ::val a (::val xs);
 end;
 
+// Get the first and the last mmember of a tree. Like head/last for [],
+// the following two functions just fail to reduce when applied to nil.
+
 mfirst t = first t with
   first (bin (k=>xs) _ nil _) = head xs;
   first (bin _ _ l _) = first l;
@@ -202,6 +227,8 @@ mlast t = last t with
   last (bin (k=>xs) _ _ nil) = ::last xs;
   last (bin _ _ _ r) = last r;
 end;
+
+// Remove the first and the last mmember from a tree.
 
 mrmfirst t = rmfirst t!0 with
   rmfirst nil = [nil, 0];
@@ -223,19 +250,47 @@ mrmlast t = rmlast t!0 with
     when [newr, rightHasChanged] = rmlast r end;
 end;
 
+mpopfirst nil = {};
+mpopfirst t = case popfirst t of
+  [y, t, _] = {| y, t |};
+end with
+  popfirst (bin (k=>xs) b nil r)
+    = if ::null newxs then [x, r, 1]
+      else [x, bin (k=>newxs) b nil r, 0]
+      when x:newxs = xs end;
+  popfirst (bin x b l r) = y:adjustd leftHasChanged (bin x b newl r) (-1)
+    when [y, newl, leftHasChanged] = popfirst l end;
+end;
+
+mpoplast nil = {};
+mpoplast t = case poplast t of
+  [y, t, _] = {| y, t |};
+end with
+  poplast (bin (k=>xs) b l nil)
+    = if ::null newxs then [x, l, 1]
+      else [x, bin (k=>newxs) b l nil, 0]
+      when x:newxs = ::rotate xs end;
+  poplast (bin x b l r) = y:adjustd rightHasChanged (bin x b l newr) 1
+    when [y, newr, rightHasChanged] = poplast r end;
+end;
+
+
 /* The above also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
-public hsize hmembers hkeys hvals hfirst hlast hrmfirst hrmlast;
+public hsize hmembers hkeys hvals;
+public hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
 
-hsize t    = msize t;
-hmembers t = mmembers t;
-hkeys t    = mkeys t;
-hvals t    = mvals t;
-hfirst t   = mfirst t;
-hlast t    = mlast t;
-hrmfirst t = mrmfirst t;
-hrmlast t  = mrmlast t;
+hsize t     = msize t;
+hmembers t  = mmembers t;
+hkeys t     = mkeys t;
+hvals t     = mvals t;
+hfirst t    = mfirst t;
+hlast t     = mlast t;
+hrmfirst t  = mrmfirst t;
+hrmlast t   = mrmlast t;
+hpopfirst t = mpopfirst t;
+hpoplast t  = mpoplast t;
 
 /* Membership test for ordered sets and dictionaries. */
 
@@ -412,7 +467,7 @@ insertk t y@(key=>val) = insert t y!0 with
       end;
 end;
 
-public delete deletek deletekv;
+public delete deletek deletekv popk popkv;
 
 delete t y = delete t y!0 with
   delete nil _ = [nil, 0];
@@ -446,6 +501,26 @@ deletek t y = delete t y!0 with
       end;
 end;
 
+popk t y = case pop t y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ = [fail, nil, 0];
+  pop (bin x@(k=>v) b l r) y@key
+    = case cmp key k of
+        res::int
+          = v:adjustd leftHasChanged (bin x b newl r) (-1)
+            when [v, newl, leftHasChanged] = pop l y end if res < 0;
+          = v:adjustd rightHasChanged (bin x b l newr) 1
+            when [v, newr, rightHasChanged] = pop r y end if res > 0;
+          = if l===nil then [v, r, 1]
+            else if r===nil then [v, l, 1]
+            else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                when [newl, leftHasChanged] = init l end);
+      end;
+end;
+
+
 // Delete one specific key=>val pair.
 deletekv t y@(key=>val) = delete t y!0 with
   delete nil _ = [nil, 0];
@@ -460,6 +535,29 @@ deletekv t y@(key=>val) = delete t y!0 with
             else if l===nil then [r, 1]
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
+		  when [newl, leftHasChanged] = init l end);
+      end;
+end;
+
+// The popkv methods may seem like overkill: you already know the k=>v so
+// why isn't deletekv enough? However we do need these methods for weak-value
+// dicts.
+popkv t y@(key=>val) = case pop t y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ = [fail, nil, 0];
+  pop t@(bin x@(k=>v) b l r) y@(key=>val)
+    = case cmp key k of
+        res::int
+          = v:adjustd leftHasChanged (bin x b newl r) (-1)
+            when [v, newl, leftHasChanged] = pop l y end if res < 0;
+          = v:adjustd rightHasChanged (bin x b l newr) 1
+            when [v, newr, rightHasChanged] = pop r y end if res > 0;
+          = if val~=?v then [fail, nil, 0]
+            else if l===nil then [v, r, 1]
+            else if r===nil then [v, l, 1]
+            else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
 		  when [newl, leftHasChanged] = init l end);
       end;
 end;
@@ -494,8 +592,8 @@ minsertk t y@(key=>val) = insert t y!0 with
       end;
 end;
 
-public mdelete mdeleteko mdeletekn;
-public mdeletekvo mdeletekvn mdeletekva;
+public mdelete mdeleteko mdeletekn mpopko mpopkn;
+public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
 mdelete t y = delete t y!0 with
   delete nil _ = [nil, 0];
@@ -517,6 +615,27 @@ end;
 
 mdeleteko t y = mdelete t y;
 
+mpopko t y = case pop t y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ = [fail, nil, 0];
+  pop (bin x@(k=>xs) b l r) y@key
+    = case cmp key k of
+        res::int
+          = v:adjustd leftHasChanged (bin x b newl r) (-1)
+            when [v, newl, leftHasChanged] = pop l y end if res < 0;
+          = v:adjustd rightHasChanged (bin x b l newr) 1
+            when [v, newr, rightHasChanged] = pop r y end if res > 0;
+          = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
+            else if l===nil then [v, r, 1]
+            else if r===nil then [v, l, 1]
+            else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                  when [newl, leftHasChanged] = init l end)
+            when v:newxs = xs end;
+      end;
+end;
+
 mdeletekn t y = delete t y!0 with
   delete nil _ = [nil, 0];
   delete (bin x@(k=>xs) b l r) y@key
@@ -532,6 +651,27 @@ mdeletekn t y = delete t y!0 with
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
             when newxs = ::init xs end;
+      end;
+end;
+
+mpopkn t y = case pop t y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ = [fail, nil, 0];
+  pop (bin x@(k=>xs) b l r) y@key
+    = case cmp key k of
+        res::int
+          = v:adjustd leftHasChanged (bin x b newl r) (-1)
+            when [v, newl, leftHasChanged] = pop l y end if res < 0;
+          = v:adjustd rightHasChanged (bin x b l newr) 1
+            when [v, newr, rightHasChanged] = pop r y end if res > 0;
+          = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
+            else if l===nil then [v, r, 1]
+            else if r===nil then [v, l, 1]
+            else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                  when [newl, leftHasChanged] = init l end)
+            when v:newxs = ::rotate xs end;
       end;
 end;
 
@@ -589,6 +729,27 @@ mdeletekva t y@(key=>val) = delete t y!0 with
       end;
 end;
 
+mpopkva t y@(key=>val) = {| vs, t |} when
+  [vs, t, _] = pop t y;
+  // extract values and reverse
+  vs = ::foldl (flip((:).(::val))) [] vs;
+end with
+  pop nil _ = [[], nil, 0];
+  pop (bin x@(k=>xs) b l r) y@(key=>val)
+    = case cmp key k of
+        res::int
+          = vs:adjustd leftHasChanged (bin x b newl r) (-1)
+            when [vs, newl, leftHasChanged] = pop l y end if res < 0;
+          = vs:adjustd rightHasChanged (bin x b l newr) 1
+            when [vs, newr, rightHasChanged] = pop r y end if res > 0;
+          = if ~::null newxs then [vs, bin (k=>newxs) b l r, 0]
+            else if l===nil then [vs, r, 1]
+            else if r===nil then [vs, l, 1]
+            else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                  when [newl, leftHasChanged] = init l end)
+            when vs:newxs = splitby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+      end;
+end;
 
 // Delete all members for a given key.
 public mdeletea mdeleteka;
@@ -622,8 +783,8 @@ hinsertk t y@(rawkey=>_) = insert t (hash rawkey) y!0 with
 end;
 
 // These are also valid for multi-hashes.
-public hdelete hdeletek;
-public hdeletekv;
+public hdelete hdeletek hpopk;
+public hdeletekv hpopkv;
 
 hdelete t y = delete t (hash y) y!0 with
   delete nil _ _ = [nil, 0];
@@ -655,6 +816,26 @@ hdeletek t y = delete t (hash y) y!0 with
       when newxs = deletel (same y.(::key)) xs end;
 end;
 
+hpopk t y = case pop t (hash y) y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ _ = [fail, nil, 0];
+  pop (bin x@(k::int=>xs) b l r) key::int y
+    = v:adjustd leftHasChanged (bin x b newl r) (-1)
+      when [v, newl, leftHasChanged] = pop l key y end if key < k;
+    = v:adjustd rightHasChanged (bin x b l newr) 1
+      when [v, newr, rightHasChanged] = pop r key y end if key > k;
+    = case popl (same y.(::key)) xs of
+        [] = [fail, nil, 0];
+        (_=>v):newxs = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
+                  else if l===nil then [v, r, 1]
+                  else if r===nil then [v, l, 1]
+                  else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                        when [newl, leftHasChanged] = init l end)
+      end;
+end;
+
 hdeletekv t y@(key=>val) = delete t (hash key) y!0 with
   delete nil _ _ = [nil, 0];
   delete (bin x@(k::int=>xs) b l r) key::int y
@@ -672,6 +853,31 @@ hdeletekv t y@(key=>val) = delete t (hash key) y!0 with
   // once keys match, we can stop traversing
   deleteb xx@(x@(k=>v):xs) y@(k=>val) = if v==?val then xs else xx;
   deleteb (x:xs) y = x:deleteb xs y;
+end;
+
+// See comments to popkv on why this is needed.
+hpopkv t y@(key=>val) = case pop t (hash key) y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ _ = [fail, nil, 0];
+  pop (bin x@(k::int=>xs) b l r) key::int y
+    = v:adjustd leftHasChanged (bin x b newl r) (-1)
+      when [v, newl, leftHasChanged] = pop l key y end if key < k;
+    = v:adjustd rightHasChanged (bin x b l newr) 1
+      when [v, newr, rightHasChanged] = pop r key y end if key > k;
+    = case popb xs y of
+        [] = [fail, nil, 0];
+        v:newxs = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
+                  else if l===nil then [v, r, 1]
+                  else if r===nil then [v, l, 1]
+                  else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                        when [newl, leftHasChanged] = init l end)
+      end;
+  popb [] y = [];
+  // once keys match, we can stop traversing
+  popb (x@(k=>v):xs) y@(k=>val) = if v==?val then v:xs else [];
+  popb (x:xs) y = swap x (popb xs y) [];
 end;
 
 /* Hashed trees, multiple values. */
@@ -698,11 +904,12 @@ mhinsertk t y@(key=>val) = insert t (hash key) y!0 with
     = [bin (k=>xs+[y]) b l r, 0];
 end;
 
-public mhdelete mhdeleteko mhdeletekn;
-public mhdeletekvo mhdeletekvn mhdeletekva;
+public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
+public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
 mhdelete    t y = hdelete   t y;
 mhdeleteko  t y = hdeletek  t y;
+mhpopko     t y = hpopk     t y;
 
 mhdeletekn t y = delete t (hash y) y!0 with
   delete nil _ _ = [nil, 0];
@@ -717,6 +924,26 @@ mhdeletekn t y = delete t (hash y) y!0 with
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
       when newxs = deleter (same y.(::key)) xs end;
+end;
+
+mhpopkn t y = case pop t (hash y) y of
+  [fail, _, _] = {};
+  [v, t, _] = {| v, t |};
+end with
+  pop nil _ _ = [fail, nil, 0];
+  pop (bin x@(k::int=>xs) b l r) key::int y
+    = v:adjustd leftHasChanged (bin x b newl r) (-1)
+      when [v, newl, leftHasChanged] = pop l key y end if key < k;
+    = v:adjustd rightHasChanged (bin x b l newr) 1
+      when [v, newr, rightHasChanged] = pop r key y end if key > k;
+    = case popr (same y.(::key)) xs of
+        [] = [fail, nil, 0];
+        (_=>v):newxs = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
+                  else if l===nil then [v, r, 1]
+                  else if r===nil then [v, l, 1]
+                  else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+                        when [newl, leftHasChanged] = init l end)
+      end;
 end;
 
 mhdeletekvo t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
@@ -762,6 +989,25 @@ mhdeletekva t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
            when [newl, leftHasChanged] = init l end)
       when newxs = filter (\(k=>v) -> ~(k===rawkey && v==?val)) xs end;
+end;
+
+mhpopkva t y@(rawkey=>val) = {| vs, t |} when
+  [vs, t, _] = pop t (hash rawkey) y;
+  // extract values and reverse
+  vs = ::foldl (flip((:).(::val))) [] vs;
+end with
+  pop nil _ _ = [[], nil, 0];
+  pop (bin x@(k::int=>xs) b l r) key::int y
+    = vs:adjustd leftHasChanged (bin x b newl r) (-1)
+      when [vs, newl, leftHasChanged] = pop l key y end if key < k;
+    = vs:adjustd rightHasChanged (bin x b l newr) 1
+      when [vs, newr, rightHasChanged] = pop r key y end if key > k;
+    = if ~::null newxs then [vs, bin (k=>newxs) b l r, 0]
+      else if l===nil then [vs, r, 1]
+      else if r===nil then [vs, l, 1]
+      else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+            when [newl, leftHasChanged] = init l end)
+      when vs:newxs = splitby (\(k=>v) -> k===rawkey && v==?val) xs end;
 end;
 
 public mhdeletea mhdeleteka;
@@ -917,3 +1163,30 @@ cmp a b = if a<b then -1 else b<a;
 // replace first x satisfying p with y, else add y at end
 replace [] p y = [y];
 replace (x:xs) p y = if p x then y:xs else x:replace xs p y;
+
+// [] when no hits, else leftmost p is rotated to head
+popl p xs = tick xs with
+    tick [] = [];
+    tick (x:xs) = if p x then x:xs
+                     else swap x (tick xs) [];
+end;
+
+// [] when no hits, else rightmost p is rotated to head
+popr p xs = tick xs [] [] [] with
+    tick []     _  []     _   = [];
+    tick []     ms (h:hs) hss = h:tack (reverse ms) hs hss;
+    tick (x:xs) ms hs     hss = if p x
+                                then tick xs [] (x:ms) (hs:hss)
+                                else tick xs (x:ms) hs hss;
+    tack zs []     []         = zs;
+    tack zs []     (xs:xss)   = tack zs xs xss;
+    tack zs (y:ys) xss        = tack (y:zs) ys xss;
+end;
+
+// custom version of splitby
+splitby p ys = spl p ys [] [] with
+    spl p []     _  [] = []:ys; // no hits, use original
+    spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
+    spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
+                       = spl p xs (x:ms) hs otherwise;
+end;
