@@ -527,6 +527,12 @@ end;
       equivalent to ``{| findr p xs, deleter p xs |}``, but more efficient;
       if no member of ``xs`` satisfies predicate ``p``, returns ``{}``
 
+   .. function:: rotate xs
+
+      combines :func:`last` and :func:`init`, but only traverses ``xs`` once::
+
+        > rotate [1, 2, 3, 4]
+        [4, 1, 2, 3]
 
    .. function:: scanl f a xs
 
@@ -966,6 +972,30 @@ map_onto f base xs@(_:_) = aux xs with
 end;
 #! --endif
 
+
+// inherently eager
+#! --ifnot list-opt
+// reverse-based
+rotate xs@(_:_) = rot xs [] with
+    rot [x] ys = x:reverse ys;
+    rot (x:xs) ys = rot xs (x:ys);
+end;
+
+#! --else
+// skip-ahead
+rotate xs@(_:_) = aux xs with
+    aux xs = lastx:rotate_pre len_pre xs with
+        rotate_pre 0      _      = chopped_tail;
+        rotate_pre n::int (x:xs) = x:rotate_pre (n-1) xs;
+    end when
+        len_pre@_ (lastx:chopped_tail) = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int x@[_]    = n x;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (rotate xs);
+end;
+#! --endif
 
 // no skip-ahead implementations yet, I'm lazy
 scanl f a []		= [a];
