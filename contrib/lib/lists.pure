@@ -408,6 +408,17 @@ end;
       starting from the value ``head xs`` and working from the front of the
       list towards its end; ``xs`` must be nonempty
 
+   .. function:: foldl2 f a xs ys
+
+      accumulate the binary function ``f`` over all members of ``xs`` and
+      ``ys`` in parallel, starting from the initial value ``a`` and working
+      from the front of the lists towards their end; stops when the shorter of
+      ``xs`` and ``ys`` does
+
+   .. function:: foldl3 f a xs ys zs
+
+      like foldl2 but processes three lists in parallel
+
    .. function:: foldr f a xs
 
       accumulate the binary function ``f`` over all members of ``xs``,
@@ -419,6 +430,16 @@ end;
       accumulate the binary function ``f`` over all members of ``xs``,
       starting from the value ``last xs`` and working from the end of the list
       towards its front; ``xs`` must be nonempty
+
+   .. function:: foldr2 f a xs ys
+
+      accumulate the binary function ``f`` over all members of ``xs`` and
+      ``ys`` in parallel, starting from the initial value ``a`` and working
+      from the end of the shorter of `xs` and `ys` towards their front
+
+   .. function:: foldr3 f a xs ys zs
+
+      like foldr2 but processes three lists in parallel
 
    .. function:: head xs
 
@@ -567,8 +588,16 @@ foldl f a (x:xs)	= foldl f (f a x) xs;
 
 foldl1 f (x:xs)		= foldl f x xs;
 
+foldl2 f a _ [] | foldl2 f a [] _ = a;
+foldl2 f a (x:xs) (y:ys) = foldl2 f (f a x y) xs ys;
+
+foldl3 f a _ _ [] | foldl3 f a _ [] _ | foldl3 f a [] _ _ = a;
+foldl3 f a (x:xs) (y:ys) (z:zs) = foldl3 f (f a x y z) xs ys zs;
+
 foldr f a []		= a;
 foldr1 f [x]		= x;
+foldr2 f a _ [] | foldr2 f a [] _ = a;
+foldr3 f a _ _ [] | foldr3 f a _ [] _ | foldr3 f a [] _ _ = a;
 #! --ifnot list-opt
 // reverse-based
 foldr f a xs@(_:_)	= tick [] xs
@@ -594,6 +623,29 @@ with
 			  end;
   tack (x:xs) y		= tack xs (f x y);
   tack [] y		= y;
+end;
+
+foldr2 f a xs@(_:_) ys@(_:_)      = tick [] xs ys
+with
+  tick us (x:xs) (y:ys)           = tack (x:y:us) (foldr2 f a xs ys&)
+                                    if thunkp xs || thunkp ys;
+                                  = tick (x:y:us) xs ys;
+  tick us _ [] | tick us [] _     = tack us a;
+  tick us xs ys                   = tack us (foldr2 f a xs ys);
+  tack (x:y:us) a                 = tack us (f x y a);
+  tack [] a                       = a;
+end;
+
+foldr3 f a xs@(_:_) ys@(_:_) zs@(_:_) = tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)    = tack (x:y:z:us) (foldr3 f a xs ys zs&)
+                                    if thunkp xs || thunkp ys || thunkp zs;
+                                  = tick (x:y:z:us) xs ys zs;
+  tick us _ _ [] | tick us _ [] _ | tick us [] _ _
+                                  = tack us a;
+  tick us xs ys zs                = tack us (foldr3 f a xs ys zs);
+  tack (x:y:z:us) a               = tack us (f x y z a);
+  tack [] a                       = a;
 end;
 
 #! --else
@@ -626,6 +678,43 @@ foldr1 f xs@(_:_) = aux xs with
                                     x:xs = skip_ahead (n+1) xs;
                                     _    = n (foldr1 f xs);
                                   end;
+end;
+
+foldr2 f a xs@(_:_) ys@(_:_) = aux xs ys with
+    aux xs ys = fold_pre len_pre xs ys with
+        fold_pre 0 _ _        = folded_tail;
+        fold_pre n::int (x:xs) (y:ys) = f x y (fold_pre (n-1) xs ys);
+    end when
+        len_pre@_ folded_tail = skip_ahead 0 xs ys;
+    end;
+    skip_ahead n::int [] _    |
+    skip_ahead n::int _ []    = n a;
+    skip_ahead n::int xs@(_:_) ys@(_:_)
+                              = n (aux xs ys) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys)
+                              = n (f x y (aux xs ys&))
+                                if thunkp xs || thunkp ys;
+                              = skip_ahead (n+1) xs ys;
+    skip_ahead n::int xs ys   = n (foldr2 f a xs ys);
+end;
+
+foldr3 f a xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+    aux xs ys zs = fold_pre len_pre xs ys zs with
+        fold_pre 0 _ _ _       = folded_tail;
+        fold_pre n::int (x:xs) (y:ys) (z:zs) = f x y z (fold_pre (n-1) xs ys zs);
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs ys zs;
+    end;
+    skip_ahead n::int [] _ _   |
+    skip_ahead n::int _ [] _   |
+    skip_ahead n::int _ _ []   = n a;
+    skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                               = n (aux xs ys zs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys) (z:zs)
+                               = n (f x y z (aux xs ys zs&))
+                                 if thunkp xs || thunkp ys || thunkp zs;
+                               = skip_ahead (n+1) xs ys zs;
+    skip_ahead n::int xs ys zs = n (foldr3 f a xs ys zs);
 end;
 #! --endif
 
