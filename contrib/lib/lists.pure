@@ -416,9 +416,8 @@ end;
       search for an occurrence of ``x`` in ``xs`` and return the index of the
       first occurrence, if any, ``-1`` otherwise
 
-      Note: This uses equality :func:`==` to decide whether a member of ``xs``
-      is an occurrence of ``x``, so :func:`==` must have an appropriate
-      definition on the list members.
+      Note: This uses :func:`==?` to decide whether a member of ``xs``
+      is an occurrence of ``x``.
 
    .. function:: init xs
 
@@ -437,6 +436,13 @@ end;
    .. function:: map f xs
 
       apply ``f`` to each member of ``xs``
+
+   .. function:: member xs x
+
+      return whether ``x`` is a member of ``xs``
+
+      Note: This uses :func:`==?` to decide whether a member of ``xs``
+      is an occurrence of ``x``.
 
    .. function:: scanl f a xs
 
@@ -762,10 +768,16 @@ listmap f xs@(_:_)	= map f xs;
 index [] _		= -1;
 index (x:xs) y		= search 0 (x:xs) with
   search _ []		= -1;
-  search n::int (x:xs)	= n if x==y;
+  search n::int (x:xs)	= n if x==?y;
 			= search (n+1) xs;
   search _ xs		= index xs y;
 end;
+
+member [] y             = 0;
+// member xs@(_:_) y    = index xs y+1;
+// member xs@(_:_) y    = any (y==?) xs;
+member (x:xs) y         = 1 if y==? x;
+                        = member xs y;
 
 
 /* Arithmetic sequences. */
