@@ -391,16 +391,16 @@ update d@(Dict  _) x y | update d@(HDict  _) x y |
 update d@(MDict _) x y | update d@(HMDict _) x y = insert d (x=>y);
 
 // delete a member by key
-delete (Dict   d) x = Dict   (baltree::deletek   d x);
-delete (HDict  d) x = HDict  (baltree::hdeletek  d x);
-delete (MDict  d) x = MDict  (baltree::mdeletek  d x);
-delete (HMDict d) x = HMDict (baltree::mhdeletek d x);
+delete (Dict   d) x = Dict   (baltree::deletek    d x);
+delete (HDict  d) x = HDict  (baltree::hdeletek   d x);
+delete (MDict  d) x = MDict  (baltree::mdeleteko  d x);
+delete (HMDict d) x = HMDict (baltree::mhdeleteko d x);
 
 // delete a member by key=>val
-delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv   d el);
-delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv  d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekv  d el);
-delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekv d el);
+delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv    d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv   d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekvo  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekvo d el);
 
 // delete all instances of a given key
 delete_all (Dict   d) x = Dict   (baltree::deletek    d x);
@@ -463,10 +463,10 @@ rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
 rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
 
 // get a value by key
-(Dict   d)!k = baltree::getk   d k;
-(MDict  d)!k = baltree::mgetk  d k;
-(HDict  d)!k = baltree::hgetk  d k;
-(HMDict d)!k = baltree::mhgetk d k;
+(Dict   d)!k = baltree::getk    d k;
+(MDict  d)!k = baltree::mgetka  d k;
+(HDict  d)!k = baltree::hgetk   d k;
+(HMDict d)!k = baltree::mhgetka d k;
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with

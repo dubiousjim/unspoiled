@@ -404,16 +404,16 @@ getk t k = get k fail () t with
     end;
 end;
 
-/* Indexing for ordered multidicts. mgetk always returns the list of all members
+/* Indexing for ordered multidicts. mgetka always returns the list of all members
    for the given key, which may be empty if the key is not in the tree.
    mgetko returns the "oldest" value for the given k, and mgetkn returns the
    "newest" (most recently added) value. The latter two functions throw an
    out_of_bounds exception if the key doesn't exist in the tree.
  */
 
-public mgetk mgetko mgetkn;
+public mgetka mgetko mgetkn;
 
-mgetk t k = get k fail [] t with
+mgetka t k = get k fail [] t with
     get k w ws nil = if ::null ws then []
     else case cmp1 w k of
       res::int
@@ -476,7 +476,7 @@ mgetkn t k = base_mgetk k ::head t;
 
 /* Indexing for hashed (multi-)dicts. */
 
-public hgetk mhgetk mhgetko mhgetkn;
+public hgetk mhgetka mhgetko mhgetkn;
 
 hgetk t k = get (hash k) k t with
     get _ _ nil = throw out_of_bounds;
@@ -497,7 +497,7 @@ hgetk t k = get (hash k) k t with
     match k us = val (findl (same k.key) us); // throw out_of_bounds if no hits
 end;
 
-mhgetk t k = get (hash k) k t with
+mhgetka t k = get (hash k) k t with
     get _ _ nil = [];
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -977,11 +977,6 @@ mpopkva t (k=>v) = catch (whenfail {}) ({| vs, child |} when
     vs = ::foldl (flip((:).val)) [] vs;
 end);
 
-// for compatibility with avltrees
-
-public mdeletek mdeletekv;
-mdeletek t k = mdeleteko t k;
-mdeletekv t old = mdeletekvo t old;
 
 // Delete all members for a given key.
 
@@ -1463,11 +1458,6 @@ mhpopkva t old@(k=>_) = catch (whenfail {}) ({| vs, child |} when
     vs = ::foldl (flip((:).val)) [] vs;
 end);
 
-// for compatibility with avltrees
-
-public mhdeletek mhdeletekv;
-mhdeletek t k = mhdeleteko t k;
-mhdeletekv t old = mhdeletekvo t old;
 
 public mhdeletea mhdeleteka;
 

@@ -264,13 +264,13 @@ getk t y = get t y with
       end;
 end;
 
-/* Indexing for ordered multidicts. This always returns the list of all
+/* Indexing for ordered multidicts. mgetka always returns the list of all
    members for the given key, which may be empty if the key is not in the
    tree. */
 
-public mgetk;
+public mgetka;
 
-mgetk t y = get t y with
+mgetka t y = get t y with
   get nil _ = [];
   get (bin (x=>xs) _ l r) y
     = case cmp x y of
@@ -283,7 +283,7 @@ end;
 
 /* Indexing for hashed (multi-)dicts. */
 
-public hgetk mhgetk;
+public hgetk mhgetka;
 
 hgetk t y = get t (hash y) y with
   get nil _ _ = throw out_of_bounds;
@@ -295,7 +295,7 @@ hgetk t y = get t (hash y) y with
       end;
 end;
 
-mhgetk t y = get t (hash y) y with
+mhgetka t y = get t (hash y) y with
   get nil _ _ = [];
   get (bin (k::int=>xs) _ l r) key::int y
     = get l key y if k > key;
@@ -417,7 +417,7 @@ minsertk t y@(key=>val) = insert t y!0 with
       end;
 end;
 
-public mdelete mdeletek mdeletekv;
+public mdelete mdeleteko mdeletekvo;
 
 mdelete t y = delete t y!0 with
   delete nil _ = [nil, 0];
@@ -437,9 +437,9 @@ mdelete t y = delete t y!0 with
       end;
 end;
 
-mdeletek t y = mdelete t y;
+mdeleteko t y = mdelete t y;
 
-mdeletekv t y@(key=>val) = delete t y!0 with
+mdeletekvo t y@(key=>val) = delete t y!0 with
   delete nil _ = [nil, 0];
   delete (bin x@(k=>xs) b l r) y@(key=>val)
     = case cmp key k of
@@ -579,12 +579,12 @@ mhinsertk t y@(key=>val) = insert t (hash key) y!0 with
       when [newr, rightHasChanged] = insert r key y end if key > k;
 end;
 
-public mhdelete mhdeletek mhdeletekv;
+public mhdelete mhdeleteko mhdeletekvo;
 
-mhdelete   t y = hdelete   t y;
-mhdeletek  t y = hdeletek  t y;
+mhdelete    t y = hdelete   t y;
+mhdeleteko  t y = hdeletek  t y;
 
-mhdeletekv t y@(key=>val) = delete t (hash key) y!0 with
+mhdeletekvo t y@(key=>val) = delete t (hash key) y!0 with
   delete nil _ _ = [nil, 0];
   delete (bin x@(k::int=>xs) b l r) key::int y
     = if ~::null newxs then [bin (k=>newxs) b l r, 0]
