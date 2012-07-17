@@ -378,6 +378,18 @@ end;
       convenience function which combines :func:`cat` and :func:`map`; this is
       also used to implement list comprehensions
 
+   .. function:: deletel p xs
+
+      return ``xs`` without the first member satisfying the predicate ``p``;
+      if no member satisfies ``p`` will just return ``xs``
+
+      Note: ``filter ((~).p)` can be thought of as a `deleteall`.
+
+   .. function:: deleter p xs
+
+      return ``xs`` without the last member satisfying the predicate ``p``;
+      if no member satisfies ``p`` will just return ``xs``
+
    .. function:: do f xs
 
       apply ``f`` to all members of ``xs``, like :func:`map`, but throw away
@@ -395,6 +407,18 @@ end;
    .. function:: filter p xs
 
       return the list of all members of ``xs`` satisfying the predicate ``p``
+
+   .. function:: findl p xs
+
+      return the first member of ``xs`` satisfying the predicate ``p``; an
+      exception will be raised if no member does
+
+      Note: :func:`filter` can be thought of as a `findall`.
+
+   .. function:: findr p xs
+
+      return the last member of ``xs`` satisfying the predicate ``p``; an
+      exception will be raised if no member does
 
    .. function:: foldl f a xs
 
@@ -477,6 +501,19 @@ end;
 
       Note: This uses :func:`==?` to decide whether a member of ``xs``
       is an occurrence of ``x``.
+
+   .. function:: popl p xs
+
+      equivalent to ``{| findl p xs, deletel p xs |}``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``{}``
+
+      Note: ``splitby` can be thought of as a `popall`.
+
+   .. function:: popr p xs
+
+      equivalent to ``{| findr p xs, deleter p xs |}``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``{}``
+
 
    .. function:: scanl f a xs
 
@@ -587,6 +624,118 @@ filter p xs@(_:_) = aux xs with
     skip_ahead n::int xs       = n (filter p xs);
 end;
 #! --endif
+
+
+findl p [] = throw out_of_bounds; // no match
+findl p (x:xs) = if p x then x else findl p xs;
+
+// we don't provide skip-ahead version
+popl p [] = {};
+popl p xs@(_:_) = tick xs [] with
+    tick [] _ = {}; // no match
+    tick (x:xs) ws = if p x then {| x, reverse_onto xs ws |}
+                     else tick xs (x:ws);
+    tick xs ws     = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+end;
+
+// we don't provide skip-ahead version
+deletel p [] = [];
+deletel p ys@(_:_) = tick ys [] with
+    tick [] _ = ys; // no match
+    tick (x:xs) ws = if p x then reverse_onto xs ws else tick xs (x:ws);
+    tick xs ws = reverse_onto (deletel p xs) ws;
+end;
+
+// we have to juggle a bit to keep notfound private but let these methods access it
+public findr popr deleter;
+namespace __std__;
+private nonfix notfound;
+
+// findr p xs::list = gfold::right (\x _ e -> if p x then abort x else e) throw improper out_of_bounds xs;
+::findr p [] = throw out_of_bounds;
+::findr p xs@(_:_) = tick xs notfound with
+    tick [] w = if w===notfound then throw out_of_bounds else w;
+    tick (x:xs) w = tick xs (if p x then x else w);
+    tick xs w = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+end;
+
+#! --ifnot list-opt
+// reverse-based
+::popr p [] = {};
+::popr p xs@(_:_) = tick xs [] [] [] with
+    tick []     _  []     _   = {}; // no match
+    tick []     ms (h:hs) hss = {| h, tack (reverse ms) hs hss |};
+    tick (x:xs) ms hs     hss = if p x
+                                then tick xs [] (x:ms) (hs:hss)
+                                else tick xs (x:ms) hs hss;
+    tick xs     _  _      _   = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tack zs []     []         = zs;
+    tack zs []     (xs:xss)   = tack zs xs xss;
+    tack zs (y:ys) xss        = tack (y:zs) ys xss;
+end;
+
+::deleter p [] = [];
+::deleter p ys@(_:_) = tick ys [] [] [] with
+    tick []     _  []     _   = ys; // no match
+    tick []     ms (_:hs) hss = tack (reverse ms) hs hss;
+    tick (x:xs) ms hs     hss = if p x
+                                then tick xs [] (x:ms) (hs:hss)
+                                else tick xs (x:ms) hs hss;
+    tick xs     _  _      _   = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tack zs []     []         = zs;
+    tack zs []     (xs:xss)   = tack zs xs xss;
+    tack zs (y:ys) xss        = tack (y:zs) ys xss;
+end;
+
+#! --else
+// skip-ahead
+::popr p [] = {};
+::popr p xs@(_:_) = case aux xs of
+    notfound = {}; // no match
+    y:ys = {| y, ys |};
+end with
+    aux xs = case skip_ahead 0 xs of
+        len_pre@_ notfound = pop_pre len_pre xs with
+            pop_pre 0 _ = notfound;
+            pop_pre n::int xx@(x:xs) = case pop_pre (n-1) xs of
+                                          notfound = if p x then xx else notfound;
+                                          y:ys = y:x:ys;
+                                       end;
+        end;
+        len_pre@_ (y:ys) = y:append len_pre xs ys;
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead n::int [] = n notfound;
+    skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
+    skip_ahead n::int xs = throw (bad_list_value xs);
+end;
+
+::deleter p [] = [];
+::deleter p ys@(_:_) = case aux ys of
+    notfound = ys; // no match
+    ys = ys;
+end with
+    aux xs = case skip_ahead 0 xs of
+        len_pre@_ notfound = pop_pre len_pre xs with
+            pop_pre 0 _ = notfound;
+            pop_pre n::int (x:xs) = case pop_pre (n-1) xs of
+                                       notfound = if p x then xs else notfound;
+                                       ys = x:ys;
+                                    end;
+        end;
+        len_pre@_ ys = append len_pre xs ys;
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead n::int [] = n notfound;
+    skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
+    skip_ahead n::int xs = throw (bad_list_value xs);
+end;
+#! --endif
+namespace;
 
 
 // These are inherently eager.
