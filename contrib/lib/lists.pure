@@ -378,6 +378,10 @@ end;
       convenience function which combines :func:`cat` and :func:`map`; this is
       also used to implement list comprehensions
 
+   .. function:: catmap_onto f base xs
+
+      :func:`catmap` onto the specified base
+
    .. function:: deletel p xs
 
       return ``xs`` without the first member satisfying the predicate ``p``;
@@ -494,6 +498,10 @@ end;
    .. function:: map f xs
 
       apply ``f`` to each member of ``xs``
+
+   .. function:: map_onto f base xs
+
+      :func:`map` onto the specified base
 
    .. function:: member xs x
 
@@ -913,31 +921,34 @@ last [x]		= x;
 last (x:xs)		= last xs;
 
 
+map_onto f base []	= base;
 map f []		= [];
+map f xs@(_:_)	        = map_onto f [] xs;
+
 #! --ifnot list-opt
 // reverse-based
-map f xs@(_:_)		= tick [] xs
+map_onto f base xs@(_:_) = tick [] xs
 with
-  tick zs (x:xs)	= reverse_onto (map f xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= reverse_onto (map_onto f base xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
-  tick zs []		= reverse_onto [] zs;
-  tick zs xs		= reverse_onto (map f xs) zs;
+  tick zs []		= reverse_onto base zs;
+  tick zs xs		= reverse_onto (map_onto f base xs) zs;
 end;
 
 #! --else
 // skip-ahead
-map f xs@(_:_) = aux xs with
+map_onto f base xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
         map_pre 0 _            = mapped_tail;
         map_pre n::int (x:xs)  = f x:map_pre (n-1) xs;
     end when
         len_pre@_ mapped_tail  = skip_ahead 0 xs;
     end;
-    skip_ahead n::int []       = n [];
+    skip_ahead n::int []       = n base;
     skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
     skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
                                = skip_ahead (n+1) xs;
-    skip_ahead n::int xs       = n (map f xs);
+    skip_ahead n::int xs       = n (map_onto f base xs);
 end;
 #! --endif
 
@@ -1185,28 +1196,31 @@ end;
 /* Map a function to a list and concatenate the results. This is used by list
    comprehensions. */
 
+catmap_onto f base []	= base;
 catmap f []		= [];
+catmap f xs@(_:_)       = catmap_onto f [] xs;
+
 #! --ifnot list-opt
 // reverse-based
-catmap f xs@(_:_)	= cat (map f xs);
+catmap_onto f base xs@(_:_)	= cat (map_onto f base xs);
 /* NOTE: This definition (from the Haskell prelude) is better, but doesn't
    preserve left-to-right execution order. */
 //catmap f xs@(_:_)	= foldr ((+).f) [] xs;
 
 #! --else
 // skip-ahead
-catmap f xs@(_:_) = aux xs with
+catmap_onto f base xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
         map_pre 0 _              = mapped_tail;
         map_pre n::int (x:xs)    = lazy_cat (f x) (map_pre (n-1) xs);
     end when
         len_pre@_ mapped_tail    = skip_map 0 xs;
     end;
-    skip_map n::int []           = n [];
+    skip_map n::int []           = n base;
     skip_map n::int xs@(_:_)     = n (aux xs) if n == __std__::SKIPSIZE;
     skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
                                  = skip_map (n+1) xs;
-    skip_map n::int xs           = n (catmap f xs);
+    skip_map n::int xs           = n (catmap_onto f base xs);
     lazy_cat xs yss              = cat_pre len_pre xs with
         cat_pre 0 _              = catted_tail;
         cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
@@ -1374,6 +1388,14 @@ cyclen n::int (x:xs)	= [] if n<=0;
       apply the ternary function ``f`` to corresponding elements of ``xs``,
       ``ys`` and ``zs``
 
+   .. function:: zip_onto f base xs ys
+
+      :func:`zipwith` onto the specified base
+
+   .. function:: zip3_onto f base xs ys zs
+
+      :func:`zipwith3` onto the specified base
+
    Pure also has the following variations of :func:`zipwith` and
    :func:`zipwith3` which throw away all intermediate results and return the
    empty tuple ``()``. That is, these work like :func:`do` but pull arguments
@@ -1397,11 +1419,20 @@ zip _ []		= [];
 zip3 [] _ _		|
 zip3 _ [] _		|
 zip3 _ _ []		= [];
+
+zip_onto f base [] _		|
+zip_onto f base _ []		= base;
+zip3_onto f base [] _ _		|
+zip3_onto f base _ [] _		|
+zip3_onto f base _ _ []		= base;
 zipwith f [] _		|
 zipwith f _ []		= [];
+zipwith f xs@(_:_) ys@(_:_) = zip_onto f [] xs ys;
 zipwith3 f [] _ _		|
 zipwith3 f _ [] _		|
 zipwith3 f _ _ []		= [];
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = zip3_onto f [] xs ys zs;
+
 #! --ifnot list-opt
 // reverse-based
 zip xs@(_:_) ys@(_:_)	= tick [] xs ys
@@ -1427,28 +1458,28 @@ with
   tick us xs ys zs	= reverse_onto (zip3 xs ys zs) us;
 end;
 
-zipwith f xs@(_:_) ys@(_:_)
+zip_onto f base xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= reverse_onto (zipwith f xs ys&) (f x y:us)
+  tick us (x:xs) (y:ys)	= reverse_onto (zip_onto f base xs ys&) (f x y:us)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
-  tick us _ []		= reverse_onto [] us;
-  tick us xs ys		= reverse_onto (zipwith f xs ys) us;
+  tick us _ []		= reverse_onto base us;
+  tick us xs ys		= reverse_onto (zip_onto f base xs ys) us;
 end;
 
-zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
+zip3_onto f base xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= reverse_onto (zipwith3 f xs ys zs&) (f x y z:us)
+			= reverse_onto (zip3_onto f base xs ys zs&) (f x y z:us)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
   tick us _ [] _	|
-  tick us _ _ []	= reverse_onto [] us;
-  tick us xs ys zs	= reverse_onto (zipwith3 f xs ys zs) us;
+  tick us _ _ []	= reverse_onto base us;
+  tick us xs ys zs	= reverse_onto (zip3_onto f base xs ys zs) us;
 end;
 
 #! --else
@@ -1490,7 +1521,7 @@ zip3 xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
     skip_ahead n::int xs ys zs = n (zip3 xs ys zs);
 end;
 
-zipwith f xs@(_:_) ys@(_:_) = aux xs ys with
+zip_onto f base xs@(_:_) ys@(_:_) = aux xs ys with
     aux xs ys = zip_pre len_pre xs ys with
         zip_pre 0 _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) = f x y:zip_pre (n-1) xs ys;
@@ -1498,17 +1529,17 @@ zipwith f xs@(_:_) ys@(_:_) = aux xs ys with
         len_pre@_ zipped_tail = skip_ahead 0 xs ys;
     end;
     skip_ahead n::int [] _  |
-    skip_ahead n::int _ []  = n [];
+    skip_ahead n::int _ []  = n base;
     skip_ahead n::int xs@(_:_) ys@(_:_)
                             = n (aux xs ys) if n == __std__::SKIPSIZE;
     skip_ahead n::int (x:xs) (y:ys)
                             = n (f x y:aux xs ys&)
                               if thunkp xs || thunkp ys;
                             = skip_ahead (n+1) xs ys;
-    skip_ahead n::int xs ys = n (zipwith f xs ys);
+    skip_ahead n::int xs ys = n (zip_onto f base xs ys);
 end;
 
-zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+zip3_onto f base xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
     aux xs ys zs = zip_pre len_pre xs ys zs with
         zip_pre 0 _ _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:zip_pre (n-1) xs ys zs;
@@ -1517,14 +1548,14 @@ zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
     end;
     skip_ahead n::int [] _ _   |
     skip_ahead n::int _ [] _   |
-    skip_ahead n::int _ _ []   = n [];
+    skip_ahead n::int _ _ []   = n base;
     skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
                                = n (aux xs ys zs) if n == __std__::SKIPSIZE;
     skip_ahead n::int (x:xs) (y:ys) (z:zs)
                                = n (f x y z:aux xs ys zs&)
                                  if thunkp xs || thunkp ys || thunkp zs;
                                = skip_ahead (n+1) xs ys zs;
-    skip_ahead n::int xs ys zs = n (zipwith3 f xs ys zs);
+    skip_ahead n::int xs ys zs = n (zip3_onto f base xs ys zs);
 end;
 #! --endif
 
