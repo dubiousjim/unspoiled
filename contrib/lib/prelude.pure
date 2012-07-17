@@ -640,6 +640,28 @@ def void [x] | void {x} = void x;
    to apply other functions to the list and have them evaluated in a lazy
    fashion.
 
+   The following gives a different way to build streams from lists.
+
+   .. function:: chain xs
+
+   It lazily concatenates a list of lists or streams. Note that if all the
+   arguments are already streams, then '\ :func:`cat`\ ' gives the same result.
+   However, '\ :func:`cat`\ ' handles any list elements eagerly; whereas
+   '\ :func:`chain`\ ' treats everything lazily. It is equivalent to
+   ``cat.(map stream)``, but more efficient.
+
+   There is some small overhead that makes '\ :func:`chain`\ ' an inappropriate
+   general replacement for '\ :func:`cat`\ ' or '\ :func:`+`\ ': chaining two
+   lists and then converting the resulting stream back to a list using the
+   '\ :func:`list`\ ' function, above, takes about 3-4x as long as using
+   '\ :func:`+`\ ' on those lists in the first place. However, chaining two
+   lists and then iterating through them (for example, with
+   '\ :func:`last`\ ') takes about the same time as if you had used
+   '\ :func:`+`\ ' and iterated on the result. For such purposes, and
+   especially if you're likely not to need to iterate past the first list,
+   '\ :func:`chain`\ ' may be a good alternative to '\ :func:`cat`\ ' or
+   '\ :func:`+`\ '.
+
    Slicing
    -------
 
@@ -934,6 +956,15 @@ stream (x:xs)	= x:xs if thunkp xs;
 
 stream ()	= [];
 stream xs@(_,_)	= stream (list xs);
+
+/* Lazy version of `cat`. Equivalent to `cat.(map stream)` but more efficient. */
+
+chain [] = [];
+// the stdlib doesn't reduce `xs+[]` or `cat [xs]` when xs isn't a proper list
+// so we don't reduce `chain (xs:[]) = xs` either.
+chain ((x:xs):yss) = x:chain (xs:yss)&;
+chain ([]:yss) = chain yss;
+chain (xs:yss) = xs + chain yss;
 
 
 /* Coarse-grained equality. We optimize the definitions for native aggregates
