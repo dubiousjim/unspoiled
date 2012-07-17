@@ -177,6 +177,20 @@ slice x y = x!!y;
 #!   --disable list-opt
 #! --endif // not opt
 
+// We default to using the reverse-based list algorithms, rather than
+// the skip-ahead optimizations.
+
+#! --ifndef list-opt
+#! --disable list-opt
+#! --endif
+
+// We default to using avltrees rather than trees23.
+
+#! --ifndef trees23
+#! --disable trees23
+#! --endif
+
+
 /* Pull in the primitives (arithmetic etc.) and the standard string, list,
    matrix and record functions. Note that the math, pointers and system modules
    are *not* included here, so you have to do that yourself if your program

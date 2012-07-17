@@ -258,9 +258,7 @@
    that, you can just explicitly use `foldl` and `reverse`, or
    disable the optimizations.
 */
-#! --ifndef list-opt
-#! --disable list-opt
-#! --endif
+
 #! --if list-opt
 namespace __std__;
 const SKIPSIZE = 4096;
