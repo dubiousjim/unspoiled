@@ -108,8 +108,39 @@ type tree nil | tree (bin _ _ _) | tree (tri _ _ _ _ _);
 
 /* Basic 2-3-tree operations, single value per key. */
 
+public foldl foldl1 foldr foldr1;
 public size members keys vals;
 public first last rmfirst rmlast popfirst poplast;
+
+// General folds.
+
+foldl f a t = tick a t with
+    tick a nil = a;
+    tick a (bin l x r) = tick (f (tick a l) x) r;
+    tick a (tri l y c z r) = tick (f (tick (f (tick a l) y) c) z) r;
+end;
+
+foldl1 f t = tick fail t with
+    tick fail (bin nil x nil) = x;
+    tick fail (tri nil y nil z nil) = f y z;
+    tick a nil = a;
+    tick a (bin l x r) = tick (f (tick a l) x) r;
+    tick a (tri l y c z r) = tick (f (tick (f (tick a l) y) c) z) r;
+end if t~==nil;
+
+foldr f a t = tick t a with
+    tick nil a = a;
+    tick (bin l x r) a = tick l (f x (tick r a));
+    tick (tri l y c z r) a = tick l (f y (tick c (f z (tick r a))));
+end;
+
+foldr1 f t = tick t fail with
+    tick (bin nil x nil) fail = x;
+    tick (tri nil y nil z nil) fail = f y z;
+    tick nil a = a;
+    tick (bin l x r) a = tick l (f x (tick r a));
+    tick (tri l y c z r) a = tick l (f y (tick c (f z (tick r a))));
+end if t~==nil;
 
 // Compute the size of a tree.
 
@@ -119,29 +150,16 @@ size t = size t with
     size (tri l _ c _ r) = size l + size c + size r + 2;
 end;
 
-// Get the list of all members
+// Get the list of all members.
 
-members t = members t [] with
-    members nil base = base;
-    members (bin l x r) base = members l (x : members r base);
-    members (tri l y c z r) base = members l (y : members c (z : members r base));
-end;
-
+members t = foldr (:) [] t;
 
 // Get the list of all keys and values. This requires a dictionary-like
 // structure with separate key values.
 
-keys t = keys t [] with
-    keys nil base = base;
-    keys (bin l (x=>_) r) base = keys l (x : keys r base);
-    keys (tri l (y=>_) c (z=>_) r) base = keys l (y : keys c (z : keys r base));
-end;
+keys t = foldr ((:).key) [] t;
 
-vals t = vals t [] with
-    vals nil base = base;
-    vals (bin l (_=>x) r) base = vals l (x : vals r base);
-    vals (tri l (_=>y) c (_=>z) r) base = vals l (y : vals c (z : vals r base));
-end;
+vals t = foldr ((:).val) [] t;
 
 // Get the first and the last member of a tree. Like head/tail and init/last
 // for [], the following two functions just fail to reduce when applied to
@@ -183,8 +201,45 @@ end;
 
 /* Basic 2-3-tree operations, multiple values per key. */
 
+public mfoldl mfoldl1 mfoldr mfoldr1;
 public msize mmembers mkeys mvals;
 public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
+
+mfoldl f a t = tick a t with
+    tick a nil = a;
+    tick a (bin l (_=>xs) r) = tick (ff (tick a l) xs) r;
+    tick a (tri l (_=>ys) c (_=>zs) r) = tick (ff (tick (ff (tick a l) ys) c) zs) r;
+end when
+    ff = ::foldr (flip f);
+end;
+
+mfoldl1 f t = tick fail t with
+    tick fail (bin nil (_=>xs) nil) = ::foldr1 (flip f) xs;
+    tick fail (tri nil (_=>ys) nil (_=>zs) nil) = ff (::foldr1 (flip f) ys) zs;
+    tick a nil = a;
+    tick a (bin l (_=>xs) r) = tick (ff (tick a l) xs) r;
+    tick a (tri l (_=>ys) c (_=>zs) r) = tick (ff (tick (ff (tick a l) ys) c) zs) r;
+end when
+    ff = ::foldr (flip f);
+end if t~==nil;
+
+mfoldr f a t = tick t a with
+    tick nil a = a;
+    tick (bin l (_=>xs) r) a = tick l (ff (tick r a) xs);
+    tick (tri l (_=>ys) c (_=>zs) r) a = tick l (ff (tick c (ff (tick r a) zs)) ys);
+end when
+    ff = ::foldl (flip f);
+end;
+
+mfoldr1 f t = tick t fail with
+    tick (bin nil (_=>xs) nil) fail = ::foldl1 (flip f) xs;
+    tick (tri nil (_=>ys) nil (_=>zs) nil) fail = ff (::foldl1 (flip f) zs) ys;
+    tick nil a = a;
+    tick (bin l (_=>xs) r) a = tick l (ff (tick r a) xs);
+    tick (tri l (_=>ys) c (_=>zs) r) a = tick l (ff (tick c (ff (tick r a) zs)) ys);
+end when
+    ff = ::foldl (flip f);
+end if t~==nil;
 
 msize t = size t with
     size nil = 0;
@@ -194,22 +249,14 @@ end;
 
 // For compatibility with avltrees, we return the member list with first-added elements first.
 
-mmembers t = members t [] with
-    members nil base = base;
-    members (bin l (_=>xs) r) base = members l (reverse_onto (members r base) xs);
-    members (tri l (_=>ys) c (_=>zs) r) base = members l (reverse_onto (members c (reverse_onto (members r base) zs)) ys);
+mmembers t = mfoldr ((:)) [] t;
+
+mkeys t = foldr f [] t with
+    f xs a = reverse_onto a (map key (val xs));
 end;
 
-mkeys t = keys t [] with
-    keys nil base = base;
-    keys (bin l (_=>xs) r) base = keys l (reverse_onto (keys r base) [x | x=>_ = xs]);
-    keys (tri l (_=>ys) c (_=>zs) r) base = keys l (reverse_onto (keys c (reverse_onto (keys r base) [z | z=>_ = zs])) [y | y=>_ = ys]);
-end;
-
-mvals t = vals t [] with
-    vals nil base = base;
-    vals (bin l (_=>xs) r) base = vals l (reverse_onto (vals r base) [x | _=>x = xs]);
-    vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_onto (vals c (reverse_onto (vals r base) [z | _=>z = zs])) [y | _=>y = ys]);
+mvals t = foldr f [] t with
+    f xs a = reverse_onto a (map val (val xs));
 end;
 
 // Get the first and the last mmember of a tree. See comments for first/rmfirst
