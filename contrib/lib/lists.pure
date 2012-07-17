@@ -331,6 +331,19 @@ end;
 
 #! --else
 // skip-ahead
+xs@(_:_)+ys = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n ys;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (xs+ys);
+end;
 #! --endif
 
 
@@ -530,6 +543,20 @@ end;
 
 #! --else
 // skip-ahead
+filter p xs@(_:_) = aux xs with
+    add p x hs = if p x then x:hs else hs;
+    aux xs = filter_pre len_pre xs with
+        filter_pre 0 _ = filtered_tail;
+        filter_pre n::int (x:xs) = add p x (filter_pre (n-1) xs);
+    end when
+        len_pre@_ filtered_tail = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (add p x (aux xs&)) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (filter p xs);
+end;
 #! --endif
 
 
@@ -571,6 +598,35 @@ end;
 
 #! --else
 // skip-ahead
+foldr f a xs@(_:_) = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n a;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (f x (aux xs&)) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (foldr f a xs);
+end;
+
+foldr1 f xs@(_:_) = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int ys@(_:xs) = n (aux ys) if n == __std__::SKIPSIZE;
+                                = n (foldr1 f ys&) if thunkp xs;
+    skip_ahead n::int xs        = case xs of
+                                    [x]  = n x;
+                                    x:xs = skip_ahead (n+1) xs;
+                                    _    = n (foldr1 f xs);
+                                  end;
+end;
 #! --endif
 
 head (x:xs)		= x;
@@ -590,6 +646,21 @@ end;
 
 #! --else
 // skip-ahead
+init xs@(_:_) = aux xs with
+    aux xs = init_pre len_pre xs with
+        init_pre 0 _           = chopped_tail;
+        init_pre n::int (x:xs) = x:init_pre (n-1) xs;
+    end when
+        len_pre@_ chopped_tail = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int ys@(x:xs) = n (aux ys) if n == __std__::SKIPSIZE;
+                                = n (init ys&) if thunkp xs;
+    skip_ahead n::int xs        = case xs of
+                                    [_]  = n [];
+                                    _:xs = skip_ahead (n+1) xs;
+                                    _    = n (init xs);
+                                  end;
+end;
 #! --endif
 
 last [x]		= x;
@@ -609,6 +680,19 @@ end;
 
 #! --else
 // skip-ahead
+map f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _            = mapped_tail;
+        map_pre n::int (x:xs)  = f x:map_pre (n-1) xs;
+    end when
+        len_pre@_ mapped_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (map f xs);
+end;
 #! --endif
 
 
@@ -701,6 +785,35 @@ end;
 
 #! --else
 // skip-ahead
+take m::int xs@(_:_) = aux m xs with
+    aux 0 xs = [];
+    aux m::int xs = take_pre len_pre xs with
+        take_pre 0      _             = front_tail;
+        take_pre n::int (x:xs)        = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail          = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int xs       = n [] if m <= 0 || xs === [];
+    skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
+    skip_ahead m::int n::int (x:xs)   = n (x:aux (m-1) xs&) if thunkp xs;
+                                      = skip_ahead (m-1) (n+1) xs;
+    skip_ahead m::int n::int xs       = n (take m xs);
+end;
+
+takewhile p xs@(_:_) = aux xs with
+    aux xs = take_pre len_pre xs with
+        take_pre 0      _      = front_tail;
+        take_pre n::int (x:xs) = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail   = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)
+            = if p x then n (x:aux xs&) else n [] if thunkp xs;
+            = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (takewhile p xs);
+end;
 #! --endif
 
 
@@ -737,6 +850,19 @@ end;
 
 #! --else
 // skip-ahead
+cat (xs::list:yss) = aux xs with
+    aux xs = cat_pre len_pre xs with
+        cat_pre 0 _           = catted_tail;
+        cat_pre n::int (x:xs) = x:cat_pre (n-1) xs;
+    end when
+        len_pre@_ catted_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n (cat yss);
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (x:aux xs&) if thunkp xs;
+    skip_ahead n::int (x:xs)   = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (xs+cat yss);
+end;
 #! --endif
 
 
@@ -753,6 +879,30 @@ catmap f xs@(_:_)	= cat (map f xs);
 
 #! --else
 // skip-ahead
+catmap f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _              = mapped_tail;
+        map_pre n::int (x:xs)    = lazy_cat (f x) (map_pre (n-1) xs);
+    end when
+        len_pre@_ mapped_tail    = skip_map 0 xs;
+    end;
+    skip_map n::int []           = n [];
+    skip_map n::int xs@(_:_)     = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
+                                 = skip_map (n+1) xs;
+    skip_map n::int xs           = n (catmap f xs);
+    lazy_cat xs yss              = cat_pre len_pre xs with
+        cat_pre 0 _              = catted_tail;
+        cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
+    end when
+        len_pre@_ catted_tail    = skip_cat yss 0 xs;
+    end;
+    skip_cat yss n::int []       = n yss;
+    skip_cat yss n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_cat yss n::int (x:xs)   = n (x:lazy_cat xs yss&) if thunkp xs;
+    skip_cat yss n::int (x:xs)   = skip_cat yss (n+1) xs;
+    skip_cat yss n::int xs       = n (xs+yss);
+end;
 #! --endif
 
 
@@ -987,6 +1137,79 @@ end;
 
 #! --else
 // skip-ahead
+zip xs@(_:_) ys@(_:_) = aux xs ys with
+    aux xs ys = zip_pre len_pre xs ys with
+        zip_pre 0 _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) = (x,y):zip_pre (n-1) xs ys;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys;
+    end;
+    skip_ahead n::int [] _  |
+    skip_ahead n::int _ []  = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_)
+                            = n (aux xs ys) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys)
+                            = n ((x,y):aux xs ys&)
+                              if thunkp xs || thunkp ys;
+                            = skip_ahead (n+1) xs ys;
+    skip_ahead n::int xs ys = n (zip xs ys);
+end;
+
+zip3 xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+    aux xs ys zs = zip_pre len_pre xs ys zs with
+        zip_pre 0 _ _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) (z:zs) = (x,y,z):zip_pre (n-1) xs ys zs;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys zs;
+    end;
+    skip_ahead n::int [] _ _   |
+    skip_ahead n::int _ [] _   |
+    skip_ahead n::int _ _ []   = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                               = n (aux xs ys zs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys) (z:zs)
+                               = n ((x,y,z):aux xs ys zs&)
+                                 if thunkp xs || thunkp ys || thunkp zs;
+                               = skip_ahead (n+1) xs ys zs;
+    skip_ahead n::int xs ys zs = n (zip3 xs ys zs);
+end;
+
+zipwith f xs@(_:_) ys@(_:_) = aux xs ys with
+    aux xs ys = zip_pre len_pre xs ys with
+        zip_pre 0 _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) = f x y:zip_pre (n-1) xs ys;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys;
+    end;
+    skip_ahead n::int [] _  |
+    skip_ahead n::int _ []  = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_)
+                            = n (aux xs ys) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys)
+                            = n (f x y:aux xs ys&)
+                              if thunkp xs || thunkp ys;
+                            = skip_ahead (n+1) xs ys;
+    skip_ahead n::int xs ys = n (zipwith f xs ys);
+end;
+
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+    aux xs ys zs = zip_pre len_pre xs ys zs with
+        zip_pre 0 _ _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:zip_pre (n-1) xs ys zs;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys zs;
+    end;
+    skip_ahead n::int [] _ _   |
+    skip_ahead n::int _ [] _   |
+    skip_ahead n::int _ _ []   = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                               = n (aux xs ys zs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys) (z:zs)
+                               = n (f x y z:aux xs ys zs&)
+                                 if thunkp xs || thunkp ys || thunkp zs;
+                               = skip_ahead (n+1) xs ys zs;
+    skip_ahead n::int xs ys zs = n (zipwith3 f xs ys zs);
+end;
 #! --endif
 
 unzip []		= [],[];

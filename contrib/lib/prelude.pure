@@ -881,6 +881,18 @@ end;
 
 #! --else
 // skip-ahead
+subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
+    take 0 xs = [];
+    take m::int xs = take_pre len_pre xs with
+        take_pre 0      _             = front_tail;
+        take_pre n::int (x:xs)        = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail          = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int xs       = n [] if m <= 0 || xs === [];
+    skip_ahead m::int n::int (x:xs)   = skip_ahead (m-1) (n+1) xs if n < __std__::SKIPSIZE;
+    skip_ahead m::int n::int xs       = n (take m xs);
+end;
 #! --endif
 
 subseq x a b = slice x (a..b);
