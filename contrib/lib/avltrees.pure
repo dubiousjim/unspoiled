@@ -266,9 +266,13 @@ end;
 
 /* Indexing for ordered multidicts. mgetka always returns the list of all
    members for the given key, which may be empty if the key is not in the
-   tree. */
+   tree. mgetko returns the "oldest" value for the given k, and mgetkn
+   returns the "newest" (most recently added) value. The latter two
+   functions throw an out_of_bounds exception if the key doesn't exist
+   in the tree.
+*/
 
-public mgetka;
+public mgetka mgetko mgetkn;
 
 mgetka t y = get t y with
   get nil _ = [];
@@ -281,9 +285,31 @@ mgetka t y = get t y with
       end;
 end;
 
+mgetko t y = get t y with
+  get nil _ = throw out_of_bounds;
+  get (bin (x=>xs) _ l r) y
+    = case cmp x y of
+        res::int
+          = get l y if res>0;
+          = get r y if res<0;
+          = ::val (head xs);
+      end;
+end;
+
+mgetkn t y = get t y with
+  get nil _ = throw out_of_bounds;
+  get (bin (x=>xs) _ l r) y
+    = case cmp x y of
+        res::int
+          = get l y if res>0;
+          = get r y if res<0;
+          = ::val (::last xs);
+      end;
+end;
+
 /* Indexing for hashed (multi-)dicts. */
 
-public hgetk mhgetka;
+public hgetk mhgetka mhgetko mhgetkn;
 
 hgetk t y = get t (hash y) y with
   get nil _ _ = throw out_of_bounds;
@@ -301,6 +327,22 @@ mhgetka t y = get t (hash y) y with
     = get l key y if k > key;
     = get r key y if k < key;
     = [v | x=>v = xs; x===y];
+end;
+
+mhgetko t y = get t (hash y) y with
+  get nil _ _ = throw out_of_bounds;
+  get (bin (k::int=>xs) _ l r) key::int y
+    = get l key y if k > key;
+    = get r key y if k < key;
+    = ::val (findl (same y.(::key)) xs); // may throw out_of_bounds
+end;
+
+mhgetkn t y = get t (hash y) y with
+  get nil _ _ = throw out_of_bounds;
+  get (bin (k::int=>xs) _ l r) key::int y
+    = get l key y if k > key;
+    = get r key y if k < key;
+    = ::val (findr (same y.(::key)) xs); // may throw out_of_bounds
 end;
 
 /* AVL tree insertion and deletion. */
