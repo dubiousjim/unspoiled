@@ -835,48 +835,15 @@ end;
 public mdelete mdeleteko mdeletekn mpopko mpopkn;
 public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
-mdelete t::tree old = catch handle (head3 $ pop old t) /* child, _, _ */ with
+private base_mpopkn base_mpopko;
+
+// If elements are discernable but still EQ, note:
+// We delete the element added most recently, which we can do efficiently.
+// avltrees on the other hand removes the element added first.
+mdelete t::tree old = catch handle (head3 $ base_mpopkn old t abort) /* child, _, _ */ with
     handle abort = t;
     handle e = throw e;
-    // If elements are discernable but still EQ, note:
-    // We delete the element added most recently, which we can do efficiently.
-    // avltrees on the other hand removes the element added first.
-    pop old nil = throw abort;
-    pop old cur@(bin l x@(xk=>xs) r) = case cmp old xk of
-      res::int
-        = shrink_left (pop old) cur if res == LT;
-        = case xs of
-            [x] = if r===nil then l 1 x
-                  else (shrink_right (\_ -> child snag x) (bin l w r) when
-                    child@_ snag w = pop_left r
-                  end);
-            x:xs = (bin l (xk=>xs) r) 0 x;
-          end if res == EQ;
-        = shrink_right (pop old) cur if res == GT;
-    end;
-    pop old cur@(tri l y@(yk=>ys) c z@(zk=>zs) r) = case cmp2 old yk zk of
-      res::int
-        = shrink_left (pop old) cur if res == LT;
-        = case ys of
-            [y] = if c===nil then (bin l z r) 0 y
-                  else (shrink_center (\_ -> child snag y) (tri l w c z r) when
-                    child@_ snag w = pop_left c
-                  end);
-            y:ys = (tri l (yk=>ys) c z r) 0 y;
-          end if res == EQ;
-        = shrink_center (pop old) cur if res == LT2;
-        = case zs of
-            [z] = if r===nil then (bin l y c) 0 z
-                  else (shrink_right (\_ -> child snag z) (tri l y c w r) when
-                    child@_ snag w = pop_left r
-                  end);
-            z:zs = (tri l y c (zk=>zs) r) 0 z;
-          end if res == EQ2;
-        = shrink_right (pop old) cur if res == GT2;
-    end;
 end;
-
-private base_mpopko;
 
 mdeleteko t::tree k = catch handle (head3 $ base_mpopko k t abort) /* child, _, _ */ with
     handle abort = t;
@@ -961,8 +928,6 @@ mdeletekvo t::tree (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ w
         = shrink_right (pop k v) cur if res == GT2;
     end;
 end;
-
-private base_mpopkn;
 
 mdeletekn t::tree k = catch handle (head3 $ base_mpopkn k t abort) /* child, _, _ */ with
     handle abort = t;
