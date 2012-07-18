@@ -435,57 +435,37 @@ mgetk t k = get k fail [] t with
     match us = ::foldl (flip((:).val)) [] us;
 end;
 
-mgetko t k = get k fail [] t with
-    get k w ws nil = if ::null ws then throw out_of_bounds
-    else case cmp1 w k of
-      res::int
-        = ::last ws if res == GE || res == EQ;
-        = throw out_of_bounds;
-    end;
-    get k w ws (bin l (x=>xs) r) = case cmp1 k x of
-      res::int
-        = get k w ws l if res == LT;
-        = ::last xs if res == EQ;
-        = get k fail [] r if res == GT;
-        = get k x xs r if res == GE; // x may be a match
-    end;
-    get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
-      res::int
-        = get k w ws l if res == LT;
-        = ::last ys if res == EQ;
-        = get k y ys c if res == MID; // y may be a match
-        = get k fail [] c if res == LT2;
-        = ::last zs if res == EQ2;
-        = get k fail [] r if res == GT2;
-        = get k z zs r if res == GE2; // z may be a match
-    end;
+private base_mgetk;
+
+base_mgetk k final t = get k fail [] t with
+    getk k w ws nil = if ::null ws then throw out_of_bounds
+        else case cmp1 w k of
+          res::int
+            = final ws if res == GE || res == EQ;
+            = throw out_of_bounds;
+        end;
+    getk k w ws (bin l (x=>xs) r) = case cmp1 k x of
+          res::int
+            = get k w ws l if res == LT;
+            = final xs if res == EQ;
+            = get k fail [] r if res == GT;
+            = get k x xs r if res == GE; // x may be a match
+        end;
+    getk k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
+          res::int
+            = get k w ws l if res == LT;
+            = final ys if res == EQ;
+            = get k y ys c if res == MID; // y may be a match
+            = get k fail [] c if res == LT2;
+            = final zs if res == EQ2;
+            = get k fail [] r if res == GT2;
+            = get k z zs r if res == GE2; // z may be a match
+        end;
 end;
 
-mgetkn t k = get k fail [] t with
-    get k w ws nil = if ::null ws then throw out_of_bounds
-    else case cmp1 w k of
-      res::int
-        = ::head ws if res == GE || res == EQ;
-        = throw out_of_bounds;
-    end;
-    get k w ws (bin l (x=>xs) r) = case cmp1 k x of
-      res::int
-        = get k w ws l if res == LT;
-        = ::head xs if res == EQ;
-        = get k fail [] r if res == GT;
-        = get k x xs r if res == GE; // x may be a match
-    end;
-    get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
-      res::int
-        = get k w ws l if res == LT;
-        = ::head zs if res == EQ;
-        = get k y ys c if res == MID; // y may be a match
-        = get k fail [] c if res == LT2;
-        = ::head zs if res == EQ2;
-        = get k fail [] r if res == GT2;
-        = get k z zs r if res == GE2; // z may be a match
-    end;
-end;
+mgetko t k = base_mgetk k ::last t;
+
+mgetkn t k = base_mgetk k ::head t;
 
 
 /* Indexing for hashed (multi-)dicts. */
@@ -531,43 +511,30 @@ mhgetk t k = get (hash k) k t with
     match k us = ::foldl (\vs (uk=>uv) -> if k===uk then uv:vs else vs) [] us;
 end;
 
-mhgetko t k = get (hash k) k t with
-    get _ _ nil = throw out_of_bounds;
+private base_mhgetk;
+
+base_mhgetk k find t = get (hash k) k t with
+    get _::int _ nil = throw out_of_bounds;
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
-      res::int
-        = get h k l if res == LT;
-        = match k xs if res == EQ;
-        = get h k r if res == GT;
-    end;
+          res::int
+            = get h k l if res == LT;
+            = val (find (same k.key) xs) if res == EQ; // throw out_of_bounds if no hits
+            = get h k r if res == GT;
+        end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
-      res::int
-        = get h k l if res == LT;
-        = match k ys if res == EQ;
-        = get h k c if res == LT2;
-        = match k zs if res == EQ2;
-        = get h k r if res == GT2;
-    end;
-    match k us = val (findr (same k.key) us); // throw out_of_bounds if no hits
+          res::int
+            = get h k l if res == LT;
+            = val (find (same k.key) ys) if res == EQ; // throw out_of_bounds if no hits
+            = get h k c if res == LT2;
+            = val (find (same k.key) zs) if res == EQ2; // throw out_of_bounds if no hits
+            = get h k r if res == GT2;
+        end;
 end;
 
-mhgetkn t k = get (hash k) k t with
-    get _ _ nil = throw out_of_bounds;
-    get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
-      res::int
-        = get h k l if res == LT;
-        = match k xs if res == EQ;
-        = get h k r if res == GT;
-    end;
-    get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
-      res::int
-        = get h k l if res == LT;
-        = match k ys if res == EQ;
-        = get h k c if res == LT2;
-        = match k zs if res == EQ2;
-        = get h k r if res == GT2;
-    end;
-    match k us = val (findl (same k.key) us); // throw out_of_bounds if no hits
-end;
+mhgetko t k = base_mhgetk k findr t;
+
+mhgetkn t k = base_mhgetk k findl t;
+
 
 /* 2-3-tree insertion and deletion. */
 
