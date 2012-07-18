@@ -667,14 +667,14 @@ end;
 
 private base_popk;
 
-deletek t k = catch (whenfail t) (head3 $ base_popk k t fail);
+deletek t k = catch (whenfail t) (head3 $ base_popk k t);
 
-popk t k = {| v, child |} when
-    child@_ _ (_=>v) = base_popk k t out_of_bounds;
-end;
+popk t k = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_popk k t;
+end);
 
-base_popk k t e = pop k t with
-    pop k nil = throw e;
+base_popk k t = pop k t with
+    pop k nil = throw fail;
     pop k cur@(bin l x@(xk=>_) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -704,21 +704,21 @@ end;
 
 private base_popkv;
 
-deletekv t (k=>v) = catch (whenfail t) (head3 $ base_popkv k v t fail);
+deletekv t (k=>v) = catch (whenfail t) (head3 $ base_popkv k v t);
 
 // The popkv methods may seem like overkill: you already know the k=>v so
 // why isn't deletekv enough? However we do need these methods for weak-value
 // dicts.
-popkv t (k=>v) = {| v, child |} when
-    child@_ _ (_=>v) = base_popkv k v t out_of_bounds;
-end;
+popkv t (k=>v) = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_popkv k v t;
+end);
 
-base_popkv k v t e = pop k v t with
-    pop k v nil = throw e;
+base_popkv k v t = pop k v t with
+    pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xv) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = if v~=?xv then throw e
+        = if v~=?xv then throw fail
           else if r===nil then l 1 x
           else (shrink_right (\_ -> child snag x) (bin l w r) when
             child@_ snag w = pop_left r
@@ -728,13 +728,13 @@ base_popkv k v t e = pop k v t with
     pop k v cur@(tri l y@(yk=>yv) c z@(zk=>zv) r) = case cmp2 k yk zk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
-        = if v~=?yv then throw e
+        = if v~=?yv then throw fail
           else if c===nil then (bin l z r) 0 y
           else (shrink_center (\_ -> child snag y) (tri l w c z r) when
             child@_ snag w = pop_left c
           end) if res == EQ;
         = shrink_center (pop k v) cur if res == LT2;
-        = if v~=?zv then throw e
+        = if v~=?zv then throw fail
           else if r===nil then (bin l y c) 0 z
           else (shrink_right (\_ -> child snag z) (tri l y c w r) when
             child@_ snag w = pop_left r
@@ -822,17 +822,16 @@ private base_mpopkn base_mpopko;
 // If elements are discernable but still EQ, note:
 // We delete the element added most recently, which we can do efficiently.
 // avltrees on the other hand removes the element added first.
-mdelete t old = catch (whenfail t) (head3 $ base_mpopkn old t fail);
+mdelete t old = catch (whenfail t) (head3 $ base_mpopkn old t);
 
-mdeleteko t k = catch (whenfail t) (head3 $ base_mpopko k t fail);
+mdeleteko t k = catch (whenfail t) (head3 $ base_mpopko k t);
 
+mpopko t k = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_mpopko k t;
+end);
 
-mpopko t k = {| v, child |} when
-    child@_ _ (_=>v) = base_mpopko k t out_of_bounds;
-end;
-
-base_mpopko k t e = pop k t with
-    pop k nil = throw e;
+base_mpopko k t = pop k t with
+    pop k nil = throw fail;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -868,7 +867,7 @@ base_mpopko k t e = pop k t with
 end;
 
 mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
-    del v us = popr fail ((v==?).val) us; // throw fail if no hits
+    del v us = popr ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -904,14 +903,14 @@ mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
     end;
 end;
 
-mdeletekn t k = catch (whenfail t) (head3 $ base_mpopkn k t fail);
+mdeletekn t k = catch (whenfail t) (head3 $ base_mpopkn k t);
 
-mpopkn t k = {| v, child |} when
-    child@_ _ (_=>v) = base_mpopkn k t out_of_bounds;
-end;
+mpopkn t k = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_mpopkn k t;
+end);
 
-base_mpopkn k t e = pop k t with
-    pop k nil = throw e;
+base_mpopkn k t = pop k t with
+    pop k nil = throw fail;
     pop k cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k) cur if res == LT;
@@ -947,7 +946,7 @@ base_mpopkn k t e = pop k t with
 end;
 
 mdeletekvn t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
-    del v us = popl fail ((v==?).val) us; // throw fail if no hits
+    del v us = popl ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -985,18 +984,18 @@ end;
 
 private base_mpopkva;
 
-mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t fail);
+mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t);
 
 // See comments to popkv on why this is needed.
-mpopkva t (k=>v) = {| vs, child |} when
-    child@_ _ vs = base_mpopkva k v t out_of_bounds;
+mpopkva t (k=>v) = catch (whenfail {}) ({| vs, child |} when
+    child@_ _ vs = base_mpopkva k v t;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;
-end;
+end);
 
-base_mpopkva k v t e = pop k v t with
+base_mpopkva k v t = pop k v t with
     del v us = splitby ((v==?).val) us; // rotate reversed list of hits to head
-    pop k v nil = throw e;
+    pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
@@ -1170,14 +1169,14 @@ end;
 
 private base_hpopk;
 
-hdeletek t k = catch (whenfail t) (head3 $ base_hpopk k t fail);
+hdeletek t k = catch (whenfail t) (head3 $ base_hpopk k t);
 
-hpopk t k = {| v, child |} when
-    child@_ _ (_=>v) = base_hpopk k t out_of_bounds;
-end;
+hpopk t k = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_hpopk k t;
+end);
 
-base_hpopk k t e = pop (hash k) k t with
-    del k us = popl e (same k.key) us; // throw e if no hits
+base_hpopk k t = pop (hash k) k t with
+    del k us = popl (same k.key) us; // throw fail if no hits
     pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1215,19 +1214,19 @@ end;
 
 private base_hpopkv;
 
-hdeletekv t old@(k=>_) = catch (whenfail t) (head3 $ base_hpopkv k old t fail);
+hdeletekv t old@(k=>_) = catch (whenfail t) (head3 $ base_hpopkv k old t);
 
 // See comments to popkv on why this is needed.
-hpopkv t old@(k=>_) = {| v, child |} when
-    child@_ _ (_=>v) = base_hpopkv k old t out_of_bounds;
-end;
+hpopkv t old@(k=>_) = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_hpopkv k old t;
+end);
 
-base_hpopkv k old t e = pop (hash k) old t with
-    // optimized popl
-    del _ _ [] = throw e; // not found
-    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws else throw e; // (k=>v) not found
+base_hpopkv k old t = pop (hash k) old t with
+    // custom version of popl
+    del _ _ [] = throw fail;
+    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws else throw fail; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
-    pop h::int old nil = throw e;
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1346,7 +1345,7 @@ mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
 mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
-    del (k=>v) us = popr fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    del (k=>v) us = popr (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1384,7 +1383,7 @@ end;
 
 mhdeletekvn t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     // unlike hdeletekv, we continue searching when keys match but values don't
-    del (k=>v) us = popl fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    del (k=>v) us = popl (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1424,15 +1423,15 @@ end;
 
 private base_mhpopko;
 
-mhdeleteko t k = catch (whenfail t) (head3 $ base_mhpopko k t fail);
+mhdeleteko t k = catch (whenfail t) (head3 $ base_mhpopko k t);
 
-mhpopko t k = {| v, child |} when
-    child@_ _ (_=>v) = base_mhpopko k t out_of_bounds;
-end;
+mhpopko t k = catch (whenfail {}) ({| v, child |} when
+    child@_ _ (_=>v) = base_mhpopko k t;
+end);
 
-base_mhpopko k t e = pop (hash k) k t with
-    del k us = popr fail (same k.key) us; // throw fail if no hits
-    pop h::int k nil = throw e;
+base_mhpopko k t = pop (hash k) k t with
+    del k us = popr (same k.key) us; // throw fail if no hits
+    pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
@@ -1469,18 +1468,18 @@ end;
 
 private base_mhpopkva;
 
-mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t fail);
+mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t);
 
 // See comments to popkv on why this is needed.
-mhpopkva t old@(k=>_) = {| vs, child |} when
-    child@_ _ vs = base_mhpopkva k old t out_of_bounds;
+mhpopkva t old@(k=>_) = catch (whenfail {}) ({| vs, child |} when
+    child@_ _ vs = base_mhpopkva k old t;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;
-end;
+end);
 
-base_mhpopkva k old t e = pop (hash k) old t with
+base_mhpopkva k old t = pop (hash k) old t with
     del (k=>v) us = splitby (\(uk=>uv) -> k===uk && v==?uv) us;
-    pop h::int old nil = throw e;
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1722,20 +1721,20 @@ whenfail v = handle with
 end;
 
 // custom version of popl
-// throws e when no hits, else leftmost p is rotated to head
-popl e p xs = pop e p xs [] with
-    pop e p [] _ = throw e;
-    pop e p (x:xs) ws = x:reverse_onto xs ws if p x;
-                      = pop e p xs (x:ws);
+// throws fail when no hits, else leftmost p is rotated to head
+popl p xs = pop p xs [] with
+    pop p [] _ = throw fail;
+    pop p (x:xs) ws = x:reverse_onto xs ws if p x;
+                    = pop p xs (x:ws);
 end;
 
 // custom version of popr
-// throws e when no hits, else rightmost p is rotated to head
-popr e p xs = pop e p xs [] [] [] with
-    pop e p []     _  []     _   = throw e;
-    pop e p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
-    pop e p (x:xs) ms hs     hss = pop e p xs [] (x:ms) (hs:hss) if p x;
-                                 = pop e p xs (x:ms) hs hss otherwise;
+// throws fail when no hits, else rightmost p is rotated to head
+popr p xs = pop p xs [] [] [] with
+    pop p []     _  []     _   = throw fail;
+    pop p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
+    pop p (x:xs) ms hs     hss = pop p xs [] (x:ms) (hs:hss) if p x;
+                               = pop p xs (x:ms) hs hss otherwise;
     aux zs []     []       = zs;
     aux zs []     (xs:xss) = aux zs xs xss;
     aux zs (y:ys) xss      = aux (y:zs) ys xss;
