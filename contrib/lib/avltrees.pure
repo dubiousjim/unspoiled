@@ -57,7 +57,7 @@ private bin;
 
 /* Private helper functions. */
 
-private adjusti adjustd init rotate cmp;
+private adjusti adjustd init rotate cmp replace;
 
 /* Operations to construct an empty tree, and to check for an empty tree.
    These are the same for all variations of the data structure. */
@@ -530,11 +530,8 @@ mdeletekvo t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
       	          when [newl, leftHasChanged] = init l end)
-            when newxs = deleteb xs y end;
+            when newxs = deletel (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
       end;
-  deleteb [] y = [];
-  deleteb (x@(k=>v):xs) y@(key=>val) = xs if cmp k key == 0 && v==?val;
-  deleteb (x:xs) y = x:deleteb xs y;
 end;
 
 // Delete all members for a given key.
@@ -551,27 +548,21 @@ public hinsert hinsertk;
 hinsert t y = insert t (hash y) y!0 with
   insert nil k::int y = [bin (k=>[y]) 0 nil nil, 1];
   insert (bin x@(k::int=>xs) b l r) key::int y
-    = [bin (k=>insertb xs y) b l r, 0] if k == key;
+    = [bin (k=>replace xs (same y) y) b l r, 0] if k == key;
     = adjusti leftHasChanged (bin x b newl r) (-1)
       when [newl, leftHasChanged] = insert l key y end if key < k;
     = adjusti rightHasChanged (bin x b l newr) 1
       when [newr, rightHasChanged] = insert r key y end if key > k;
-  insertb [] y = [y];
-  insertb (x:xs) y@x = y:xs;
-  insertb (x:xs) y = x:insertb xs y;
 end;
 
-hinsertk t y@(key=>_) = insert t (hash key) y!0 with
+hinsertk t y@(rawkey=>_) = insert t (hash rawkey) y!0 with
   insert nil k::int y = [bin (k=>[y]) 0 nil nil, 1];
   insert (bin x@(k::int=>xs) b l r) key::int y
-    = [bin (k=>insertb xs y) b l r, 0] if k == key;
+    = [bin (k=>replace xs (same rawkey.(::key)) y) b l r, 0] if k == key;
     = adjusti leftHasChanged (bin x b newl r) (-1)
       when [newl, leftHasChanged] = insert l key y end if key < k;
     = adjusti rightHasChanged (bin x b l newr) 1
       when [newr, rightHasChanged] = insert r key y end if key > k;
-  insertb [] y = [y];
-  insertb (x@(k=>v):xs) y@(k=>v1) = y:xs;
-  insertb (x:xs) y = x:insertb xs y;
 end;
 
 // These are also valid for multi-hashes.
@@ -585,14 +576,11 @@ hdelete t y = delete t (hash y) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
       	    when [newl, leftHasChanged] = init l end)
-      when newxs = deleteb xs y end if k == key;
+      when newxs = deletel (same y) xs end if k == key;
     = adjustd leftHasChanged (bin x b newl r) (-1)
       when [newl, leftHasChanged] = delete l key y end if key < k;
     = adjustd rightHasChanged (bin x b l newr) 1
       when [newr, rightHasChanged] = delete r key y end if key > k;
-  deleteb [] y = [];
-  deleteb (x@k:xs) y@k = xs;
-  deleteb (x:xs) y = x:deleteb xs y;
 end;
 
 hdeletek t y = delete t (hash y) y!0 with
@@ -603,14 +591,11 @@ hdeletek t y = delete t (hash y) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
       	    when [newl, leftHasChanged] = init l end)
-      when newxs = deleteb xs y end if k == key;
+      when newxs = deletel (same y.(::key)) xs end if k == key;
     = adjustd leftHasChanged (bin x b newl r) (-1)
       when [newl, leftHasChanged] = delete l key y end if key < k;
     = adjustd rightHasChanged (bin x b l newr) 1
       when [newr, rightHasChanged] = delete r key y end if key > k;
-  deleteb [] y = [];
-  deleteb (x@(k=>v):xs) y@k = xs;
-  deleteb (x:xs) y = x:deleteb xs y;
 end;
 
 hdeletekv t y@(key=>val) = delete t (hash key) y!0 with
@@ -661,7 +646,7 @@ public mhdelete mhdeleteko mhdeletekvo;
 mhdelete    t y = hdelete   t y;
 mhdeleteko  t y = hdeletek  t y;
 
-mhdeletekvo t y@(key=>val) = delete t (hash key) y!0 with
+mhdeletekvo t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
   delete nil _ _ = [nil, 0];
   delete (bin x@(k::int=>xs) b l r) key::int y
     = if ~::null newxs then [bin (k=>newxs) b l r, 0]
@@ -669,15 +654,11 @@ mhdeletekvo t y@(key=>val) = delete t (hash key) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
            when [newl, leftHasChanged] = init l end)
-      when newxs = deleteb xs y end if k == key;
+      when newxs = deletel (\(k=>v) -> k===rawkey && v==?val) xs end if k == key;
     = adjustd leftHasChanged (bin x b newl r) (-1)
       when [newl, leftHasChanged] = delete l key y end if key < k;
     = adjustd rightHasChanged (bin x b l newr) 1
       when [newr, rightHasChanged] = delete r key y end if key > k;
-  deleteb [] y = [];
-  // unlike hdeletekv, we continue searching when keys match but values don't
-  deleteb (x@(k=>v):xs) y@(k=>val) = xs if v==?val;
-  deleteb (x:xs) y = x:deleteb xs y;
 end;
 
 public mhdeletea mhdeleteka;
@@ -830,3 +811,6 @@ cmp a::bigint b::bigint = __C::bigint_cmp a b;
 cmp a::int b::int | cmp a::double b::double |
 cmp a b = if a<b then -1 else b<a;
 
+// replace first x satisfying p with y, else add y at end
+replace [] p y = [y];
+replace (x:xs) p y = if p x then y:xs else x:replace xs p y;
