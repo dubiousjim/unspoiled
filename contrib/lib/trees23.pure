@@ -63,7 +63,7 @@ private bin tri;
 private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3;
-private head2 head3;
+private head2 head3 whenfail;
 private splitby popl popr; // custom versions of list functions
 private spaces center tostring;
 
@@ -567,9 +567,7 @@ end;
 
 public insert insertk;
 
-insert t new = catch handle (head2 $ ins new t) with
-    handle fail = t;
-    handle e = throw e;
+insert t new = catch (whenfail t) (head2 $ ins new t) with
     ins new nil = (bin nil new nil) true; // bump height at prev level
     ins new (bin l1 x1 r1) = case cmp new x1 of
       res::int
@@ -602,9 +600,7 @@ insert t new = catch handle (head2 $ ins new t) with
     end;
 end;
 
-insertk t new@(k=>v) = catch handle (head2 $ ins k v new t) with
-    handle fail = t;
-    handle e = throw e;
+insertk t new@(k=>v) = catch (whenfail t) (head2 $ ins k v new t) with
     ins k v new nil = (bin nil new nil) true; // bump height at prev level
     ins k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
       res::int
@@ -642,9 +638,7 @@ end;
 
 public delete deletek popk deletekv popkv;
 
-delete t old = catch handle (head3 $ pop old t) with
-    handle fail = t;
-    handle e = throw e;
+delete t old = catch (whenfail t) (head3 $ pop old t) with
     pop _ nil = throw fail;
     pop old cur@(bin l x r) = case cmp old x of
       res::int
@@ -673,9 +667,7 @@ end;
 
 private base_popk;
 
-deletek t k = catch handle (head3 $ base_popk k t fail) with
-    handle fail = t;
-    handle e = throw e;
+deletek t k = catch (whenfail t) (head3 $ base_popk k t fail);
 
 popk t k = {| v, child |} when
     child@_ _ (_=>v) = base_popk k t out_of_bounds;
@@ -712,10 +704,7 @@ end;
 
 private base_popkv;
 
-deletekv t (k=>v) = catch handle (head3 $ base_popkv k v t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+deletekv t (k=>v) = catch (whenfail t) (head3 $ base_popkv k v t fail);
 
 // The popkv methods may seem like overkill: you already know the k=>v so
 // why isn't deletekv enough? However we do need these methods for weak-value
@@ -833,15 +822,10 @@ private base_mpopkn base_mpopko;
 // If elements are discernable but still EQ, note:
 // We delete the element added most recently, which we can do efficiently.
 // avltrees on the other hand removes the element added first.
-mdelete t old = catch handle (head3 $ base_mpopkn old t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mdelete t old = catch (whenfail t) (head3 $ base_mpopkn old t fail);
 
-mdeleteko t k = catch handle (head3 $ base_mpopko k t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mdeleteko t k = catch (whenfail t) (head3 $ base_mpopko k t fail);
+
 
 mpopko t k = {| v, child |} when
     child@_ _ (_=>v) = base_mpopko k t out_of_bounds;
@@ -883,9 +867,7 @@ base_mpopko k t e = pop k t with
     end;
 end;
 
-mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) with
-    handle fail = t;
-    handle e = throw e;
+mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
     del v us = popr fail ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
@@ -922,10 +904,7 @@ mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) with
     end;
 end;
 
-mdeletekn t k = catch handle (head3 $ base_mpopkn k t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mdeletekn t k = catch (whenfail t) (head3 $ base_mpopkn k t fail);
 
 mpopkn t k = {| v, child |} when
     child@_ _ (_=>v) = base_mpopkn k t out_of_bounds;
@@ -967,9 +946,7 @@ base_mpopkn k t e = pop k t with
     end;
 end;
 
-mdeletekvn t (k=>v) = catch handle (head3 $ pop k v t) with
-    handle fail = t;
-    handle e = throw e;
+mdeletekvn t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
     del v us = popl fail ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
@@ -1008,10 +985,7 @@ end;
 
 private base_mpopkva;
 
-mdeletekva t (k=>v) = catch handle (head3 $ base_mpopkva k v t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t fail);
 
 // See comments to popkv on why this is needed.
 mpopkva t (k=>v) = {| vs, child |} when
@@ -1076,9 +1050,7 @@ mdeleteka t k = mdeletea t k;
 
 public hinsert hinsertk;
 
-hinsert t new = catch handle (head2 $ ins (hash new) new t) with
-    handle fail = t;
-    handle e = throw e;
+hinsert t new = catch (whenfail t) (head2 $ ins (hash new) new t) with
     add new ws [] = new:ws; // adding new to front of list is less presure on GC
     add new _ (new:_) = throw fail; // keep existing tree
     add new ws (u:us) = add new ws us;
@@ -1114,9 +1086,7 @@ hinsert t new = catch handle (head2 $ ins (hash new) new t) with
     end;
 end;
 
-hinsertk t new@(k=>_) = catch handle (head2 $ ins (hash k) new t) with
-    handle fail = t;
-    handle e = throw e;
+hinsertk t new@(k=>_) = catch (whenfail t) (head2 $ ins (hash k) new t) with
     add new ws [] = new:ws; // adding new to front of list is less pressure on GC
     add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing tree
                                      else new:reverse_onto us ws; // update value
@@ -1158,9 +1128,7 @@ end;
 public hdelete hdeletek hpopk;
 public hdeletekv hpopkv;
 
-hdelete t old = catch handle (head3 $ pop (hash old) old t) with
-    handle fail = t;
-    handle e = throw e;
+hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     // custom version of deletel, that doesn't tolerate failure
     del _ _ [] = throw fail;
     del old ws (old:us) = reverse_onto us ws;
@@ -1202,10 +1170,7 @@ end;
 
 private base_hpopk;
 
-hdeletek t k = catch handle (head3 $ base_hpopk k t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+hdeletek t k = catch (whenfail t) (head3 $ base_hpopk k t fail);
 
 hpopk t k = {| v, child |} when
     child@_ _ (_=>v) = base_hpopk k t out_of_bounds;
@@ -1250,10 +1215,7 @@ end;
 
 private base_hpopkv;
 
-hdeletekv t old@(k=>_) = catch handle (head3 $ base_hpopkv k old t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+hdeletekv t old@(k=>_) = catch (whenfail t) (head3 $ base_hpopkv k old t fail);
 
 // See comments to popkv on why this is needed.
 hpopkv t old@(k=>_) = {| v, child |} when
@@ -1383,9 +1345,7 @@ mhdelete        t old = hdelete   t old;
 mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
-mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) with
-    handle fail = t;
-    handle e = throw e;
+mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     del (k=>v) us = popr fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1422,9 +1382,7 @@ mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) with
     end;
 end;
 
-mhdeletekvn t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) with
-    handle fail = t;
-    handle e = throw e;
+mhdeletekvn t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     // unlike hdeletekv, we continue searching when keys match but values don't
     del (k=>v) us = popl fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
@@ -1466,10 +1424,7 @@ end;
 
 private base_mhpopko;
 
-mhdeleteko t k = catch handle (head3 $ base_mhpopko k t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mhdeleteko t k = catch (whenfail t) (head3 $ base_mhpopko k t fail);
 
 mhpopko t k = {| v, child |} when
     child@_ _ (_=>v) = base_mhpopko k t out_of_bounds;
@@ -1514,10 +1469,7 @@ end;
 
 private base_mhpopkva;
 
-mhdeletekva t old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t fail) with
-    handle fail = t;
-    handle e = throw e;
-end;
+mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t fail);
 
 // See comments to popkv on why this is needed.
 mhpopkva t old@(k=>_) = {| vs, child |} when
@@ -1571,9 +1523,7 @@ mhdeletekv t old = mhdeletekvo t old;
 
 public mhdeletea mhdeleteka;
 
-mhdeletea t old = catch handle (head3 $ pop (hash old) old t) with
-    handle fail = t;
-    handle e = throw e;
+mhdeletea t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1609,9 +1559,7 @@ mhdeletea t old = catch handle (head3 $ pop (hash old) old t) with
     end;
 end;
 
-mhdeleteka t k = catch handle (head3 $ pop (hash k) k t) with
-    handle fail = t;
-    handle e = throw e;
+mhdeleteka t k = catch (whenfail t) (head3 $ pop (hash k) k t) with
     pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1766,6 +1714,12 @@ head2 (t@_ _) = t;
 
 // extract head from the pop/shrink triples
 head3 (t@_ _ _) = t;
+
+// catch failures
+whenfail v = handle with
+    handle fail = v;
+    handle e = throw e;
+end;
 
 // custom version of popl
 // throws e when no hits, else leftmost p is rotated to head
