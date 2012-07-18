@@ -55,7 +55,7 @@ namespace trees23;
    this optimization, use an ordering that counts a<b or b<a---or use an
    unordered tree. */
 
-private nonfix nil abort notfound;
+private nonfix nil fail;
 private bin tri;
 
 /* Private helper functions. */
@@ -265,10 +265,10 @@ public member memberk;
 
    This technique from http://user.it.uu.se/~arnea/abs/searchproc.html
 
-   We flag that no candidate match is presently available with `notfound`. */
+   We flag that no candidate match is presently available with `fail`. */
 
-member t old = mem old notfound t with
-    mem old w nil = w~==notfound && (case cmp1 w old of
+member t old = mem old fail t with
+    mem old w nil = w~==fail && (case cmp1 w old of
       res::int
         = 1 if res == GE || res == EQ;
         = 0;
@@ -277,7 +277,7 @@ member t old = mem old notfound t with
       res::int
         = mem old w l if res == LT;
         = 1 if res == EQ;
-        = mem old notfound r if res == GT;
+        = mem old fail r if res == GT;
         = mem old x r if res == GE; // x may be a match
     end;
     mem old w (tri l y c z r) = case cmp3 old y z of
@@ -285,15 +285,15 @@ member t old = mem old notfound t with
         = mem old w l if res == LT;
         = 1 if res == EQ;
         = mem old y c if res == MID; // y may be a match
-        = mem old notfound c if res == LT2;
+        = mem old fail c if res == LT2;
         = 1 if res == EQ2;
-        = mem old notfound r if res == GT2;
+        = mem old fail r if res == GT2;
         = mem old z r if res == GE2; // z may be a match
     end;
 end;
 
-memberk t k = mem k notfound t with
-    mem k w nil = w~==notfound && (case cmp1 w k of
+memberk t k = mem k fail t with
+    mem k w nil = w~==fail && (case cmp1 w k of
       res::int
         = 1 if res == GE || res == EQ;
         = 0;
@@ -302,7 +302,7 @@ memberk t k = mem k notfound t with
       res::int
         = mem k w l if res == LT;
         = 1 if res == EQ;
-        = mem k notfound r if res == GT;
+        = mem k fail r if res == GT;
         = mem k x r if res == GE; // x may be a match
     end;
     mem k w (tri l (y=>_) c (z=>_) r) = case cmp3 k y z of
@@ -310,9 +310,9 @@ memberk t k = mem k notfound t with
         = mem k w l if res == LT;
         = 1 if res == EQ;
         = mem k y c if res == MID; // y may be a match
-        = mem k notfound c if res == LT2;
+        = mem k fail c if res == LT2;
         = 1 if res == EQ2;
-        = mem k notfound r if res == GT2;
+        = mem k fail r if res == GT2;
         = mem k z r if res == GE2; // z may be a match
     end;
 end;
@@ -364,8 +364,8 @@ end;
 
 public getk;
 
-getk t k = get k notfound () t with
-    get k w wv nil = if w===notfound then throw out_of_bounds
+getk t k = get k fail () t with
+    get k w wv nil = if w===fail then throw out_of_bounds
     else case cmp1 w k of
       res::int
         = wv if res == GE || res == EQ;
@@ -375,7 +375,7 @@ getk t k = get k notfound () t with
       res::int
         = get k w wv l if res == LT;
         = xv if res == EQ;
-        = get k notfound () r if res == GT;
+        = get k fail () r if res == GT;
         = get k x xv r if res == GE; // x may be a match
     end;
     get k w wv (tri l (y=>yv) c (z=>zv) r) = case cmp3 k y z of
@@ -383,9 +383,9 @@ getk t k = get k notfound () t with
         = get k w wv l if res == LT;
         = yv if res == EQ;
         = get k y yv c if res == MID; // y may be a match
-        = get k notfound () c if res == LT2;
+        = get k fail () c if res == LT2;
         = zv if res == EQ2;
-        = get k notfound () r if res == GT2;
+        = get k fail () r if res == GT2;
         = get k z zv r if res == GE2; // z may be a match
     end;
 end;
@@ -399,7 +399,7 @@ end;
 
 public mgetk mgetko mgetkn;
 
-mgetk t k = get k notfound [] t with
+mgetk t k = get k fail [] t with
     get k w ws nil = if ::null ws then []
     else case cmp1 w k of
       res::int
@@ -410,7 +410,7 @@ mgetk t k = get k notfound [] t with
       res::int
         = get k w ws l if res == LT;
         = match xs if res == EQ;
-        = get k notfound [] r if res == GT;
+        = get k fail [] r if res == GT;
         = get k x xs r if res == GE; // x may be a match
     end;
     get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
@@ -418,16 +418,16 @@ mgetk t k = get k notfound [] t with
         = get k w ws l if res == LT;
         = match ys if res == EQ;
         = get k y ys c if res == MID; // y may be a match
-        = get k notfound [] c if res == LT2;
+        = get k fail [] c if res == LT2;
         = match zs if res == EQ2;
-        = get k notfound [] r if res == GT2;
+        = get k fail [] r if res == GT2;
         = get k z zs r if res == GE2; // z may be a match
     end;
     // extract values and reverse
     match us = ::foldl (flip((:).val)) [] us;
 end;
 
-mgetko t k = get k notfound [] t with
+mgetko t k = get k fail [] t with
     get k w ws nil = if ::null ws then throw out_of_bounds
     else case cmp1 w k of
       res::int
@@ -438,7 +438,7 @@ mgetko t k = get k notfound [] t with
       res::int
         = get k w ws l if res == LT;
         = ::last xs if res == EQ;
-        = get k notfound [] r if res == GT;
+        = get k fail [] r if res == GT;
         = get k x xs r if res == GE; // x may be a match
     end;
     get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
@@ -446,14 +446,14 @@ mgetko t k = get k notfound [] t with
         = get k w ws l if res == LT;
         = ::last ys if res == EQ;
         = get k y ys c if res == MID; // y may be a match
-        = get k notfound [] c if res == LT2;
+        = get k fail [] c if res == LT2;
         = ::last zs if res == EQ2;
-        = get k notfound [] r if res == GT2;
+        = get k fail [] r if res == GT2;
         = get k z zs r if res == GE2; // z may be a match
     end;
 end;
 
-mgetkn t k = get k notfound [] t with
+mgetkn t k = get k fail [] t with
     get k w ws nil = if ::null ws then throw out_of_bounds
     else case cmp1 w k of
       res::int
@@ -464,7 +464,7 @@ mgetkn t k = get k notfound [] t with
       res::int
         = get k w ws l if res == LT;
         = ::head xs if res == EQ;
-        = get k notfound [] r if res == GT;
+        = get k fail [] r if res == GT;
         = get k x xs r if res == GE; // x may be a match
     end;
     get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
@@ -472,9 +472,9 @@ mgetkn t k = get k notfound [] t with
         = get k w ws l if res == LT;
         = ::head zs if res == EQ;
         = get k y ys c if res == MID; // y may be a match
-        = get k notfound [] c if res == LT2;
+        = get k fail [] c if res == LT2;
         = ::head zs if res == EQ2;
-        = get k notfound [] r if res == GT2;
+        = get k fail [] r if res == GT2;
         = get k z zs r if res == GE2; // z may be a match
     end;
 end;
@@ -568,7 +568,7 @@ end;
 public insert insertk;
 
 insert t new = catch handle (head2 $ ins new t) with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     ins new nil = (bin nil new nil) true; // bump height at prev level
     ins new (bin l1 x1 r1) = case cmp new x1 of
@@ -577,7 +577,7 @@ insert t new = catch handle (head2 $ ins new t) with
                 child@_ 0 = (bin child x1 r1) false;
                 (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = throw abort if res == EQ; // keep existing tree
+        = throw fail if res == EQ; // keep existing tree
         = case ins new r1 of
                 child@_ 0 = (bin l1 x1 child) false;
                 (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
@@ -589,12 +589,12 @@ insert t new = catch handle (head2 $ ins new t) with
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
                 child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = throw abort if res == EQ;
+        = throw fail if res == EQ;
         = case ins new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
                 (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = throw abort if res == EQ2;
+        = throw fail if res == EQ2;
         = case ins new r1 of
                 child@_ 0 = (tri l1 y1 c1 z1 child) false;
                 child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
@@ -603,7 +603,7 @@ insert t new = catch handle (head2 $ ins new t) with
 end;
 
 insertk t new@(k=>v) = catch handle (head2 $ ins k v new t) with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     ins k v new nil = (bin nil new nil) true; // bump height at prev level
     ins k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
@@ -612,7 +612,7 @@ insertk t new@(k=>v) = catch handle (head2 $ ins k v new t) with
             child@_ 0 = (bin child x1 r1) false;
             (bin l2 x2 r2) 1 = (tri l2 x2 r2 x1 r1) false;
           end if res == LT;
-        = if v==?xv then throw abort // keep existing tree
+        = if v==?xv then throw fail // keep existing tree
           else (bin l1 new r1) false if res == EQ;
         = case ins k v new r1 of
             child@_ 0 = (bin l1 x1 child) false;
@@ -625,13 +625,13 @@ insertk t new@(k=>v) = catch handle (head2 $ ins k v new t) with
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
                 child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
           end if res == LT;
-        = if v==?yv then throw abort // keep existing tree
+        = if v==?yv then throw fail // keep existing tree
           else (tri l1 new c1 z1 r1) false if res == EQ;
         = case ins k v new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
                 (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
           end if res == LT2;
-        = if v==?zv then throw abort // keep existing tree
+        = if v==?zv then throw fail // keep existing tree
           else (tri l1 y1 c1 new r1) false if res == EQ2;
         = case ins k v new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
@@ -644,9 +644,9 @@ end;
 public delete deletek popk deletekv popkv;
 
 delete t old = catch handle (head3 $ pop old t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    pop _ nil = throw abort;
+    pop _ nil = throw fail;
     pop old cur@(bin l x r) = case cmp old x of
       res::int
         = shrink_left (pop old) cur if res == LT;
@@ -674,8 +674,8 @@ end;
 
 private base_popk;
 
-deletek t k = catch handle (head3 $ base_popk k t abort) /* child, _, _ */ with
-    handle abort = t;
+deletek t k = catch handle (head3 $ base_popk k t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -714,8 +714,8 @@ end;
 
 private base_popkv;
 
-deletekv t (k=>v) = catch handle (head3 $ base_popkv k v t abort) /* child, _, _ */ with
-    handle abort = t;
+deletekv t (k=>v) = catch handle (head3 $ base_popkv k v t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -835,13 +835,13 @@ private base_mpopkn base_mpopko;
 // If elements are discernable but still EQ, note:
 // We delete the element added most recently, which we can do efficiently.
 // avltrees on the other hand removes the element added first.
-mdelete t old = catch handle (head3 $ base_mpopkn old t abort) /* child, _, _ */ with
-    handle abort = t;
+mdelete t old = catch handle (head3 $ base_mpopkn old t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
-mdeleteko t k = catch handle (head3 $ base_mpopko k t abort) /* child, _, _ */ with
-    handle abort = t;
+mdeleteko t k = catch handle (head3 $ base_mpopko k t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -886,10 +886,10 @@ base_mpopko k t e = pop k t with
 end;
 
 mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    del v us = popr abort ((v==?).val) us; // throw abort if no hits
-    pop k v nil = throw abort;
+    del v us = popr fail ((v==?).val) us; // throw fail if no hits
+    pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
@@ -924,8 +924,8 @@ mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     end;
 end;
 
-mdeletekn t k = catch handle (head3 $ base_mpopkn k t abort) /* child, _, _ */ with
-    handle abort = t;
+mdeletekn t k = catch handle (head3 $ base_mpopkn k t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -970,10 +970,10 @@ base_mpopkn k t e = pop k t with
 end;
 
 mdeletekvn t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    del v us = popl abort ((v==?).val) us; // throw abort if no hits
-    pop k v nil = throw abort;
+    del v us = popl fail ((v==?).val) us; // throw fail if no hits
+    pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
         = shrink_left (pop k v) cur if res == LT;
@@ -1010,8 +1010,8 @@ end;
 
 private base_mpopkva;
 
-mdeletekva t (k=>v) = catch handle (head3 $ base_mpopkva k v t abort) /* child, _, _ */ with
-    handle abort = t;
+mdeletekva t (k=>v) = catch handle (head3 $ base_mpopkva k v t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -1078,10 +1078,10 @@ mdeleteka t k = mdeletea t k;
 public hinsert hinsertk;
 
 hinsert t new = catch handle (head2 $ ins (hash new) new t) with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less presure on GC
-    add new _ (new:_) = throw abort; // keep existing tree
+    add new _ (new:_) = throw fail; // keep existing tree
     add new ws (u:us) = add new ws us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
@@ -1116,10 +1116,10 @@ hinsert t new = catch handle (head2 $ ins (hash new) new t) with
 end;
 
 hinsertk t new@(k=>_) = catch handle (head2 $ ins (hash k) new t) with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     add new ws [] = new:ws; // adding new to front of list is less pressure on GC
-    add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw abort // keep existing tree
+    add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing tree
                                      else new:reverse_onto us ws; // update value
     add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
@@ -1161,13 +1161,13 @@ public hdelete hdeletek hpopk;
 public hdeletekv hpopkv;
 
 hdelete t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     // custom version of deletel, that doesn't tolerate failure
-    del _ _ [] = throw abort;
+    del _ _ [] = throw fail;
     del old ws (old:us) = reverse_onto us ws;
     del old ws (u:us) = del old (u:ws) us;
-    pop h::int old nil = throw abort;
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1204,8 +1204,8 @@ end;
 
 private base_hpopk;
 
-hdeletek t k = catch handle (head3 $ base_hpopk k t abort) /* child, _, _ */ with
-    handle abort = t;
+hdeletek t k = catch handle (head3 $ base_hpopk k t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -1215,7 +1215,7 @@ end;
 
 base_hpopk k t e = pop (hash k) k t with
     del k us = popl e (same k.key) us; // throw e if no hits
-    pop h::int k nil = throw abort;
+    pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
@@ -1252,8 +1252,8 @@ end;
 
 private base_hpopkv;
 
-hdeletekv t old@(k=>_) = catch handle (head3 $ base_hpopkv k old t abort) /* child, _, _ */ with
-    handle abort = t;
+hdeletekv t old@(k=>_) = catch handle (head3 $ base_hpopkv k old t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -1388,10 +1388,10 @@ mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
 mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    del (k=>v) us = popr abort (\(uk=>uv) -> k===uk && v==?uv) us; // throw abort if no hits
-    pop h::int old nil = throw abort;
+    del (k=>v) us = popr fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1427,11 +1427,11 @@ mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _
 end;
 
 mhdeletekvn t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
     // unlike hdeletekv, we continue searching when keys match but values don't
-    del (k=>v) us = popl abort (\(uk=>uv) -> k===uk && v==?uv) us; // throw abort if no hits
-    pop h::int old nil = throw abort;
+    del (k=>v) us = popl fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1470,8 +1470,8 @@ end;
 
 private base_mhpopko;
 
-mhdeleteko t k = catch handle (head3 $ base_mhpopko k t abort) /* child, _, _ */ with
-    handle abort = t;
+mhdeleteko t k = catch handle (head3 $ base_mhpopko k t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -1480,7 +1480,7 @@ mhpopko t k = {| v, child |} when
 end;
 
 base_mhpopko k t e = pop (hash k) k t with
-    del k us = popr abort (same k.key) us; // throw abort if no hits
+    del k us = popr fail (same k.key) us; // throw fail if no hits
     pop h::int k nil = throw e;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1518,8 +1518,8 @@ end;
 
 private base_mhpopkva;
 
-mhdeletekva t old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t abort) /* child, _, _ */ with
-    handle abort = t;
+mhdeletekva t old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t fail) /* child, _, _ */ with
+    handle fail = t;
     handle e = throw e;
 end;
 
@@ -1575,9 +1575,9 @@ mhdeletekv t old = mhdeletekvo t old;
 public mhdeletea mhdeleteka;
 
 mhdeletea t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    pop h::int old nil = throw abort;
+    pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
@@ -1613,9 +1613,9 @@ mhdeletea t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ 
 end;
 
 mhdeleteka t k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
-    handle abort = t;
+    handle fail = t;
     handle e = throw e;
-    pop h::int k nil = throw abort;
+    pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
