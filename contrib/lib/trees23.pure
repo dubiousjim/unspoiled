@@ -139,7 +139,7 @@ vals t = vals t [] with
 end;
 
 // Get the first and the last member of a tree. Like head/tail and init/last
-// for [], the following six functions just fail to reduce when applied to
+// for [], the following two functions just fail to reduce when applied to
 // nil.
 
 first t = first t with
@@ -156,20 +156,25 @@ last t = last t with
     last (tri _ _ _ _ r) = last r;
 end if t~==nil;
 
-// Remove the first and the last member from a tree.
+// Remove the first and the last member from a tree. To match avltrees'
+// behavior, `rmfirst nil` returns `nil`. However, lists act differently:
+// `tail []` fails to reduce, instead of returning `[]`.
 
-rmfirst t = head3 $ pop_left t if t~==nil;
+rmfirst nil = nil;
+rmfirst t = head3 $ pop_left t;
 
-rmlast t = head3 $ pop_right t if t~==nil;
+rmlast nil = nil;
+rmlast t = head3 $ pop_right t;
 
+popfirst nil = {};
 popfirst t = case pop_left t of
     child@_ _ w = {| w, child |};
-end if t~==nil;
+end;
 
+poplast nil = {};
 poplast t = case pop_right t of
     child@_ _ w = {| w, child |};
-end if t~==nil;
-
+end;
 
 /* Basic 2-3-tree operations, multiple values per key. */
 
@@ -202,9 +207,8 @@ mvals t = vals t [] with
     vals (tri l (_=>ys) c (_=>zs) r) base = vals l (reverse_onto (vals c (reverse_onto (vals r base) [z | _=>z = zs])) [y | _=>y = ys]);
 end;
 
-// Get the first and the last mmember of a tree. Like head/tail and init/last
-// for [], the following six functions just fail to reduce when applied to
-// nil.
+// Get the first and the last mmember of a tree. See comments for first/rmfirst
+// about behavior when applied to nil.
 
 mfirst t = first t with
     // first-added element is at the end of the list
@@ -222,17 +226,21 @@ mlast t = last t with
     last (tri _ _ _ _ r) = last r;
 end if t~==nil;
 
-mrmfirst t = head3 $ mpop_left t if t~==nil;
+mrmfirst nil = nil;
+mrmfirst t = head3 $ mpop_left t;
 
-mrmlast t = head3 $ mpop_right t if t~==nil;
+mrmlast nil = nil;
+mrmlast t = head3 $ mpop_right t;
 
+mpopfirst nil = {};
 mpopfirst t = case mpop_left t of
     child@_ _ w = {| w, child |};
-end if t~==nil;
+end;
 
+mpoplast nil = {};
 mpoplast t = case mpop_right t of
     child@_ _ w = {| w, child |};
-end if t~==nil;
+end;
 
 
 /* The above also apply to all kinds of hash trees. For convenience and
