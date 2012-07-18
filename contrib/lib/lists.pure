@@ -576,6 +576,12 @@ end;
 
       equivalent to ``{ filter p xs, filter ((~).p) xs }``, but more efficient
 
+   .. function:: swap y xs default
+
+      returns ``head xs:y:tail xs`` when ``xs`` is non-null, else ``default``;
+      this is a useful convenience function when ``xs`` is the result of
+      another expression
+
    .. function:: tail xs
 
       return all but the first element of ``xs``; ``xs`` must be nonempty
@@ -1123,6 +1129,10 @@ end with
     skip_ahead n::int xs = n (filter p xs:filter ((~).p) xs);
 end;
 #! --endif
+
+
+swap y (x:xs) default   = x:y:xs;
+swap _ [] default       = default;
 
 
 tail (x:xs)		= xs;
