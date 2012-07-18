@@ -640,10 +640,9 @@ insertk t new@(k=>v) = catch handle (head2 $ ins k v new t) with
     end;
 end;
 
-// The popkv methods may seem like overkill, but we need them for weak-value dicts.
 public delete deletek popk deletekv popkv;
 
-delete t old = catch handle (head3 $ pop old t) /* child, _, _ */ with
+delete t old = catch handle (head3 $ pop old t) with
     handle fail = t;
     handle e = throw e;
     pop _ nil = throw fail;
@@ -674,10 +673,9 @@ end;
 
 private base_popk;
 
-deletek t k = catch handle (head3 $ base_popk k t fail) /* child, _, _ */ with
+deletek t k = catch handle (head3 $ base_popk k t fail) with
     handle fail = t;
     handle e = throw e;
-end;
 
 popk t k = {| v, child |} when
     child@_ _ (_=>v) = base_popk k t out_of_bounds;
@@ -714,11 +712,14 @@ end;
 
 private base_popkv;
 
-deletekv t (k=>v) = catch handle (head3 $ base_popkv k v t fail) /* child, _, _ */ with
+deletekv t (k=>v) = catch handle (head3 $ base_popkv k v t fail) with
     handle fail = t;
     handle e = throw e;
 end;
 
+// The popkv methods may seem like overkill: you already know the k=>v so
+// why isn't deletekv enough? However we do need these methods for weak-value
+// dicts.
 popkv t (k=>v) = {| v, child |} when
     child@_ _ (_=>v) = base_popkv k v t out_of_bounds;
 end;
@@ -824,9 +825,6 @@ minsertk t new@(k=>_) = head2 $ ins k new t with
     end;
 end;
 
-// popkv methods may seem like overkill: you already know the k=>v so why isn't
-// deletekv enough? However we do need these methods for weak-value dicts.
-// I only implement mpopkva because that's the only one currently needed.
 public mdelete mdeleteko mdeletekn mpopko mpopkn;
 public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
@@ -835,12 +833,12 @@ private base_mpopkn base_mpopko;
 // If elements are discernable but still EQ, note:
 // We delete the element added most recently, which we can do efficiently.
 // avltrees on the other hand removes the element added first.
-mdelete t old = catch handle (head3 $ base_mpopkn old t fail) /* child, _, _ */ with
+mdelete t old = catch handle (head3 $ base_mpopkn old t fail) with
     handle fail = t;
     handle e = throw e;
 end;
 
-mdeleteko t k = catch handle (head3 $ base_mpopko k t fail) /* child, _, _ */ with
+mdeleteko t k = catch handle (head3 $ base_mpopko k t fail) with
     handle fail = t;
     handle e = throw e;
 end;
@@ -885,7 +883,7 @@ base_mpopko k t e = pop k t with
     end;
 end;
 
-mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
+mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) with
     handle fail = t;
     handle e = throw e;
     del v us = popr fail ((v==?).val) us; // throw fail if no hits
@@ -924,7 +922,7 @@ mdeletekvo t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
     end;
 end;
 
-mdeletekn t k = catch handle (head3 $ base_mpopkn k t fail) /* child, _, _ */ with
+mdeletekn t k = catch handle (head3 $ base_mpopkn k t fail) with
     handle fail = t;
     handle e = throw e;
 end;
@@ -969,7 +967,7 @@ base_mpopkn k t e = pop k t with
     end;
 end;
 
-mdeletekvn t (k=>v) = catch handle (head3 $ pop k v t) /* child, _, _ */ with
+mdeletekvn t (k=>v) = catch handle (head3 $ pop k v t) with
     handle fail = t;
     handle e = throw e;
     del v us = popl fail ((v==?).val) us; // throw fail if no hits
@@ -1010,11 +1008,12 @@ end;
 
 private base_mpopkva;
 
-mdeletekva t (k=>v) = catch handle (head3 $ base_mpopkva k v t fail) /* child, _, _ */ with
+mdeletekva t (k=>v) = catch handle (head3 $ base_mpopkva k v t fail) with
     handle fail = t;
     handle e = throw e;
 end;
 
+// See comments to popkv on why this is needed.
 mpopkva t (k=>v) = {| vs, child |} when
     child@_ _ vs = base_mpopkva k v t out_of_bounds;
     // extract values and reverse
@@ -1156,11 +1155,10 @@ end;
 
 // These are also valid for multi-hashes.
 
-// The popkv methods may seem like overkill, but we need them for weak-value dicts.
 public hdelete hdeletek hpopk;
 public hdeletekv hpopkv;
 
-hdelete t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
+hdelete t old = catch handle (head3 $ pop (hash old) old t) with
     handle fail = t;
     handle e = throw e;
     // custom version of deletel, that doesn't tolerate failure
@@ -1204,7 +1202,7 @@ end;
 
 private base_hpopk;
 
-hdeletek t k = catch handle (head3 $ base_hpopk k t fail) /* child, _, _ */ with
+hdeletek t k = catch handle (head3 $ base_hpopk k t fail) with
     handle fail = t;
     handle e = throw e;
 end;
@@ -1252,11 +1250,12 @@ end;
 
 private base_hpopkv;
 
-hdeletekv t old@(k=>_) = catch handle (head3 $ base_hpopkv k old t fail) /* child, _, _ */ with
+hdeletekv t old@(k=>_) = catch handle (head3 $ base_hpopkv k old t fail) with
     handle fail = t;
     handle e = throw e;
 end;
 
+// See comments to popkv on why this is needed.
 hpopkv t old@(k=>_) = {| v, child |} when
     child@_ _ (_=>v) = base_hpopkv k old t out_of_bounds;
 end;
@@ -1372,9 +1371,6 @@ mhinsertk t new@(k=>_) = head2 $ ins (hash k) new t with
     end;
 end;
 
-// popkv methods may seem like overkill: you already know the k=>v so why isn't
-// deletekv enough? However we do need these methods for weak-value dicts.
-// I only implement mhpopkva because that's the only one currently needed.
 public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
 public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
@@ -1387,7 +1383,7 @@ mhdelete        t old = hdelete   t old;
 mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
-mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) with
     handle fail = t;
     handle e = throw e;
     del (k=>v) us = popr fail (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
@@ -1426,7 +1422,7 @@ mhdeletekvo t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _
     end;
 end;
 
-mhdeletekvn t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) /* child, _, _ */ with
+mhdeletekvn t old@(k=>_) = catch handle (head3 $ pop (hash k) old t) with
     handle fail = t;
     handle e = throw e;
     // unlike hdeletekv, we continue searching when keys match but values don't
@@ -1470,7 +1466,7 @@ end;
 
 private base_mhpopko;
 
-mhdeleteko t k = catch handle (head3 $ base_mhpopko k t fail) /* child, _, _ */ with
+mhdeleteko t k = catch handle (head3 $ base_mhpopko k t fail) with
     handle fail = t;
     handle e = throw e;
 end;
@@ -1518,11 +1514,12 @@ end;
 
 private base_mhpopkva;
 
-mhdeletekva t old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t fail) /* child, _, _ */ with
+mhdeletekva t old@(k=>_) = catch handle (head3 $ base_mhpopkva k old t fail) with
     handle fail = t;
     handle e = throw e;
 end;
 
+// See comments to popkv on why this is needed.
 mhpopkva t old@(k=>_) = {| vs, child |} when
     child@_ _ vs = base_mhpopkva k old t out_of_bounds;
     // extract values and reverse
@@ -1574,7 +1571,7 @@ mhdeletekv t old = mhdeletekvo t old;
 
 public mhdeletea mhdeleteka;
 
-mhdeletea t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ with
+mhdeletea t old = catch handle (head3 $ pop (hash old) old t) with
     handle fail = t;
     handle e = throw e;
     pop h::int old nil = throw fail;
@@ -1612,7 +1609,7 @@ mhdeletea t old = catch handle (head3 $ pop (hash old) old t) /* child, _, _ */ 
     end;
 end;
 
-mhdeleteka t k = catch handle (head3 $ pop (hash k) k t) /* child, _, _ */ with
+mhdeleteka t k = catch handle (head3 $ pop (hash k) k t) with
     handle fail = t;
     handle e = throw e;
     pop h::int k nil = throw fail;
