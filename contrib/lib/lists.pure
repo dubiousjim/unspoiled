@@ -371,7 +371,12 @@ end;
    '\ :func:`rotate`\ '. The other list functions will force stream arguments
    only as far as necessary.
 
-   The indexing function '\ :func:`!`\ ' mentioned above throws the
+   Note that '\ :func:`subseq`\ ' in the prelude is also eager, as are
+   the indexing function '\ :func:`!`\ ' and the slicing function
+   '\ :func:`!!`\ '. However '\ :func:`take`\ ' is not eager; if given
+   a stream argument it will return a stream result.
+
+   The indexing function '\ :func:`!`\ ' throws the
    exception ``out_of_bounds`` when given an invalid index. The functions
    '\ :func:`findl`\ ' and '\ :func:`findr`\ ' throw this same exception
    if no member of the list satisfies the supplied predicate.
