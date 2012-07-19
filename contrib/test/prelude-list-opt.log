@@ -1431,14 +1431,14 @@ xs/*0:01*/!!ns/*0:1*/ = ys/*0:*/ if ok/*1*/ ys/*0:*/ when ys/*0:*/ = case ns/*0:
   state 18: #0 #1
 } end;
 subseq [] a/*0:01*/ :: int b/*0:1*/ :: int = [];
-subseq xs@(_/*0:00101*/:_/*0:0011*/) a/*0:01*/ :: int b/*0:1*/ :: int = take/*0*/ (b/*0:1*/-a/*0:01*/+1) (drop a/*0:01*/ xs/*0:001*/) with take n/*0:01*/ :: int [] = []; take n/*0:01*/ :: int xs@(_/*0:101*/:_/*0:11*/) = tick/*1*/ n/*0:01*/ [] xs/*0:1*/ {
-  rule #0: take n::int [] = []
-  rule #1: take n::int xs@(_:_) = tick n [] xs
+subseq xs@(_/*0:00101*/:_/*0:0011*/) a/*0:01*/ :: int b/*0:1*/ :: int = take/*0*/ (b/*0:1*/-a/*0:01*/+1) (drop a/*0:01*/ xs/*0:001*/) with take 0 xs/*0:1*/ = []; take m/*0:01*/ :: int xs/*0:1*/ = take_pre/*0*/ len_pre/*0:0*/ xs/*1:1*/ with take_pre 0 _/*0:1*/ = front_tail/*1:1*/; take_pre n/*0:01*/ :: int (x/*0:101*/:xs/*0:11*/) = x/*0:101*/:take_pre/*1*/ (n/*0:01*/-1) xs/*0:11*/ {
+  rule #0: take_pre 0 _ = front_tail
+  rule #1: take_pre n::int (x:xs) = x:take_pre (n-1) xs
   state 0: #0 #1
 	<var>::int state 1
-  state 1: #0 #1
+	0::int state 7
+  state 1: #1
 	<app> state 2
-	[] state 7
   state 2: #1
 	<app> state 3
   state 3: #1
@@ -1448,46 +1448,81 @@ subseq xs@(_/*0:00101*/:_/*0:0011*/) a/*0:01*/ :: int b/*0:1*/ :: int = take/*0*
   state 5: #1
 	<var> state 6
   state 6: #1
-  state 7: #0
-}; tick n/*0:001*/ :: int zs/*0:01*/ xs/*0:1*/ = reverse_onto [] zs/*0:01*/ if n/*0:001*/<=0; tick n/*0:001*/ :: int zs/*0:01*/ xs/*0:1*/ = case xs/*0:1*/ of [] = reverse_onto [] zs/*1:01*/; x/*0:01*/:xs/*0:1*/ = tick/*2*/ (n/*1:001*/-1) (x/*0:01*/:zs/*1:01*/) xs/*0:1*/; _/*0:*/ = reverse_onto (take/*2*/ n/*1:001*/ xs/*1:1*/) zs/*1:01*/ {
-  rule #0: [] = reverse_onto [] zs
-  rule #1: x:xs = tick (n-1) (x:zs) xs
-  rule #2: _ = reverse_onto (take n xs) zs
-  state 0: #0 #1 #2
-	<var> state 1
-	<app> state 2
-	[] state 12
-  state 1: #2
-  state 2: #1 #2
-	<var> state 3
-	<app> state 5
-  state 3: #2
-	<var> state 4
-  state 4: #2
-  state 5: #1 #2
-	<var> state 6
-	: state 9
-  state 6: #2
-	<var> state 7
-  state 7: #2
+  state 7: #0 #1
 	<var> state 8
-  state 8: #2
-  state 9: #1 #2
+	<app> state 9
+  state 8: #0
+  state 9: #0 #1
 	<var> state 10
-  state 10: #1 #2
+	<app> state 12
+  state 10: #0
 	<var> state 11
-  state 11: #1 #2
-  state 12: #0 #2
+  state 11: #0
+  state 12: #0 #1
+	<var> state 13
+	: state 16
+  state 13: #0
+	<var> state 14
+  state 14: #0
+	<var> state 15
+  state 15: #0
+  state 16: #0 #1
+	<var> state 17
+  state 17: #0 #1
+	<var> state 18
+  state 18: #0 #1
+} end when len_pre@_/*0:0*/ front_tail/*0:1*/ = skip_ahead/*1*/ m/*0:01*/ 0 xs/*0:1*/ {
+  rule #0: len_pre@_ front_tail = skip_ahead m 0 xs
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
 } end {
-  rule #0: tick n::int zs xs = reverse_onto [] zs if n<=0
-  rule #1: tick n::int zs xs = case xs of [] = reverse_onto [] zs; x:xs = tick (n-1) (x:zs) xs; _ = reverse_onto (take n xs) zs end
+  rule #0: take 0 xs = []
+  rule #1: take m::int xs = take_pre len_pre xs with take_pre 0 _ = front_tail; take_pre n::int (x:xs) = x:take_pre (n-1) xs end when len_pre@_ front_tail = skip_ahead m 0 xs end
   state 0: #0 #1
 	<var>::int state 1
-  state 1: #0 #1
+	0::int state 3
+  state 1: #1
 	<var> state 2
-  state 2: #0 #1
-	<var> state 3
+  state 2: #1
   state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+}; skip_ahead m/*0:001*/ :: int n/*0:01*/ :: int xs/*0:1*/ = n/*0:01*/ [] if m/*0:001*/<=0||xs/*0:1*/===[]; skip_ahead m/*0:001*/ :: int n/*0:01*/ :: int (x/*0:101*/:xs/*0:11*/) = skip_ahead/*1*/ (m/*0:001*/-1) (n/*0:01*/+1) xs/*0:11*/ if n/*0:01*/<4096; skip_ahead m/*0:001*/ :: int n/*0:01*/ :: int xs/*0:1*/ = n/*0:01*/ (take/*1*/ m/*0:001*/ xs/*0:1*/) {
+  rule #0: skip_ahead m::int n::int xs = n [] if m<=0||xs===[]
+  rule #1: skip_ahead m::int n::int (x:xs) = skip_ahead (m-1) (n+1) xs if n<4096
+  rule #2: skip_ahead m::int n::int xs = n (take m xs)
+  state 0: #0 #1 #2
+	<var>::int state 1
+  state 1: #0 #1 #2
+	<var>::int state 2
+  state 2: #0 #1 #2
+	<var> state 3
+	<app> state 4
+  state 3: #0 #2
+  state 4: #0 #1 #2
+	<var> state 5
+	<app> state 7
+  state 5: #0 #2
+	<var> state 6
+  state 6: #0 #2
+  state 7: #0 #1 #2
+	<var> state 8
+	: state 11
+  state 8: #0 #2
+	<var> state 9
+  state 9: #0 #2
+	<var> state 10
+  state 10: #0 #2
+  state 11: #0 #1 #2
+	<var> state 12
+  state 12: #0 #1 #2
+	<var> state 13
+  state 13: #0 #1 #2
 } end;
 subseq x/*0:001*/ a/*0:01*/ b/*0:1*/ = slice x/*0:001*/ (a/*0:01*/..b/*0:1*/);
 def x/*0:01*/!!(a/*0:101*/..b/*0:11*/) = subseq x/*0:01*/ a/*0:101*/ b/*0:11*/;
@@ -2376,7 +2411,7 @@ def __std__::__voidchk1__ x/*0:01*/ y/*0:1*/ = x/*0:01*/;
   rule #0: subseq x::matrix a::int b::int = __C::matrix_slice (rowvector x) 0 a 0 b
   rule #1: subseq s::string a::int b::int = substr s a (b-a+1)
   rule #2: subseq [] a::int b::int = []
-  rule #3: subseq xs@(_:_) a::int b::int = take (b-a+1) (drop a xs) with take n::int [] = []; take n::int xs@(_:_) = tick n [] xs; tick n::int zs xs = reverse_onto [] zs if n<=0; tick n::int zs xs = case xs of [] = reverse_onto [] zs; x:xs = tick (n-1) (x:zs) xs; _ = reverse_onto (take n xs) zs end end
+  rule #3: subseq xs@(_:_) a::int b::int = take (b-a+1) (drop a xs) with take 0 xs = []; take m::int xs = take_pre len_pre xs with take_pre 0 _ = front_tail; take_pre n::int (x:xs) = x:take_pre (n-1) xs end when len_pre@_ front_tail = skip_ahead m 0 xs end; skip_ahead m::int n::int xs = n [] if m<=0||xs===[]; skip_ahead m::int n::int (x:xs) = skip_ahead (m-1) (n+1) xs if n<4096; skip_ahead m::int n::int xs = n (take m xs) end
   rule #4: subseq x a b = slice x (a..b)
   state 0: #0 #1 #2 #3 #4
 	<var> state 1
