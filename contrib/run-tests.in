@@ -52,22 +52,26 @@ pathops()
   local _diff="$outdir/$_bname.diff"
   local _tmp="$_diff.$$"
   local _log="$testdir/$_bname.log"
+  local _aux="$testdir/$_bname.aux"
 
   case "$mode" in
   -A) fname="$_fname" \
       bname="$_bname" \
       diff="$_diff" \
       tmp="$_tmp" \
-      log="$_log"
+      log="$_log" \
+      aux="$_aux"
     ;;
   -d) echo $_diff
     ;;
   esac
 }
 
+# if running all tests, or failed
 if test 0 -eq $#; then
   tests=
   for s in "$srcdir/lib/prelude.pure" $(find "$testdir" -name test\*.pure | sort); do
+    # if running all tests, or this has a *.diff, add to list
     if test 0 -eq $failed || test -e $(pathops -d "$s"); then
       tests="$tests $s"
     fi
@@ -81,11 +85,30 @@ echo Running tests.
 
 test -d "$outdir" || mkdir -p "$outdir"
 
+# The prelude.aux script should test compiler settings and print to stdout
+# a string like "prelude-foo". In that case, requesting a test of lib/prelude.pure
+# will compare against the logfile test/prelude-foo.log.
+# Scripts like test015.aux should test compiler settings and exit with a nonzero
+# status to skip running the related test. For example:
+#  ### test015.aux ###
+#  #! --if trees23
+#  exit 1;
+#  #! --endif
+# All of the *.aux scripts can rely on the prelude already being loaded.
+
 for t in "$@"; do
   pathops -A "$t"
   pufs="$PURE_FLAGS"
-  test "x$bname" = "xprelude" && pufs="$pufs -n"
   echo ${ECHO_N} "$fname: ${ECHO_C}"
+  if test "x$bname" = "xprelude"
+  then
+    log="$testdir/$(level=0 ./run-test ${pufs} "$testdir/prelude.aux").log"
+    pufs="$pufs -n"
+  elif test -e "$aux" && ! level=0 ./run-test ${pufs} "$aux" >/dev/null
+  then
+    echo "${ECHO_T}skipped"
+    continue
+  fi
   trap 'x=$?; rm -f '$tmp'; exit $x;' ALRM HUP INT TERM
   if ./run-test ${pufs} < "$t" 2>&1 | ${DIFF} -u "$log" - > "$tmp"
   then
