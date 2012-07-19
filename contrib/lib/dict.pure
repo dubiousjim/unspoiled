@@ -1,0 +1,656 @@
+/* Pure's dictionary data types based on AVL trees. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+   Copyright (c) 2008-2012 by Jiri Spitz <jiri.spitz@bluetone.cz>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* .. module:: dict
+
+   Dictionaries
+   ------------
+
+   The dict.pure module provides Pure's dictionary data types based on AVL
+   trees. There are actually four different types to choose from, depending on
+   whether you need ordered or hashed dictionaries and whether multiple values
+   for the same key should be allowed or not.
+
+   .. type:: dict /type
+
+      An ordered dictionary. This assumes an ordered key type, i.e., the
+      predicate :func:`<` must be defined on the keys.
+
+   .. type:: hdict /type
+
+      A hashed dictionary which works with any (mixture of) key types but
+      stores members in an apparently random order.
+
+   .. type:: mdict /type
+
+      An ordered dictionary, like :type:`dict/type`, which allows multiple
+      values to be associated with the same key.
+
+   .. type:: hmdict /type
+
+      A multi-valued dictionary, like :type:`mdict/type`, but uses hashed keys
+      like :type:`hdict/type`.
+
+   .. type:: xdict /type
+
+      This is just an abstract supertype for matching any kind of dictionary
+      provided by this module.
+
+   :type:`mdict/type` and :type:`hmdict/type` are also colloquially referred
+   to as (ordered or hashed) *multidicts*. This implementation guarantees that
+   different members for the same key are always kept in the order in which
+   they were inserted, and this is also the order in which they will be
+   retrieved by the :func:`members/dict`, :func:`keys/dict`, :func:`vals/dict`
+   and indexing operations.
+
+   The usual comparison predicates (:func:`==`, :func:`~=`, :func:`<=`,
+   :func:`<` etc.) are defined on all dictionary types, where two dictionaries
+   are considered "equal" (``d1==d2``) if they both contain the same
+   ``key=>value`` pairs, and ``d1<=d2`` means that ``d1`` is a sub-dictionary
+   of ``d2``, i.e., all ``key=>value`` pairs of ``d1`` are also contained in
+   ``d2`` (taking into account multiplicities in the multidict case). Ordered
+   dictionaries compare keys using equality (assuming two keys ``a`` and ``b``
+   to be equal if neither ``a<b`` nor ``b<a`` holds), while hashed
+   dictionaries check for syntactical equality (using :func:`===`). The
+   associated values are compared using the :func:`==` predicate if it is
+   defined, falling back to syntactic equality otherwise.
+
+   The underlying AVL tree data structure can be found in the avltrees.pure
+   module which is included in the library, but not to be invoked directly.
+
+   The AVL tree algorithm has its origin in the SWI-Prolog implementation of
+   association lists. The original implementation was created by R. A. O'Keefe
+   and updated for SWI-Prolog by Jan Wielemaker. For the original source see
+   http://www.swi-prolog.org.
+
+   The port from SWI-Prolog and the deletion stuff (:func:`rmfirst/dict`,
+   :func:`rmlast/dict`, :func:`delete/dict`) missing in the Prolog
+   implementation was provided by Jiri Spitz. The generalization of the code
+   to arbitrary combinations of ordered/hashed and single-/multi-valued keys
+   was done by Albert Graef.
+
+   Imports
+   ~~~~~~~
+
+   To use the operations of this module, add the following import declaration
+   to your program::
+
+     using dict;
+
+   Operations
+   ~~~~~~~~~~
+
+   .. function:: emptydict
+                 emptyhdict
+                 emptymdict
+                 emptyhmdict
+
+      return an empty dictionary
+
+   .. function:: dict xs
+                 hdict xs
+                 mdict xs
+                 hmdict xs
+
+      create a dictionary of the corresponding type either from a list ``xs``
+      of key-value pairs in the form ``key=>value``, or from another
+      dictionary; in the latter case the argument is converted to a dictionary
+      of the desired target type
+
+   .. function:: dictp d
+                 hdictp d
+                 mdictp d
+                 hmdictp d
+
+      check whether ``x`` is a dictionary of the corresponding type
+
+   .. function:: mkdict y xs
+                 mkhdict y xs
+                 mkmdict y xs
+                 mkhmdict y xs
+
+      create a dictionary from a list of keys and a constant value
+
+   .. function:: infix + /dict d1 d2
+
+      sum: ``d1+d2`` adds the members of ``d2`` to ``d1``
+
+   .. function:: infix - /dict d1 d2
+
+      difference: ``d1-d2`` removes the members of ``d2`` from ``d1``
+
+   .. function:: infix * /dict d1 d2
+
+      intersection: ``d1*d2`` removes the members *not* in ``d2`` from ``d1``
+
+   .. function:: prefix # /dict d
+
+      size of a dictionary (the number of members it contains)
+
+   .. function:: infix ! /dict d x
+
+      get the value from ``d`` by key ``x``; in the case of a multidict this
+      actually returns a list of values (which may be empty if ``d`` doesn't
+      contain ``x``)
+
+   .. function:: null /dict d
+
+      test whether ``d`` is an empty dictionary
+
+   .. function:: member /dict d x
+
+      test whether ``d`` contains a member with key ``x``
+
+   .. function:: members /dict d
+                 list /dict d
+
+      list the members of ``d`` (in ascending order for ordered dictionaries)
+
+   .. function:: keys /dict d
+
+      list the keys of ``d`` (in ascending order for ordered dictionaries)
+
+   .. function:: vals /dict d
+
+      list the values of ``d``
+
+   .. function:: first /dict d
+                 last /dict d
+
+      return the first and the last member of ``d``, respectively
+
+   .. function:: rmfirst /dict d
+                 rmlast /dict d
+
+      remove the first and the last member from ``d``, respectively
+
+   .. function:: insert /dict d (x=>y)
+                 update /dict d x y
+
+      insert ``x=>y`` into ``d`` (this always adds a new member in a
+      multidict, otherwise it replaces an existing value if there is one);
+      note that :func:`update/dict` is just a fully curried version of
+      :func:`insert/dict`, so ``update d x y`` behaves exactly like
+      ``insert d (x=>y)``
+
+   .. function:: delete /dict d x
+
+      remove ``x`` from ``d`` if present (in the multidict case, only the
+      first member with the given key ``x`` is removed)
+
+   .. function:: delete_val /dict d (x=>y)
+
+      remove a specific key-value pair ``x=>y`` from ``d`` if present (in the
+      multidict case, only the first instance of ``x=>y`` is removed); please
+      also see the notes below regarding this operation
+
+   .. function:: delete_all /dict d x
+
+      remove all instances of ``x`` from ``d`` (in the non-multidict case,
+      this is just the same as :func:`delete/dict`)
+
+   .. note::
+
+      * The infix operators :func:`+/dict`, :func:`-/dict` and :func:`*\/dict`
+      	work like the corresponding set and bag operations (see `Sets and
+      	Bags`_), treating dictionaries as collections of ``key=>val``
+      	pairs. You can mix arbitrary operand types with these operations, as
+      	well as with the comparison operations; the necessary conversions from
+      	less general dictionary types (ordered, single-valued) to more general
+      	types (hashed, multi-valued) are handled automatically.
+
+      * The :func:`delete_val/dict` function compares values using equality
+        (:func:`==`) if it is defined, falling back to syntactic equality
+        (:func:`===`) otherwise. If there is more than one instance of the
+        given value under the given key, the first such instance will be
+        removed (which, if :func:`==` is defined on the values, may be any
+        instance that compares equal, not necessarily an exact match).
+
+      * In the multidict case, :func:`delete_val/dict` may require linear time
+        with respect to the number of different values stored under the given
+        key. Since this operation is also needed to implement some other
+        multidict operations like comparisons, difference and intersection,
+        these may end up requiring quadratic running times in degenerate cases
+        (i.e., if the majority of members happens to be associated with only
+        very few keys).
+
+   Examples
+   ~~~~~~~~
+
+   A normal (ordered) dictionary::
+
+     > using dict;
+     > let d::dict = dict ["foo"=>77,"bar"=>99.1];
+     > keys d; vals d; members d;
+     ["bar","foo"]
+     [99.1,77]
+     ["bar"=>99.1,"foo"=>77]
+
+   Indexing a dictionary works in the usual way, using Pure's :func:`\!`
+   operator. An :cons:`out_of_bounds` exception is thrown if the key is not in
+   the dictionary::
+
+     > d!"foo";
+     77
+     > d!"baz";
+     <stdin>, line 5: unhandled exception 'out_of_bounds' while evaluating
+     'd!"baz"'
+
+   By virtue of the prelude, slicing a dictionary with :func:`\!\!` also works
+   as expected::
+
+     > d!!["foo","bar","baz"];
+     [77,99.1]
+
+   A hashed dictionary can be used with any key values, which are stored in a
+   seemingly random order::
+
+     > let h::hdict = hdict [foo=>77,42=>99.1];
+     > keys h; vals h; members h;
+     [42,foo]
+     [99.1,77]
+     [42=>99.1,foo=>77]
+     > h!foo;
+     77
+     > h!!keys h;
+     [99.1,77]
+
+   Multidicts work in pretty much the same fashion, but allow more than one
+   value for a given key to be stored in the dictionary. In this case, the
+   indexing operation returns a list of all values for the given key, which
+   may be empty if the key is not in the dictionary (rather than throwing an
+   :cons:`out_of_bounds` exception)::
+
+     > let d::mdict = mdict ["foo"=>77,"bar"=>99.1,"foo"=>99];
+     > d!"foo"; d!"baz";
+     [77,99]
+     []
+
+   Slicing thus returns a list of lists of values here::
+
+     > d!!["foo","bar","baz"];
+     [[77,99],[99.1],[]]
+
+   To obtain a flat list you can just concatenate the results::
+
+     > cat $ d!!["foo","bar","baz"];
+     [77,99,99.1]
+
+   Hashed multidicts provide both key hashing and multiple values per key::
+
+     > let h::hmdict = hmdict [foo=>77,42=>99.1,42=>77];
+     > keys h; vals h; members h;
+     [42,42,foo]
+     [99.1,77,77]
+     [42=>99.1,42=>77,foo=>77]
+     > h!42;
+     [99.1,77]
+
+   There are also some set-like operations which allow you to add/remove the
+   members (``key=>val`` pairs) of one dictionary to/from another dictionary,
+   and to compute the intersection of two dictionaries. For instance::
+
+     > let h1 = hmdict [a=>1,b=>2];
+     > let h2 = hmdict [b=>2,c=>3];
+     > members (h1+h2);
+     [a=>1,c=>3,b=>2,b=>2]
+     > members (h1-h2);
+     [a=>1]
+     > members (h1*h2);
+     [b=>2]
+
+   It's possible to mix dictionaries of different types in these operations.
+   The necessary conversions are handled automatically::
+
+     > let h1 = hmdict [a=>1,b=>2];
+     > let h2 = hdict  [b=>3,c=>4];
+     > members (h1+h2);
+     [a=>1,c=>4,b=>2,b=>3]
+
+   Note that the result will always be promoted to the most general operand
+   type in such cases (a hashed multidict in the above example). If this is
+   not what you want, you'll have to apply the necessary conversions
+   manually::
+
+     > members (hdict h1+h2);
+     [a=>1,c=>4,b=>3]
+
+*/
+
+using avltrees;
+
+// These should be considered private.
+public Dict HDict MDict HMDict;
+
+type dict  (Dict _) | hdict (HDict _) | mdict (MDict _) | hmdict (HMDict _);
+type xdict (Dict _) | xdict (HDict _) | xdict (MDict _) | xdict  (HMDict _);
+
+// type checks
+dictp   x = typep dict   x;
+hdictp  x = typep hdict  x;
+mdictp  x = typep mdict  x;
+hmdictp x = typep hmdict x;
+xdictp  x = typep xdict  x;
+
+// create an empty dict
+emptydict	= Dict   avl::emptytree;
+emptyhdict	= HDict  avl::emptytree;
+emptymdict	= MDict  avl::emptytree;
+emptyhmdict	= HMDict avl::emptytree;
+
+// conversions between the different dictionary types
+public members;
+dict d@(Dict _) | hdict d@(HDict _) | mdict d@(MDict _) |
+  hmdict d@(HMDict _) = d;
+dict   d::xdict = dict   (members d);
+hdict  d::xdict = hdict  (members d);
+mdict  d::xdict = mdict  (members d);
+hmdict d::xdict = hmdict (members d);
+
+// create a dict from a list
+dict   xys::rlist = foldl insert emptydict   xys;
+hdict  xys::rlist = foldl insert emptyhdict  xys;
+mdict  xys::rlist = foldl insert emptymdict  xys;
+hmdict xys::rlist = foldl insert emptyhmdict xys;
+
+// create a dict from a list of keys and a constant value
+mkdict   y xs::rlist = dict   (zipwith (=>) xs (repeatn (#xs) y));
+mkhdict  y xs::rlist = hdict  (zipwith (=>) xs (repeatn (#xs) y));
+mkmdict  y xs::rlist = mdict  (zipwith (=>) xs (repeatn (#xs) y));
+mkhmdict y xs::rlist = hmdict (zipwith (=>) xs (repeatn (#xs) y));
+
+// insert a member
+insert (Dict   d) el@(x=>y) = Dict   (avl::insertk   d el);
+insert (HDict  d) el@(x=>y) = HDict  (avl::hinsertk  d el);
+insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
+insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
+
+// curried version of insert
+update d@(Dict  _) x y | update d@(HDict  _) x y |
+update d@(MDict _) x y | update d@(HMDict _) x y = insert d (x=>y);
+
+// delete a member by key
+delete (Dict   d) x = Dict   (avl::deletek   d x);
+delete (HDict  d) x = HDict  (avl::hdeletek  d x);
+delete (MDict  d) x = MDict  (avl::mdeletek  d x);
+delete (HMDict d) x = HMDict (avl::mhdeletek d x);
+
+// delete a member by key=>val
+delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv   d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv  d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
+
+// delete all instances of a given key
+delete_all (Dict   d) x = Dict   (avl::deletek    d x);
+delete_all (HDict  d) x = HDict  (avl::hdeletek   d x);
+delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
+delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
+
+// check for the empty dict
+null (Dict  d) | null (HDict  d) |
+null (MDict d) | null (HMDict d) = avl::null d;
+
+// dict size
+#(Dict   d) = avl::size  d;
+#(MDict  d) = avl::msize d;
+#(HDict  d) = avl::hsize d;
+#(HMDict d) = avl::hsize d;
+
+// membership test
+member (Dict   d) k = avl::memberk  d k;
+member (MDict  d) k = avl::memberk  d k;
+member (HDict  d) k = avl::hmemberk d k;
+member (HMDict d) k = avl::hmemberk d k;
+
+// get the members, keys and values of a dict as a list
+members (Dict   d) = avl::members  d;
+members (MDict  d) = avl::mmembers d;
+members (HDict  d) = avl::hmembers d;
+members (HMDict d) = avl::hmembers d;
+
+keys (Dict   d) = avl::keys  d;
+keys (MDict  d) = avl::mkeys d;
+keys (HDict  d) = avl::hkeys d;
+keys (HMDict d) = avl::hkeys d;
+
+vals (Dict   d) = avl::vals  d;
+vals (MDict  d) = avl::mvals d;
+vals (HDict  d) = avl::hvals d;
+vals (HMDict d) = avl::hvals d;
+
+list d::xdict = members d;
+
+// get the first and last member
+first (Dict   d) = avl::first  d;
+first (MDict  d) = avl::mfirst d;
+last  (Dict   d) = avl::last   d;
+last  (MDict  d) = avl::mlast  d;
+first (HDict  d) = avl::hfirst d;
+first (HMDict d) = avl::hfirst d;
+last  (HDict  d) = avl::hlast  d;
+last  (HMDict d) = avl::hlast  d;
+
+// remove the first and last member
+rmfirst (Dict   d) = Dict   (avl::rmfirst  d);
+rmlast  (Dict   d) = Dict   (avl::rmlast   d);
+rmfirst (MDict  d) = MDict  (avl::mrmfirst d);
+rmlast  (MDict  d) = MDict  (avl::mrmlast  d);
+rmfirst (HDict  d) = HDict  (avl::hrmfirst d);
+rmlast  (HDict  d) = HDict  (avl::hrmlast  d);
+rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
+rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
+
+// get a value by key
+(Dict   d)!k = avl::getk   d k;
+(MDict  d)!k = avl::mgetk  d k;
+(HDict  d)!k = avl::hgetk  d k;
+(HMDict d)!k = avl::mhgetk d k;
+
+// comparisons
+d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
+  /* This case is optimized so that we only need a single traversal of the
+     member lists which can be done in linear time. Also note that keys are
+     compared for equality in the sense that two keys are equal if neither is
+     less than the other, whereas values are compared for proper equality (==)
+     if it is defined, falling back to (===) otherwise. */
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 0;
+  cmp ((xk=>xv):xs) ((yk=>yv):ys) =
+    ~(xk<yk || yk<xk) && eq xv yv && cmp xs ys;
+  eq u v = case u==v of res::int = res; _ = u===v end;
+end;
+d1@(MDict _)  == d2@(MDict _)  |
+d1@(HDict _)  == d2@(HDict _)  |
+d1@(HMDict _) == d2@(HMDict _) = d1 <= d2 && d2 <= d1;
+
+d1@(Dict _)   ~= d2@(Dict _)   |
+d1@(MDict _)  ~= d2@(MDict _)  |
+d1@(HDict _)  ~= d2@(HDict _)  |
+d1@(HMDict _) ~= d2@(HMDict _) = ~(d1 == d2);
+
+d1@(Dict _)   <= d2@(Dict _)   = cmp (members d1) (members d2) with
+  /* Again, this case is optimized so that we only need a single traversal of
+     the member lists. Also note that the member lists are ordered by key, so
+     that we can use a kind of subset check for two ordered sequences which
+     can still be done in linear time. */
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 1;
+  cmp xs1@((xk=>xv):xs) ((yk=>yv):ys)
+  = 0 if xk<yk;
+  = cmp xs1 ys if yk<xk;
+  = eq xv yv && cmp xs ys;
+  eq u v = case u==v of res::int = res; _ = u===v end;
+end;
+d1@(MDict _)  <= d2@(MDict _)  |
+d1@(HDict _)  <= d2@(HDict _)  |
+d1@(HMDict _) <= d2@(HMDict _) = null (d1 - d2);
+
+d1@(Dict _)   >= d2@(Dict _)   = d2 <= d1;
+d1@(MDict _)  >= d2@(MDict _)  |
+d1@(HDict _)  >= d2@(HDict _)  |
+d1@(HMDict _) >= d2@(HMDict _) = null (d2 - d1);
+
+d1@(Dict _)   <  d2@(Dict _)   |
+d1@(MDict _)  <  d2@(MDict _)  |
+d1@(HDict _)  <  d2@(HDict _)  |
+d1@(HMDict _) <  d2@(HMDict _) = d1 <= d2 && ~(d1 >= d2);
+
+d1@(Dict _)   >  d2@(Dict _)   |
+d1@(MDict _)  >  d2@(MDict _)  |
+d1@(HDict _)  >  d2@(HDict _)  |
+d1@(HMDict _) >  d2@(HMDict _) = d1 >= d2 && ~(d1 <= d2);
+
+// sum, difference, intersection
+d1@(Dict _)   +  d2@(Dict _)   |
+d1@(MDict _)  +  d2@(MDict _)  |
+d1@(HDict _)  +  d2@(HDict _)  |
+d1@(HMDict _) +  d2@(HMDict _) = foldl insert d1 (members d2);
+
+d1@(Dict _)   -  d2@(Dict _)   |
+d1@(MDict _)  -  d2@(MDict _)  |
+d1@(HDict _)  -  d2@(HDict _)  |
+d1@(HMDict _) -  d2@(HMDict _) = foldl delete_val d1 (members d2);
+
+d1@(Dict _)   *  d2@(Dict _)   |
+d1@(MDict _)  *  d2@(MDict _)  |
+d1@(HDict _)  *  d2@(HDict _)  |
+d1@(HMDict _) *  d2@(HMDict _) = d1 - (d1 - d2);
+
+// automatic coercion rules
+
+m1@(HMDict _) == m2 = m1 == hmdict m2 if xdictp m2;
+m1 == m2@(HMDict _) = hmdict m1 == m2 if xdictp m1;
+m1@(HDict _) == m2  = case m2 of
+			_@(MDict _) = hmdict m1 == hmdict m2;
+			_@(Dict _)  = m1 == hdict m2;
+		      end if xdictp m2;
+m1 == m2@(HDict _)  = case m1 of
+			_@(MDict _) = hmdict m1 == hmdict m2;
+			_@(Dict _)  = hdict m1 == m2;
+		      end if xdictp m2;
+m1@(MDict _) == m2@(Dict _) = m1 == mdict m2;
+m1@(Dict _) == m2@(MDict _) = mdict m1 == m2;
+
+m1@(HMDict _) ~= m2 = m1 ~= hmdict m2 if xdictp m2;
+m1 ~= m2@(HMDict _) = hmdict m1 ~= m2 if xdictp m1;
+m1@(HDict _) ~= m2  = case m2 of
+			_@(MDict _) = hmdict m1 ~= hmdict m2;
+			_@(Dict _)  = m1 ~= hdict m2;
+		      end if xdictp m2;
+m1 ~= m2@(HDict _)  = case m1 of
+			_@(MDict _) = hmdict m1 ~= hmdict m2;
+			_@(Dict _)  = hdict m1 ~= m2;
+		      end if xdictp m2;
+m1@(MDict _) ~= m2@(Dict _) = m1 ~= mdict m2;
+m1@(Dict _) ~= m2@(MDict _) = mdict m1 ~= m2;
+
+m1@(HMDict _) <= m2 = m1 <= hmdict m2 if xdictp m2;
+m1 <= m2@(HMDict _) = hmdict m1 <= m2 if xdictp m1;
+m1@(HDict _) <= m2  = case m2 of
+			_@(MDict _) = hmdict m1 <= hmdict m2;
+			_@(Dict _)  = m1 <= hdict m2;
+		      end if xdictp m2;
+m1 <= m2@(HDict _)  = case m1 of
+			_@(MDict _) = hmdict m1 <= hmdict m2;
+			_@(Dict _)  = hdict m1 <= m2;
+		      end if xdictp m2;
+m1@(MDict _) <= m2@(Dict _) = m1 <= mdict m2;
+m1@(Dict _) <= m2@(MDict _) = mdict m1 <= m2;
+
+m1@(HMDict _) >= m2 = m1 >= hmdict m2 if xdictp m2;
+m1 >= m2@(HMDict _) = hmdict m1 >= m2 if xdictp m1;
+m1@(HDict _) >= m2  = case m2 of
+			_@(MDict _) = hmdict m1 >= hmdict m2;
+			_@(Dict _)  = m1 >= hdict m2;
+		      end if xdictp m2;
+m1 >= m2@(HDict _)  = case m1 of
+			_@(MDict _) = hmdict m1 >= hmdict m2;
+			_@(Dict _)  = hdict m1 >= m2;
+		      end if xdictp m2;
+m1@(MDict _) >= m2@(Dict _) = m1 >= mdict m2;
+m1@(Dict _) >= m2@(MDict _) = mdict m1 >= m2;
+
+m1@(HMDict _) < m2 = m1 < hmdict m2 if xdictp m2;
+m1 < m2@(HMDict _) = hmdict m1 < m2 if xdictp m1;
+m1@(HDict _) < m2  = case m2 of
+		       _@(MDict _) = hmdict m1 < hmdict m2;
+		       _@(Dict _)  = m1 < hdict m2;
+		     end if xdictp m2;
+m1 < m2@(HDict _)  = case m1 of
+		       _@(MDict _) = hmdict m1 < hmdict m2;
+		       _@(Dict _)  = hdict m1 < m2;
+		     end if xdictp m2;
+m1@(MDict _) < m2@(Dict _) = m1 < mdict m2;
+m1@(Dict _) < m2@(MDict _) = mdict m1 < m2;
+
+m1@(HMDict _) > m2 = m1 > hmdict m2 if xdictp m2;
+m1 > m2@(HMDict _) = hmdict m1 > m2 if xdictp m1;
+m1@(HDict _) > m2  = case m2 of
+		       _@(MDict _) = hmdict m1 > hmdict m2;
+		       _@(Dict _)  = m1 > hdict m2;
+		     end if xdictp m2;
+m1 > m2@(HDict _)  = case m1 of
+		       _@(MDict _) = hmdict m1 > hmdict m2;
+		       _@(Dict _)  = hdict m1 > m2;
+		     end if xdictp m2;
+m1@(MDict _) > m2@(Dict _) = m1 > mdict m2;
+m1@(Dict _) > m2@(MDict _) = mdict m1 > m2;
+
+m1@(HMDict _) + m2 = m1 + hmdict m2 if xdictp m2;
+m1 + m2@(HMDict _) = hmdict m1 + m2 if xdictp m1;
+m1@(HDict _) + m2  = case m2 of
+		       _@(MDict _) = hmdict m1 + hmdict m2;
+		       _@(Dict _)  = m1 + hdict m2;
+		     end if xdictp m2;
+m1 + m2@(HDict _)  = case m1 of
+		       _@(MDict _) = hmdict m1 + hmdict m2;
+		       _@(Dict _)  = hdict m1 + m2;
+		     end if xdictp m2;
+m1@(MDict _) + m2@(Dict _) = m1 + mdict m2;
+m1@(Dict _) + m2@(MDict _) = mdict m1 + m2;
+
+m1@(HMDict _) - m2 = m1 - hmdict m2 if xdictp m2;
+m1 - m2@(HMDict _) = hmdict m1 - m2 if xdictp m1;
+m1@(HDict _) - m2  = case m2 of
+		       _@(MDict _) = hmdict m1 - hmdict m2;
+		       _@(Dict _)  = m1 - hdict m2;
+		     end if xdictp m2;
+m1 - m2@(HDict _)  = case m1 of
+		       _@(MDict _) = hmdict m1 - hmdict m2;
+		       _@(Dict _)  = hdict m1 - m2;
+		     end if xdictp m2;
+m1@(MDict _) - m2@(Dict _) = m1 - mdict m2;
+m1@(Dict _) - m2@(MDict _) = mdict m1 - m2;
+
+m1@(HMDict _) * m2 = m1 * hmdict m2 if xdictp m2;
+m1 * m2@(HMDict _) = hmdict m1 * m2 if xdictp m1;
+m1@(HDict _) * m2  = case m2 of
+		       _@(MDict _) = hmdict m1 * hmdict m2;
+		       _@(Dict _)  = m1 * hdict m2;
+		     end if xdictp m2;
+m1 * m2@(HDict _)  = case m1 of
+		       _@(MDict _) = hmdict m1 * hmdict m2;
+		       _@(Dict _)  = hdict m1 * m2;
+		     end if xdictp m2;
+m1@(MDict _) * m2@(Dict _) = m1 * mdict m2;
+m1@(Dict _) * m2@(MDict _) = mdict m1 * m2;

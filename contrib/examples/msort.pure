@@ -28,15 +28,8 @@ of elements that are mutually <=, the later-occurring one will occur earlier in
 the result. This may sometimes be useful.
 */
 
-
-#! --ifndef DEFINED_REVERSE_ONTO
-#! --enable DEFINED_REVERSE_ONTO
-// "reverse and append"
-// used in the definition of append but not (yet) exposed
-// in prelude.pure
 reverse_onto [] base = base;
 reverse_onto (x:xs) base = reverse_onto xs (x:base);
-#! --endif
 
 public msort;
 

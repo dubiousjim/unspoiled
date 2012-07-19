@@ -1,0 +1,525 @@
+/* Pure's set and bag data types based on AVL trees. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+   Copyright (c) 2008-2012 by Jiri Spitz <jiri.spitz@bluetone.cz>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* .. module:: set
+
+   Sets and Bags
+   -------------
+
+   The set.pure module implements Pure's set data types based on AVL trees.
+   These work pretty much like dictionaries (cf. Dictionaries_) but only store
+   keys (called "elements" or "members" here) without any associated data
+   values. Hence sets provide membership tests like dictionaries, but no
+   indexing operations.
+
+   There are four variations of this data structure to choose from, depending
+   on whether the set members are ordered or hashed, and whether multiple
+   instances of the same element are allowed (in this case the set is actually
+   called a *multiset* or a *bag*).
+
+   .. type:: set /type
+             bag /type
+
+      These implement the ordered set types. They require that members be
+      ordered, i.e., the predicate ``<`` must be defined on them.
+
+   .. type:: hset /type
+             hbag /type
+
+      These implement the hashed set types which don't require an order of the
+      members. Distinct members are stored in an apparently random order.
+
+   .. type:: xset /type
+
+      This is just an abstract supertype for matching any kind of set or bag
+      provided by this module.
+
+   The usual comparison predicates (:func:`==`, :func:`~=`, :func:`<=`,
+   :func:`<` etc.) are defined on all set and bag types, where two sets or
+   bags are considered "equal" (``m1==m2``) if they both contain the same
+   elements, and ``m1<=m2`` means that ``m1`` is a subset or subbag of ``m2``,
+   i.e., all elements of ``m1`` are also contained in ``m2`` (taking into
+   account multiplicities in the multiset case). Ordered sets and bags compare
+   elements using equality (considering two elements ``a`` and ``b`` to be
+   equal if neither ``a<b`` nor ``b<a`` holds), while hashed sets and bags
+   check for syntactical equality (using :func:`===`).
+
+   The underlying AVL tree data structure can be found in the avltrees.pure
+   module which is included in the library, but not to be invoked directly.
+   The AVL tree algorithm has its origin in the SWI-Prolog implementation of
+   association lists and was ported to Pure by Jiri Spitz, see Dictionaries_
+   for details.
+
+   Imports
+   ~~~~~~~
+
+   To use the operations of this module, add the following import declaration
+   to your program::
+
+     using set;
+
+   Operations
+   ~~~~~~~~~~
+
+   .. function:: emptyset
+                 emptybag
+                 emptyhset
+                 emptyhbag
+
+      return an empty set or bag
+
+   .. function:: set xs
+                 bag xs
+                 hset xs
+                 hbag xs
+
+      create a set or bag of the corresponding type from a list or another set
+      or bag ``xs``; in the latter case the argument is converted to a set or
+      bag of the desired target type
+
+   .. function:: setp x
+                 bagp x
+                 hsetp x
+                 hbagp x
+
+      check whether ``x`` is a set or bag of the corresponding type
+
+   .. function:: infix + /set m1 m2
+
+      union/sum: ``m1+m2`` adds the members of ``m2`` to ``m1``
+
+   .. function:: infix - /set m1 m2
+
+      difference: ``m1-m2`` removes the members of ``m2`` from ``m1``
+
+   .. function:: infix * /set m1 m2
+
+      intersection: ``m1*m2`` removes the members *not* in ``m2`` from ``m1``
+
+   .. function:: prefix # /set m
+
+      size of a set or bag ``m``
+
+   .. function:: null /set m
+
+      test whether ``m`` is an empty set or bag
+
+   .. function:: member /set m x
+
+      test whether ``m`` contains ``x``
+
+   .. function:: members /set m
+                 list /set m
+
+      list the members of ``m`` (in ascending order for ordered sets and bags)
+
+   .. function:: first /set m
+                 last /set m
+
+      return the first and the last member of ``m``, respectively
+
+   .. function:: rmfirst /set m
+                 rmlast /set m
+
+      remove the first and the last member from ``m``, respectively
+
+   .. function:: insert /set m x
+
+      insert ``x`` into ``m`` (replaces an existing element in the case of a
+      set)
+
+   .. function:: delete /set m x
+
+      remove ``x`` from ``m`` (in the bag case, only the first instance of
+      ``x`` is removed)
+
+   .. function:: delete_all /set m x
+
+      remove all instances of ``x`` from ``m`` (in the set case, this is just
+      the same as :func:`delete/set`)
+
+   .. note::
+
+      The infix operators (:func:`+/set`, :func:`-/set`, :func:`*\/set`, as
+      well as the comparison operations) allow you to mix arbitrary operand
+      types; the necessary conversions from less general set types (ordered,
+      set) to more general types (hashed, multiset) are handled automatically.
+
+      Also note that in the case of sets, :func:`+/set` is just the ordinary
+      set union. There are basically two generalizations of this operation to
+      bags, `multiset union` and `multiset sum`; :func:`+/set` implements the
+      *latter*. Thus, if a bag ``m1`` contains ``k1`` instances of an element
+      ``x`` and a bag ``m2`` contains ``k2`` instances of ``x``, then
+      ``m1+m2`` contains ``k1+k2`` instances of ``x`` (rather than ``max k1
+      k2`` instances, which would be the case for multiset union). Multiset
+      sum is probably more common in practical applications, and also
+      generalizes easily to multidicts (see Dictionaries_). However, if
+      multiset union is needed, it can easily be defined in terms of multiset
+      sum as follows::
+
+        union m1 m2 = m1+(m2-m1);
+
+   Examples
+   ~~~~~~~~
+
+   Some basic set operations::
+
+     > let m::set = set [5,1,3,11,3];
+     > members m;
+     [1,3,5,11]
+     > map (member m) (1..5);
+     [1,0,1,0,1]
+     > members $ m+set (3..6);
+     [1,3,4,5,6,11]
+     > members $ m-set (3..6);
+     [1,11]
+     > members $ m*set (3..6);
+     [3,5]
+
+   The bag operations work in a similar fashion, but multiple instances are
+   permitted in this case, and each instance counts as a separate member::
+
+     > let m::bag = bag [5,1,3,11,3];
+     > members m;
+     [1,3,3,5,11]
+     > members $ delete m 3;
+     [1,3,5,11]
+     > members $ insert m 1;
+     [1,1,3,3,5,11]
+     > members $ m+bag (3..6);
+     [1,3,3,3,4,5,5,6,11]
+     > members $ m-bag (3..6);
+     [1,3,11]
+     > members $ m*bag (3..6);
+     [3,5]
+
+   As already mentioned, operands of different types can be mixed with the
+   infix operators; the necessary conversions are handled automatically. E.g.,
+   here's how you add a set to a bag::
+
+     > let m1::bag = bag [5,1,3,11,3];
+     > let m2::set = set (3..6);
+     > members (m1+m2);
+     [1,3,3,3,4,5,5,6,11]
+
+   Note that the result will always be promoted to the most general operand
+   type in such cases (a bag in the above example). If this is not what you
+   want, you'll have to apply the necessary conversions manually::
+
+     > members (set m1+m2);
+     [1,3,4,5,6,11]
+
+   If set members aren't ordered then you'll get an exception when trying to
+   create an ordered set or bag from them::
+
+     > set [a,b,c];
+     <stdin>, line 5: unhandled exception 'failed_cond' while evaluating
+     'set [a,b,c]'
+
+   In such a case hashed sets and bags must be used instead. These work
+   analogously to the ordered sets and bags, but distinct members are stored
+   in an apparently random order::
+
+     > members $ hset [a,b,c] * hset [c,d,e];
+     [c]
+     > members $ hbag [a,b,c] + hbag [c,d,e];
+     [a,c,c,b,d,e]
+
+*/
+
+using avltrees;
+
+// These should be considered private.
+public Set Bag HSet HBag;
+
+type set  (Set _) | bag  (Bag _) | hset (HSet _) | hbag (HBag _);
+type xset (Set _) | xset (Bag _) | xset (HSet _) | xset (HBag _);
+
+// type checks
+setp  x = typep set  x;
+bagp  x = typep bag  x;
+hsetp x = typep hset x;
+hbagp x = typep hbag x;
+xsetp x = typep xset x;
+
+// create an empty set
+emptyset  = Set  avl::emptytree;
+emptybag  = Bag  avl::emptytree;
+emptyhset = HSet avl::emptytree;
+emptyhbag = HBag avl::emptytree;
+
+// conversions between the different set types
+public members;
+set m@(Set _) | hset m@(HSet _) | bag m@(Bag _) | hbag m@(HBag _) = m;
+set  m::xset = set  (members m);
+hset m::xset = hset (members m);
+bag  m::xset = bag  (members m);
+hbag m::xset = hbag (members m);
+
+// create set from a list
+set  xs::rlist = foldl insert emptyset  xs;
+bag  xs::rlist = foldl insert emptybag  xs;
+hset xs::rlist = foldl insert emptyhset xs;
+hbag xs::rlist = foldl insert emptyhbag xs;
+
+// insert a member
+insert (Set  m) y = Set  (avl::insert   m y);
+insert (Bag  m) y = Bag  (avl::minsert  m y);
+insert (HSet m) y = HSet (avl::hinsert  m y);
+insert (HBag m) y = HBag (avl::mhinsert m y);
+
+// delete a member
+delete (Set  m) y = Set  (avl::delete   m y);
+delete (Bag  m) y = Bag  (avl::mdelete  m y);
+delete (HSet m) y = HSet (avl::hdelete  m y);
+delete (HBag m) y = HBag (avl::mhdelete m y);
+
+// delete all instances of a given member
+delete_all (Set  m) y = Set  (avl::delete    m y);
+delete_all (Bag  m) y = Bag  (avl::mdeletea  m y);
+delete_all (HSet m) y = HSet (avl::hdelete   m y);
+delete_all (HBag m) y = HBag (avl::mhdeletea m y);
+
+// check for the empty set
+null (Set  m) | null (Bag  m) |
+null (HSet m) | null (HBag m) = avl::null m;
+
+// get size
+#(Set  m) = avl::size  m;
+#(Bag  m) = avl::msize m;
+#(HSet m) = avl::hsize m;
+#(HBag m) = avl::hsize m;
+
+// membership test
+member (Set  m) y = avl::member  m y;
+member (Bag  m) y = avl::memberk m y;
+member (HSet m) y = avl::hmember m y;
+member (HBag m) y = avl::hmember m y;
+
+// get all members of a set as a list
+members (Set  m) = avl::members  m;
+members (Bag  m) = avl::mmembers m;
+members (HSet m) = avl::hmembers m;
+members (HBag m) = avl::hmembers m;
+
+list m::xset = members m;
+
+// get the first and last member
+first (Set  m) = avl::first  m;
+first (Bag  m) = avl::mfirst m;
+last  (Set  m) = avl::last   m;
+last  (Bag  m) = avl::mlast  m;
+first (HSet m) = avl::hfirst m;
+first (HBag m) = avl::hfirst m;
+last  (HSet m) = avl::hlast  m;
+last  (HBag m) = avl::hlast  m;
+
+// remove the first and last member
+rmfirst (Set  m) = Set  (avl::rmfirst  m);
+rmfirst (Bag  m) = Bag  (avl::mrmfirst m);
+rmlast  (Set  m) = Set  (avl::rmlast   m);
+rmlast  (Bag  m) = Bag  (avl::mrmlast  m);
+rmfirst (HSet m) = HSet (avl::hrmfirst m);
+rmfirst (HBag m) = HBag (avl::hrmfirst m);
+rmlast  (HSet m) = HSet (avl::hrmlast  m);
+rmlast  (HBag m) = HBag (avl::hrmlast  m);
+
+// comparisons
+m1@(Set _)  == m2@(Set _)  |
+m1@(Bag _)  == m2@(Bag _)  = cmp (members m1) (members m2) with
+  // Optimize this case so that it only requires a single traversal.
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 0;
+  cmp (x:xs) (y:ys) = ~(x<y || y<x) && cmp xs ys;
+end;
+m1@(HSet _) == m2@(HSet _) |
+m1@(HBag _) == m2@(HBag _) = m1 <= m2 && m2 <= m1;
+
+m1@(Set _)  ~= m2@(Set _)  |
+m1@(Bag _)  ~= m2@(Bag _)  |
+m1@(HSet _) ~= m2@(HSet _) |
+m1@(HBag _) ~= m2@(HBag _) = ~(m1 == m2);
+
+m1@(Set _)  <= m2@(Set _)  = cmp (members m1) (members m2) with
+  // Optimize this case so that it works in linear time.
+  cmp [] [] = 1;
+  cmp (x:xs) [] = 0;
+  cmp [] (x:xs) = 1;
+  cmp xs1@(x:xs) (y:ys)
+  = 0 if x<y;
+  = cmp xs1 ys if y<x;
+  = cmp xs ys;
+end;
+m1@(HSet _) <= m2@(HSet _) = all (member m2) (members m1);
+m1@(Bag _)  <= m2@(Bag _)  |
+m1@(HBag _) <= m2@(HBag _) = null (m1 - m2);
+
+m1@(Set _)  >= m2@(Set _)  = m2 <= m1;
+m1@(HSet _) >= m2@(HSet _) = all (member m1) (members m2);
+m1@(Bag _)  >= m2@(Bag _)  |
+m1@(HBag _) >= m2@(HBag _) = null (m2 - m1);
+
+m1@(Set _)  <  m2@(Set _)  |
+m1@(Bag _)  <  m2@(Bag _)  |
+m1@(HSet _) <  m2@(HSet _) |
+m1@(HBag _) <  m2@(HBag _) = m1 <= m2 && ~(m1 >= m2);
+
+m1@(Set _)  >  m2@(Set _)  |
+m1@(Bag _)  >  m2@(Bag _)  |
+m1@(HSet _) >  m2@(HSet _) |
+m1@(HBag _) >  m2@(HBag _) = m1 >= m2 && ~(m1 <= m2);
+
+// set union/sum
+m1@(Set _)  + m2@(Set _)   |
+m1@(Bag _)  + m2@(Bag _)   |
+m1@(HSet _) + m2@(HSet _)  |
+m1@(HBag _) + m2@(HBag _)  = foldl insert m1 (members m2);
+
+// set difference
+m1@(Set _)  - m2@(Set _)   |
+m1@(Bag _)  - m2@(Bag _)   |
+m1@(HSet _) - m2@(HSet _)  |
+m1@(HBag _) - m2@(HBag _)  = foldl delete m1 (members m2);
+
+// set intersection
+m1@(Set _)  * m2@(Set _)   |
+m1@(Bag _)  * m2@(Bag _)   |
+m1@(HSet _) * m2@(HSet _)  |
+m1@(HBag _) * m2@(HBag _)  = m1 - (m1 - m2);
+
+// automatic coercion rules
+
+m1@(HBag _) == m2 = m1 == hbag m2 if xsetp m2;
+m1 == m2@(HBag _) = hbag m1 == m2 if xsetp m1;
+m1@(HSet _) == m2 = case m2 of
+		      _@(Bag _) = hbag m1 == hbag m2;
+		      _@(Set _) = m1 == hset m2;
+		    end if xsetp m2;
+m1 == m2@(HSet _) = case m1 of
+		      _@(Bag _) = hbag m1 == hbag m2;
+		      _@(Set _) = hset m1 == m2;
+		    end if xsetp m2;
+m1@(Bag _) == m2@(Set _) = m1 == bag m2;
+m1@(Set _) == m2@(Bag _) = bag m1 == m2;
+
+m1@(HBag _) ~= m2 = m1 ~= hbag m2 if xsetp m2;
+m1 ~= m2@(HBag _) = hbag m1 ~= m2 if xsetp m1;
+m1@(HSet _) ~= m2 = case m2 of
+		      _@(Bag _) = hbag m1 ~= hbag m2;
+		      _@(Set _) = m1 ~= hset m2;
+		    end if xsetp m2;
+m1 ~= m2@(HSet _) = case m1 of
+		      _@(Bag _) = hbag m1 ~= hbag m2;
+		      _@(Set _) = hset m1 ~= m2;
+		    end if xsetp m2;
+m1@(Bag _) ~= m2@(Set _) = m1 ~= bag m2;
+m1@(Set _) ~= m2@(Bag _) = bag m1 ~= m2;
+
+m1@(HBag _) <= m2 = m1 <= hbag m2 if xsetp m2;
+m1 <= m2@(HBag _) = hbag m1 <= m2 if xsetp m1;
+m1@(HSet _) <= m2 = case m2 of
+		      _@(Bag _) = hbag m1 <= hbag m2;
+		      _@(Set _) = m1 <= hset m2;
+		    end if xsetp m2;
+m1 <= m2@(HSet _) = case m1 of
+		      _@(Bag _) = hbag m1 <= hbag m2;
+		      _@(Set _) = hset m1 <= m2;
+		    end if xsetp m2;
+m1@(Bag _) <= m2@(Set _) = m1 <= bag m2;
+m1@(Set _) <= m2@(Bag _) = bag m1 <= m2;
+
+m1@(HBag _) >= m2 = m1 >= hbag m2 if xsetp m2;
+m1 >= m2@(HBag _) = hbag m1 >= m2 if xsetp m1;
+m1@(HSet _) >= m2 = case m2 of
+		      _@(Bag _) = hbag m1 >= hbag m2;
+		      _@(Set _) = m1 >= hset m2;
+		    end if xsetp m2;
+m1 >= m2@(HSet _) = case m1 of
+		      _@(Bag _) = hbag m1 >= hbag m2;
+		      _@(Set _) = hset m1 >= m2;
+		    end if xsetp m2;
+m1@(Bag _) >= m2@(Set _) = m1 >= bag m2;
+m1@(Set _) >= m2@(Bag _) = bag m1 >= m2;
+
+m1@(HBag _) < m2 = m1 < hbag m2 if xsetp m2;
+m1 < m2@(HBag _) = hbag m1 < m2 if xsetp m1;
+m1@(HSet _) < m2 = case m2 of
+		     _@(Bag _) = hbag m1 < hbag m2;
+		     _@(Set _) = m1 < hset m2;
+		   end if xsetp m2;
+m1 < m2@(HSet _) = case m1 of
+		     _@(Bag _) = hbag m1 < hbag m2;
+		     _@(Set _) = hset m1 < m2;
+		   end if xsetp m2;
+m1@(Bag _) < m2@(Set _) = m1 < bag m2;
+m1@(Set _) < m2@(Bag _) = bag m1 < m2;
+
+m1@(HBag _) > m2 = m1 > hbag m2 if xsetp m2;
+m1 > m2@(HBag _) = hbag m1 > m2 if xsetp m1;
+m1@(HSet _) > m2 = case m2 of
+		     _@(Bag _) = hbag m1 > hbag m2;
+		     _@(Set _) = m1 > hset m2;
+		   end if xsetp m2;
+m1 > m2@(HSet _) = case m1 of
+		     _@(Bag _) = hbag m1 > hbag m2;
+		     _@(Set _) = hset m1 > m2;
+		   end if xsetp m2;
+m1@(Bag _) > m2@(Set _) = m1 > bag m2;
+m1@(Set _) > m2@(Bag _) = bag m1 > m2;
+
+m1@(HBag _) + m2 = m1 + hbag m2 if xsetp m2;
+m1 + m2@(HBag _) = hbag m1 + m2 if xsetp m1;
+m1@(HSet _) + m2 = case m2 of
+		     _@(Bag _) = hbag m1 + hbag m2;
+		     _@(Set _) = m1 + hset m2;
+		   end if xsetp m2;
+m1 + m2@(HSet _) = case m1 of
+		     _@(Bag _) = hbag m1 + hbag m2;
+		     _@(Set _) = hset m1 + m2;
+		   end if xsetp m2;
+m1@(Bag _) + m2@(Set _) = m1 + bag m2;
+m1@(Set _) + m2@(Bag _) = bag m1 + m2;
+
+m1@(HBag _) - m2 = m1 - hbag m2 if xsetp m2;
+m1 - m2@(HBag _) = hbag m1 - m2 if xsetp m1;
+m1@(HSet _) - m2 = case m2 of
+		     _@(Bag _) = hbag m1 - hbag m2;
+		     _@(Set _) = m1 - hset m2;
+		   end if xsetp m2;
+m1 - m2@(HSet _) = case m1 of
+		     _@(Bag _) = hbag m1 - hbag m2;
+		     _@(Set _) = hset m1 - m2;
+		   end if xsetp m2;
+m1@(Bag _) - m2@(Set _) = m1 - bag m2;
+m1@(Set _) - m2@(Bag _) = bag m1 - m2;
+
+m1@(HBag _) * m2 = m1 * hbag m2 if xsetp m2;
+m1 * m2@(HBag _) = hbag m1 * m2 if xsetp m1;
+m1@(HSet _) * m2 = case m2 of
+		     _@(Bag _) = hbag m1 * hbag m2;
+		     _@(Set _) = m1 * hset m2;
+		   end if xsetp m2;
+m1 * m2@(HSet _) = case m1 of
+		     _@(Bag _) = hbag m1 * hbag m2;
+		     _@(Set _) = hset m1 * m2;
+		   end if xsetp m2;
+m1@(Bag _) * m2@(Set _) = m1 * bag m2;
+m1@(Set _) * m2@(Bag _) = bag m1 * m2;

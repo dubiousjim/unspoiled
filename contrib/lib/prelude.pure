@@ -1,0 +1,1816 @@
+
+/* Pure's standard prelude. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* .. We use docutils to produce the documentation. Docstrings are extracted
+   .. with pure-doc. Please see the pure-doc documentation for details.
+
+   .. This module is always the first in the library docs, so produce the
+   .. title here.
+
+   ===================
+   Pure Library Manual
+   ===================
+
+   .. role:: dfn(strong)
+   .. default-role:: dfn
+   .. default-domain:: pure
+
+   .. |GPL| replace:: GNU General Public License
+   .. |FDL| replace:: GNU Free Documentation License
+   .. _FDL: http://www.gnu.org/copyleft/fdl.html
+   .. _GPL: http://www.gnu.org/copyleft/gpl.html
+
+   Version @version@, |today|
+
+   Albert Gräf <Dr.Graef@t-online.de>
+
+   Copyright (c) 2009-2012 by Albert Gräf. This document is available under
+   the |FDL|_.
+
+   This manual describes the operations in the standard Pure library,
+   including the prelude and the other library modules which come bundled with
+   the interpreter.
+
+   There is a companion to this manual, :doc:`pure` which describes the Pure
+   language and the operation of the Pure interpreter.
+
+   .. Table of contents, switch on section numbering.
+
+   .. contents::
+   .. sectnum::
+
+   .. _Prelude:
+
+   Prelude
+   =======
+
+   The prelude defines the basic operations of the Pure language. This
+   includes the basic arithmetic and logical operations, string, list and
+   matrix functions, as well as the support operations required to implement
+   list and matrix comprehensions. The string, matrix and record operations
+   are in separate modules strings.pure, matrices.pure and records.pure, the
+   primitive arithmetic and logical operations can be found in
+   primitives.pure. Note that since the prelude module gets imported
+   automatically (unless the interpreter is invoked with the ``--no-prelude``
+   option), all operations discussed in this section are normally available in
+   Pure programs without requiring any explicit import declarations, unless
+   explicitly noted otherwise.
+
+   Constants and Operators
+   -----------------------
+
+   The prelude also declares a signature of commonly used constant and
+   operator symbols. This includes the truth values ``true`` and ``false``.
+
+   .. constant:: true = 1
+      		 false = 0
+
+      These are actually just integers in Pure, but sometimes it's convenient
+      to refer to them using these symbolic constants. Note that if you also
+      want to use these on the left-hand side of equations, you still have to
+      declare them as ``nonfix`` symbols yourself, using a declaration like::
+
+        nonfix false true;
+
+   In addition, the following special exception symbols are provided:
+
+   .. constructor:: failed_cond
+                    failed_match
+                    stack_fault
+                    malloc_error
+
+      These are the built-in exception values. ``failed_cond`` denotes a
+      failed conditional in guard or if-then-else; ``failed_match`` signals a
+      failed pattern match in lambda, ``case`` expression, etc.;
+      ``stack_fault`` means not enough stack space (``PURE_STACK`` limit
+      exceeded); and ``malloc_error`` indicates a memory allocation error.
+
+   .. constructor:: bad_list_value x
+                    bad_tuple_value x
+                    bad_string_value x
+                    bad_matrix_value x
+
+      These denote value mismatches a.k.a. dynamic typing errors. They are
+      thrown by some operations when they fail to find an expected value of
+      the corresponding type.
+
+   .. constructor:: out_of_bounds
+
+      This exception is thrown by the index operator ``!`` if a list, tuple or
+      matrix index is out of bounds.
+
+*/
+
+nonfix failed_cond failed_match stack_fault out_of_bounds malloc_error;
+public bad_matrix_value bad_list_value bad_tuple_value bad_string_value;
+
+/* .. index:: operators
+   .. _operators:
+
+   Here's the list of predefined operator symbols. Note that the parser will
+   automagically give unary minus the same precedence level as the
+   corresponding binary operator. */
+
+// >>>
+
+infixl  1000   $$ ;                // sequence operator
+infixr  1100   $ ;                 // right-associative application
+infixr  1200   , ;                 // pair (tuple)
+infix   1300   => ;                // key=>value pairs ("hash rocket")
+infix   1400   .. ;                // arithmetic sequences
+infixr  1500   || ;                // logical or (short-circuit)
+infixr  1600   && ;                // logical and (short-circuit)
+prefix  1700   ~ ;                 // logical negation
+infix   1800   < > <= >= == ~= ;   // relations
+infix   1800   === ~== ;           // syntactic equality
+infixr  1900   : ;                 // list cons
+infix   2000   +: <: ;             // complex numbers (cf. math.pure)
+infixl  2100   << >> ;             // bit shifts
+infixl  2200   + - or ;            // addition, bitwise or
+infixl  2300   * / div mod and ;   // multiplication, bitwise and
+infixl  2300   % ;                 // exact division (cf. math.pure)
+prefix  2400   not ;               // bitwise not
+infixr  2500   ^ ;                 // exponentiation
+prefix  2600   # ;                 // size operator
+infixl  2700   ! !! ;              // indexing, slicing
+infixr  2800   . ;                 // function composition
+prefix  2900   ' ;                 // quote
+postfix 3000   & ;                 // thunk
+
+// <<<
+
+// Additional operators used to encode quoted specials.
+infix  0       --> ;
+infixl 0       __if__ __when__ __with__;
+infixl 10000   __as__ __type__ ;
+
+const false, true = 0, 1;
+
+/* Synonym for the slicing operator. This must be defined here, before pulling
+   in any of the prelude modules which define optimization rules for (!!). */
+slice x y = x!!y;
+
+// Disabling this option (--disable all-opt) will disable *all* special
+// compile-time optimization rules in the prelude. This isn't recommended.
+
+#! --ifnot all-opt
+#!   --disable common-opt
+#!   --disable subseq-opt
+#!   --disable vectorseq-opt
+#! --endif // not opt
+
+/* Pull in the primitives (arithmetic etc.) and the standard string, matrix
+   and record functions. Note that the math, pointers and system modules are
+   *not* included here, so you have to do that yourself if your program
+   requires any of those operations. */
+
+using primitives, matrices, records, strings;
+
+/* .. _Prelude Types:
+
+   Prelude Types
+   -------------
+
+   Some additional type symbols are provided which can be used as type tags on
+   the left-hand side of equations, see :ref:`Type Tags` in the Pure Manual.
+
+   .. type:: number /type
+             complex /type
+             real /type
+             rational /type
+             integer /type
+
+      Additional number types.
+
+   These types are defined in a purely syntactic way, by checking the
+   builtin-type or the constructor symbol of a number. Some semantic number
+   types can be found in the :mod:`math` module, see `Semantic Number
+   Predicates and Types`_.
+
+   :type:`integer/type` is the union of Pure's built-in integer types, i.e.,
+   it comprises all :type:`int/type` and :type:`bigint/type`
+   values. :type:`rational/type` and :type:`complex/type` are the rational and
+   complex types, while :type:`real/type` is the union of the
+   :type:`double/type`, :type:`integer/type` and :type:`rational/type` types
+   (i.e., anything that can represent a real number and be used for the real
+   and imaginary parts of a :type:`complex/type` number). Finally,
+   :type:`number/type` is the union of all numeric types, i.e., this type can
+   be used to match any kind of number.
+
+   Note that the operations of the :type:`rational/type` and
+   :type:`complex/type` types are actually defined in the :mod:`math` module
+   which isn't part of the prelude, so you have to import this module in order
+   to do computations with these types of values. However, the type tags and
+   constructors for these types are defined in the prelude so that these kinds
+   of values can be parsed and recognized without having the :mod:`math`
+   module loaded.
+
+   The prelude also provides a subtype of the built-in :type:`string/type`
+   type which represents single-character strings:
+
+   .. type:: char /type
+
+      A single character string. This matches any string value of length 1.
+
+   `Lists and tuples`_ can be matched with the following types:
+
+   .. type:: list /type
+             rlist /type
+
+      The list and "proper" (or "recursive") list types. Note that the former
+      comprises both the empty list ``[]`` and all list nodes of the form
+      ``x:xs`` (no matter whether the tail ``xs`` is a proper list value or
+      not), whereas the latter only matches proper list values of the form
+      ``x1:...:xn:[]``. Thus the :type:`list/type` type can be checked in O(1)
+      time, while the :type:`rlist/type` type is defined recursively and
+      requires linear time (with respect to the size of the list) to be
+      checked. This should be considered when deciding whether to use one or
+      the other in a given situation; see :ref:`Type Rules` for further
+      explanation.
+
+   .. type:: tuple /type
+
+      The type of all tuples, comprises the empty tuple ``()`` and all tuples
+      ``(x,xs)`` with at least two members. This is analogous to the
+      :type:`list/type` type above, but no "proper" tuple type is needed here
+      since any tuple of this form is always a proper tuple.
+
+   There are some other, more specialized types representing various kinds of
+   applications, function objects and other named entities. These are useful,
+   in particular, for the definition of higher-order functions and for
+   performing symbolic manipulations on unevaluated symbolic terms.
+
+   .. type:: appl /type
+
+      This type represents all unevaluated function or constructor
+      applications of the form ``x y``. This comprises constructor terms and
+      quoted or partial function applications.
+
+   .. type:: function /type
+
+      This type represents any term which may be called as a function. This
+      may be a closure (global or local function, or a lambda function) which
+      takes at least one argument, or a partial application of a closure to
+      some arguments which is still "unsaturated", i.e., expects some further
+      arguments to be "ready to go".
+
+   .. type:: fun /type
+
+      A named function object (global or local function, but not a partial
+      application).
+
+   .. type:: lambda /type
+
+      An anonymous (lambda) function.
+
+   .. type:: closure /type
+
+      Any kind of function object (named function or lambda). This is the
+      union of the :type:`fun/type` and :type:`lambda/type` types.
+
+   .. type:: thunk /type
+
+      This is a special kind of unevaluated parameterless function object used
+      in lazy evaluation. See :ref:`Lazy Evaluation and Streams` in the Pure
+      Manual.
+
+   .. type:: var /type
+
+      A free variable. This can be any kind of symbol that could in principle
+      be bound to a value (excluding operator and nonfix symbols).
+
+   .. type:: symbol /type
+
+      Any kind of symbol (this also includes operator and nonfix symbols).
+
+   Corresponding type predicates are provided for all of the above, see
+   Predicates_. Some further types and predicates for matrices and records can
+   be found under `Matrix Inspection and Manipulation`_ and `Record
+   Functions`_.
+
+   Basic Combinators
+   -----------------
+
+   .. index:: combinators
+
+   The prelude implements the following important function combinators.
+
+   .. function:: infix $ f g
+      		 infix . f g
+
+      Like in Haskell, these denote right-associative application and function
+      composition. They are also defined as macros so that saturated calls of
+      them are eliminated automatically. Examples::
+
+        > foo $ bar 99;
+     	foo (bar 99)
+     	> (foo.bar) 99;
+     	foo (bar 99)
+
+   .. function:: id x
+      		 cst x y
+
+      These are the customary identity and constant combinators from the
+      combinatorial calculus::
+
+        > map id (1..5);
+     	[1,2,3,4,5]
+     	> map (cst 0) (1..5);
+     	[0,0,0,0,0]
+
+   .. function:: void x
+
+      This combinator is basically equivalent to ``cst ()``, but with the
+      special twist that it is also defined as a macro optimizing the case of
+      "throwaway" list and matrix comprehensions. This is useful if a
+      comprehension is evaluated solely for its side effects. E.g.::
+
+        > using system;
+     	> extern int rand();
+     	> foo = void [printf "%d\n" rand | _ = 1..3];
+     	> show foo
+     	foo = do (\_ -> printf "%d\n" rand) (1..3);
+     	> foo;
+     	1714636915
+     	1957747793
+     	424238335
+     	()
+
+      Note that the above list comprehension is actually implemented using
+      :func:`do` (instead of :func:`map`, which would normally be the case),
+      so that the intermediate list value of the comprehension is never
+      constructed. This is described in more detail in section
+      :ref:`Optimization Rules` of the Pure Manual.
+
+*/
+
+f $ x		= f x;
+(f . g) x	= f (g x);
+
+void _		= ();
+id x		= x;
+cst x y		= x;
+
+/* ..
+
+   In addition, the prelude also provides the following combinators adopted
+   from Haskell:
+
+   .. function:: flip f
+
+      Swaps arguments of a binary function ``f``, e.g.::
+
+        > map (flip (/) 2) (1..3);
+       	[0.5,1.0,1.5]
+
+      This combinator is also used by the compiler to implement right operator
+      sections, which allows you to write the above simply as::
+
+        > map (/2) (1..3);
+        [0.5,1.0,1.5]
+
+   .. function:: curry f
+
+      Turns a function ``f`` expecting a pair of values into a curried
+      function of two arguments::
+
+        > using system;
+        > dowith (curry (printf "%d: %g\n")) (0..2) [0.0,2.718,3.14];
+        0: 0
+        1: 2.718
+        2: 3.14
+        ()
+
+   .. function:: uncurry f
+
+      The inverse of :func:`curry`. Turns a curried function ``f`` expecting
+      two arguments into a function processing a single pair argument::
+
+        > map (uncurry (*)) [(2,3),(4,5),(6,7)];
+        [6,20,42]
+
+   .. function:: curry3 f
+      		 uncurry3 f
+
+      These work analogously, but are used to convert between ternary curried
+      functions and functions operating on triples.
+
+*/
+
+flip f x y	= f y x;
+curry f x y	= f (x,y);
+curry3 f x y z	= f (x,y,z);
+uncurry f (x,y)	= f x y;
+uncurry3 f (x,y,z)
+		= f x y z;
+
+/* .. function:: fix f
+
+      This is the (normal order) fixed point combinator which allows you to
+      create recursive anonymous functions. It takes another function ``f`` as
+      its argument and applies ``f`` to ``fix f`` itself::
+
+        > let fact = fix (\f n -> if n<=0 then 1 else n*f (n-1));
+        > map fact (1..5);
+        [1,2,6,24,120]
+
+      See |fixpoint|_ at Wikipedia for an explanation of how this magic works.
+      Just like in Haskell, :func:`fix` can be used to produce least fixed
+      points of arbitrary functions. For instance::
+
+        > fix (cst bar);
+        bar
+        > let xs = fix (1:);
+        > xs;
+        1:#<thunk 0x7fe537fe2f90>
+        > xs!!(0..10);
+        [1,1,1,1,1,1,1,1,1,1,1]
+
+   .. |fixpoint| replace:: Fixed point combinator
+   .. _fixpoint: http://en.wikipedia.org/wiki/Fixed_point_combinator
+
+*/
+
+fix f = f (fix f&);
+
+/* Some convenient optimization rules which eliminate saturated calls of the
+   function composition combinators. */
+
+#! --if common-opt
+def f $ x	= f x;
+def (f . g) x	= f (g x);
+#! --endif
+
+/* Simplify calls to 'void'. These are also useful in conjunction with the
+   optimization rules for "throwaway" list comprehensions (see below). */
+
+#! --if common-opt
+def void () | void [] | void {} = ();
+def void [x] | void {x} = void x;
+#! --endif
+
+/* ..
+
+   Lists and Tuples
+   ----------------
+
+   .. index:: lists
+   .. index:: tuples
+
+   The prelude defines the list and tuple constructors, as well as equality
+   and inequality on these structures. It also provides a number of other
+   useful basic operations on lists and tuples. These are all described below.
+
+   .. constructor:: []
+      		    ()
+
+      Empty list and tuple.
+
+   .. constructor:: infix : x y
+                    infix , x y
+
+      List and tuple constructors. These are right-associative in Pure.
+
+   Lists are the usual right-recursive aggregates of the form ``x:xs``, where
+   ``x`` denotes the `head` and ``xs`` the `tail` of the list, pretty much the
+   same as in Lisp or Prolog except that they use a Haskell-like syntax. In
+   contrast to Haskell, list concatenation is denoted '\ :func:`+/list`\ '
+   (see below), and lists may contain an arbitrary mixture of arguments, i.e.,
+   they are fully polymorphic::
+
+     > 1:2:3:[];
+     [1,2,3]
+     > [1,2,3]+[u,v,w]+[3.14];
+     [1,2,3,u,v,w,3.14]
+
+   Lists are `eager` in Pure by default, but they can also be made `lazy` (in
+   the latter case they are also called `streams`). This is accomplished by
+   turning the tail of a list into a "thunk" (a.k.a. "future") which defers
+   evaluation until the list tail is actually needed, see section :ref:`Lazy
+   Evaluation and Streams` in the Pure Manual. For instance, an infinite
+   arithmetic sequence (see below) will always produce a list with a thunked
+   tail::
+
+     > 1:3..inf;
+     1:#<thunk 0x7f696cd2dbd8>
+
+   Pure also distinguishes `proper` and `improper` lists. The former are
+   always terminated by an empty list in the final tail and can thus be
+   written using the conventional ``[x1,x2,...,xn]`` syntax::
+
+     > 1:2:3:[];
+     [1,2,3]
+
+   In contrast, improper lists are terminated with a non-list value and
+   can only be represented using the '\ :func:`:`\ ' operator::
+
+     > 1:2:3;
+     1:2:3
+
+   These aren't of much use as ordinary list values, but are frequently
+   encountered as patterns on the left-hand side of an equation, where the
+   final tail is usually a variable. Also note that technically, a lazy list
+   is also an improper list (although it may expand to a proper list value as
+   it is traversed).
+
+   Tuples work in a similar fashion, but with the special twist that the
+   pairing constructor '\ :cons:`,`\ ' is associative (it always produces
+   right-recursive pairs) and '\ :cons:`()`\ ' acts as a neutral element on
+   these constructs, so that '\ :cons:`,`\ ' and '\ :cons:`()`\ ' define a
+   complete monoid structure. Note that this means that '\ :cons:`,`\ ' is
+   actually a "constructor with equations" since it obeys the laws
+   ``(x,y),z == x,(y,z)`` and ``(),x == x,() == x``. Also note that there
+   isn't a separate operation for concatenating tuples, since the pairing
+   operator already does this::
+
+     > (1,2,3),(10,9,8);
+     1,2,3,10,9,8
+     > (),(a,b,c);
+     a,b,c
+     > (a,b,c),();
+     a,b,c
+
+   This also implies that tuples are always flat in Pure and can't be
+   nested; if you need this, you should use lists instead. Also, tuples
+   are always eager in Pure.
+
+   Some important basic operations on lists and tuples are listed below.
+
+   .. index:: list; concatenation
+
+   .. function:: infix + /list x y
+
+      List concatenation. This non-destructively appends the elements of ``y``
+      to ``x``. ::
+
+     	> [1,2,3]+[u,v,w];
+     	[1,2,3,u,v,w]
+
+      Note that this operation in fact just recurses into ``x`` and replaces
+      the empty list marking the "end" of ``x`` with ``y``, as if defined by
+      the following equations (however, the prelude actually defines this
+      operation in a tail-recursive fashion)::
+
+        [] + ys = ys;
+	(x:xs) + ys = x : xs+ys;
+
+      To make this work, both operands should be proper lists, otherwise you
+      may get somewhat surprising (but correct) improper list results like the
+      following::
+
+        > [1,2,3]+99;
+	1:2:3:99
+	> (1:2:3)+33;
+	1:2:36
+
+      This happens because Pure is dynamically typed and places no limits on
+      ad hoc polymorphism. Note that the latter result is due to the fact
+      that '\ :func:`+`\ ' also denotes the addition of numbers, and the
+      improper tail of the first operand is a number in this case, as is the
+      second operand. Otherwise you might have got an unreduced instance of
+      the '\ :func:`+`\ ' operator instead.
+
+   .. index:: list; equality
+   .. index:: tuple; equality
+
+   .. function:: infix == /list x y
+      		 infix ~= /list x y
+
+      Equality and inequality of lists and tuples. These compare two lists or
+      tuples by recursively comparing their members, so '\ :func:`==`\ ' must
+      be defined on the list or tuple members if you want to use these
+      operations. Also note that these operations are inherently eager, so
+      applying them to two infinite lists may take an infinite amount of
+      time. ::
+
+        > reverse [a,b,c] == [c,b,a];
+	1
+	> (a,b,c) == ();
+	0
+
+   .. index:: list; size
+   .. index:: tuple; size
+
+   .. function:: prefix # x
+
+      List and tuple size. This operation counts the number of elements in a
+      list or tuple::
+
+        > #[a,b,c];
+	3
+        > #(a,b,c);
+	3
+
+      Please note that for obvious reasons this operation is inherently eager,
+      so trying to compute the size of an infinite list will take forever.
+
+   .. index:: list; indexing
+   .. index:: tuple; indexing
+
+   .. function:: infix ! x i
+
+      Indexing of lists and tuples is always zero-based (i.e., indices run
+      from ``0`` to ``#x-1``), and an exception will be raised if the index is
+      out of bounds::
+
+        > [1,2,3]!2;
+     	3
+     	> [1,2,3]!4;
+     	<stdin>, line 34: unhandled exception 'out_of_bounds' while evaluating
+     	'[1,2,3]!4'
+
+   .. index:: list; slicing
+   .. index:: tuple; slicing
+
+   .. function:: infix !! x is
+
+      The slicing operation takes a list or tuple and a list of indices and
+      returns the list or tuple of the corresponding elements, respectively.
+      Indices which are out of the valid range are silently ignored::
+
+        > (1..5)!!(3..10);
+     	[4,5]
+     	> (1,2,3,4,5)!!(3..10);
+     	4,5
+
+      The case of contiguous index ranges, as shown above, is optimized so
+      that it always works in linear time, see Slicing_ below for details. But
+      indices can actually be specified in any order, so that you can retrieve
+      any permutation of the members, also with duplicates. E.g.::
+
+        > (1..5)!![2,4,4,1];
+     	[3,5,5,2]
+
+      This is less efficient than the case of contiguous index ranges, because
+      it requires repeated traversals of the list for each index. For larger
+      lists you should hence use vectors or matrices instead, to avoid the
+      quadratic complexity.
+
+   .. index:: list; arithmetic sequence
+
+   .. function:: infix .. x y
+
+      Arithmetic sequences. Note that the Pure syntax differs from Haskell in
+      that there are no brackets around the construct and a step width is
+      indicated by specifying the first two elements as ``x:y`` instead of
+      ``x,y``. ::
+
+        > 1..5;
+	[1,2,3,4,5]
+	> 1:3..11;
+	[1,3,5,7,9,11]
+
+      To prevent unwanted artifacts due to rounding errors, the upper bound in
+      a floating point sequence is always rounded to the nearest grid point::
+
+        > 0.0:0.1..0.29;
+      	[0.0,0.1,0.2,0.3]
+	> 0.0:0.1..0.31;
+      	[0.0,0.1,0.2,0.3]
+
+      Last but not least, you can specify infinite sequences with an infinite
+      upper bound (``inf`` or ``-inf``)::
+
+        > 1:3..inf;
+     	1:#<thunk 0x7f696cd2dbd8>
+     	> -1:-3..-inf;
+     	-1:#<thunk 0x7f696cd2fde8>
+
+      The lower bounds of an arithmetic sequence must always be finite.
+
+   .. function:: null x
+
+      Test for the empty list and tuple. ::
+
+        > null [];
+	1
+	> null (a,b,c);
+	0
+
+   .. function:: reverse x
+
+      Reverse a list or tuple. ::
+
+        > reverse (1..5);
+	[5,4,3,2,1]
+	> reverse (a,b,c);
+	(c,b,a)
+
+   In addition, the prelude provides the following conversion operations.
+
+   .. function:: list x
+                 tuple x
+
+      Convert between (finite) lists and tuples. ::
+
+        > tuple (1..5);
+     	1,2,3,4,5
+     	> list (a,b,c);
+     	[a,b,c]
+
+      The ``list`` function can be used to turn a finite lazy list into an
+      eager one::
+
+        > list $ take 10 (-1:-3..-inf);
+     	[-1,-3,-5,-7,-9,-11,-13,-15,-17,-19]
+
+      You can also achieve the same effect somewhat more conveniently by
+      slicing a finite part from a stream::
+
+        > (-1:-3..-inf)!!(0..9);
+     	[-1,-3,-5,-7,-9,-11,-13,-15,-17,-19]
+
+   Conversely, it is also possible to convert an (eager) list to a lazy one (a
+   stream).
+
+   .. function:: stream x
+
+      Convert a list to a stream. ::
+
+        > stream (1..10);
+     	1:#<thunk 0x7fe537fe2b58>
+
+   This might appear a bit useless at first sight, since all elements of the
+   stream are in fact already known. However, this operation then allows you
+   to apply other functions to the list and have them evaluated in a lazy
+   fashion.
+
+   Slicing
+   -------
+
+   Indexing and slicing are actually fairly general operations in Pure which
+   are used not only in the context of lists and tuples, but for any type of
+   container data structure which can be "indexed" in some way. Other examples
+   in the standard library are the :mod:`array` and :mod:`dict` containers.
+
+   The prelude therefore implements slicing in a generic way, so that it works
+   with any kind of container data structure which defines '\ :func:`\!`\ ' in
+   such a manner that it throws an exception when the index is out of bounds.
+   It also works with any kind of index container that implements the
+   :func:`catmap` operation.
+
+   The prelude also optimizes the case of contiguous integer ranges so that
+   slices like ``xs!!(i..j)`` are computed in linear time if possible.  This
+   works, in particular, with lists, strings and matrices.
+
+   Moreover, the prelude includes some optimization rules and corresponding
+   helper functions to optimize the most common cases at compile time, so that
+   the index range is never actually constructed. To these ends, the slicing
+   expression ``xs!!(i..j)`` is translated to a call ``subseq xs i j`` of the
+   special :func:`subseq` function:
+
+   .. function:: subseq x i j
+
+      If ``x`` is a list, matrix or string, and ``i`` and ``j`` are int
+      values, compute the slice ``xs!!(i..j)`` in the most efficient manner
+      possible. This generally avoids constructing the index list ``i..j``.
+      Otherwise ``i..j`` is computed and :func:`subseq` falls back to the
+      :func:`slice` function below to compute the slice in the usual way.
+
+   .. function:: slice x ys
+
+      Compute the slice ``x!!ys`` using the standard slicing operation,
+      without any special compile time tricks. (Runtime optimizations are
+      still applied if possible.)
+
+   You can readily see the effects of this optimization by running the slicing
+   operator against :func:`slice`::
+
+     > let xs = 1..1000000;
+     > stats -m
+     > #slice xs (100000..299990);
+     199991
+     0.34s, 999957 cells
+     > #xs!!(100000..299990);
+     199991
+     0.14s, 399984 cells
+
+   Even more drastic improvements in both running time and memory usage can be
+   seen in the case of matrix slices::
+
+     > let x = rowvector xs;
+     > #slice x (100000..299990);
+     199991
+     0.19s, 599990 cells
+     > #x!!(100000..299990);
+     199991
+     0s, 10 cells
+
+   Hash Pairs
+   ----------
+
+   .. index:: hash pair, hash rocket
+
+   The prelude provides another special kind of pairs called "hash pairs",
+   which take the form ``key=>value``. These are used in various contexts to
+   denote key-value associations. The only operations on hash pairs provided
+   by the prelude are equality testing (which recursively compares the
+   components) and the functions :func:`key` and :func:`val`:
+
+   .. constructor:: infix => x y
+
+      The hash pair constructor, also known as the "hash rocket".
+
+   .. function:: infix == /hashpair x y
+      		 infix ~= /hashpair x y
+
+      Equality and inequality of hash pairs. ::
+
+        > ("foo"=>99) == ("bar"=>99);
+     	0
+
+   .. function:: key (x=>y)
+                 val (x=>y)
+
+      Extract the components of a hash pair. ::
+
+     	> key ("foo"=>99), val ("foo"=>99);
+     	"foo",99
+
+   Note that in difference to the tuple operator '\ :cons:`,`\ ', the hash
+   rocket '\ :cons:`=>`\ ' is non-associative, so nested applications *must*
+   be parenthesized, and ``(x=>y)=>z`` is generally *not* the same as
+   ``x=>(y=>z)``. Also note that '\ :cons:`,`\ ' has lower precedence than
+   '\ :cons:`=>`\ ', so to include a tuple as key or value in a hash pair, the
+   tuple must be parenthesized, as in ``"foo"=>(1,2)`` (whereas ``"foo"=>1,2``
+   denotes a tuple whose first element happens to be a hash pair). */
+
+/* The hash rocket. This constructor is declared here so that it can be used
+   in other standard library modules to denote special kinds of pairs which
+   map keys to values. Here we only define equality of such pairs, as well as
+   the key and val operations for extracting the components of a hash pair. */
+
+(x=>v)==(y=>w)	= x==y && v==w;
+(x=>v)~=(y=>w)	= x~=y || v~=w;
+
+key (x=>v)	= x;
+val (x=>v)	= v;
+
+/* Poor man's tuples(TM). These are constructed with the pairing operator ',',
+   are always flat and associate to the right. The empty tuple, denoted (), is
+   neutral with respect to ','. Operations are provided to test for equality/
+   inequality and emptiness, to determine the size of a tuple, for zero-based
+   indexing and slicing, and to reverse a tuple. */
+
+x,()		= x;
+(),y		= y;
+(x,y),z		= x,(y,z);
+
+()==()		= 1;
+(x,xs)==(y,ys)	= x==y && xs==ys;
+(x,xs)==_	|
+()==_		|
+_==(x,xs)	|
+_==()		= 0;
+
+()~=()		= 0;
+(x,xs)~=(y,ys)	= x~=y || xs~=ys;
+(x,xs)~=_	|
+()~=_		|
+_~=(x,xs)	|
+_~=()		= 1;
+
+null ()		= 1;
+null (x,xs)	= 0;
+
+#()		= 0;
+#(x,xs)		= accum 1 xs with
+  accum n::int (x,xs)	= accum (n+1) xs;
+  accum n::int x	= n+1;
+end;
+
+(x,xs)!n::int	= throw out_of_bounds if n<0;
+(x,xs)!0	= x;
+(x,y,xs)!n::int	= (y,xs)!(n-1);
+(x,y)!1		= y;
+(x,y)!n::int	|
+()!n::int	= throw out_of_bounds;
+
+xs@()!!ns	|
+xs@(_,_)!!ns	= tuple (list xs!!ns);
+
+reverse ()	= ();
+reverse (x,xs)	= accum x xs with
+  accum ys (x,xs)	= accum (x,ys) xs;
+  accum ys x		= x,ys;
+end;
+
+/* Lists are the usual "conses" written using the infix ':' operator. '[]'
+   denotes the empty list. Moreover, the parser provides the customary sugar
+   for proper list values [x] where x is any singleton or tuple (in the latter
+   case you'll get a list made from all the elements of x). The usual basic
+   operations are provided to test for equality/inequality and emptiness, to
+   compute the size of a list, for indexing, slicing and concatenation, and
+   for reversing a list. */
+
+[]==[]		= 1;
+(x:xs)==[]	= 0;
+[]==(x:xs)	= 0;
+(x:xs)==(y:ys)	= x==y && xs==ys;
+
+[]~=[]		= 0;
+(x:xs)~=[]	= 1;
+[]~=(x:xs)	= 1;
+(x:xs)~=(y:ys)	= x~=y || xs~=ys;
+
+null []		= 1;
+null (x:xs)	= 0;
+
+#[]		= 0;
+#(x:xs)		= accum 1 xs with
+  accum n::int (x:xs)	= accum (n+1) xs;
+  accum n::int []	= n;
+  accum	n::int xs	= n+#xs;
+end;
+
+[]!n::int	= throw out_of_bounds;
+(x:xs)!0	= x;
+(x:xs)!n::int	= xs!(n-1) if n>0;
+		= throw out_of_bounds otherwise;
+
+/* Slicing. xs!!ns returns the list of xs!n for all members n of the index
+   list ns which are in the valid index range. This is a generic fallback
+   definition which works with any kind of container data structure which
+   defines (!) in such a manner that it throws an exception when the index is
+   out of bounds. It also works with any kind of index container that
+   implements the catmap operation. Moreover, the special case of finite
+   contiguous list slices is optimized using 'take' and 'drop' so that it
+   works in linear time. */
+
+xs!!ns		= ys if ok ys when
+		    ys = case ns of
+		           ns@(n::int:_) = list $ take (count ns) (drop n xs)
+		                             if listp xs && cont ns;
+		           _ = catmap (nth xs) ns;
+		         end;
+		  end with
+		    ok (catmap (nth _) _) = 0;
+		    ok _ = 1;
+		    nth xs n = catch (cst []) [xs!n];
+		    count ns = #dropwhile (\n::int->n<0) ns;
+		    cont (n::int:ns) = ~thunkp ns &&
+		    (case ns of
+		       [] = 1;
+		       m::int:_ = cont ns if m==n+1;
+		       _ = 0 otherwise;
+		     end);
+		  end;
+
+/* Compile time optimization of contiguous slices. This optimizes the common
+   case of a slice x!!(a::int..b::int). The rules below handle the list case,
+   and the generic case in which we fall back to the standard slicing
+   operation above. Other specialized optimization rules can be found in the
+   matrices and strings modules. NOTE: You can run the interpreter with the
+   --disable subseq-opt option if you need to disable these optimizations for
+   some reason. */
+
+subseq [] a::int b::int = [];
+subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
+  // This is a version of take modified to expand thunked tails. It uses the
+  // same basic logic to make it tail-recursive.
+  take n::int []	= [];
+  take n::int xs@(_:_)	= tick n [] xs;
+  tick n::int zs xs	= tack zs [] if n<=0;
+			= case xs of
+			    []   = tack zs [];
+			    x:xs = tick (n-1) (x:zs) xs;
+			    _    = tack zs (take n xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+subseq x a b = slice x (a..b);
+
+#! --if subseq-opt
+def x!!(a..b) = subseq x a b;
+#! --endif
+
+/* List concatenation. For a robust implementation which works with both
+   ordinary lists and streams, we want this to be tail-recursive *and*
+   non-strict. So we first walk down the list, popping elements from the first
+   operand until we find an empty or thunked tail ('tick'), then walk back up
+   again, pushing elements in front of the result list ('tack'). */
+
+[]+ys		= ys;
+xs@(_:_)+ys	= tick [] xs ys
+with
+  tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
+			= tick (x:zs) xs ys;
+  tick zs [] ys		= tack zs ys;
+  /* Handle an improper list tail (xs+ys is in normal form here). */
+  tick zs xs ys		= tack zs (xs+ys);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+/* List reversal. This is a strict operation, of course, so it will loop on
+   infinite lists. Also, this is one of the few list operations which throws
+   an exception for improper lists, since in that case there really isn't any
+   meaningful value to return. */
+
+reverse []	= [];
+reverse (x:xs)	= accum [x] xs with
+  accum ys (x:xs)	= accum (x:ys) xs;
+  accum ys []		= ys;
+  accum	ys xs		= throw (bad_list_value xs);
+end;
+
+/* Conversions between lists, tuples and streams. */
+
+list ()		= [];
+list (x,xs)	= accum [x] xs with
+  accum ys (x,xs)	= accum (x:ys) xs;
+  accum ys x		= reverse (x:ys);
+end;
+
+tuple []	= ();
+tuple (x:xs)	= accum (t x) xs with
+  accum ys (x:xs)	= accum (t x,ys) xs;
+  accum ys []		= t ys;
+  accum	ys xs		= throw (bad_list_value xs);
+  t x@(_,_)		= reverse x;
+  t x			= x;
+end;
+
+tuple x@() | tuple x@(_,_) = x;
+
+list []		= [];
+list (x:xs)	= accum [x] xs with
+  accum ys (x:xs)	= accum (x:ys) xs;
+  accum ys []		= reverse ys;
+  accum	ys xs		= throw (bad_list_value xs);
+end;
+
+stream []	= [];
+stream (x:xs)	= x:xs if thunkp xs;
+		= x:stream xs& otherwise;
+
+stream ()	= [];
+stream xs@(_,_)	= stream (list xs);
+
+/* Arithmetic sequences. */
+
+public iterate iterwhile; // see below for these
+
+n1:n2..m	= if nanp n1 || nanp m || double m===-s then []
+		  else if double m===s then iterate (+k) n1
+		  else iterwhile (p (m+0.5*k)) (+k) n1
+		  when s,p = if k>0 then inf,(>=) else -inf,(<=) end
+		  if realp k && k~=0 && ~infp n1 && ~infp n2
+		  when k = n2-n1 end;
+n..m		= if nanp n || nanp m || double m===-inf then []
+		  else if double m===inf then iterate (+1) n
+		  else iterwhile ((>=) m) (+1) n
+		  if ~listp n && ~infp n;
+
+/* ..
+
+   List Functions
+   --------------
+
+   This mostly comes straight from the Q prelude which in turn was based on
+   the first edition of the Bird/Wadler book, and is very similar to what you
+   can find in the Haskell prelude. Some functions have slightly different
+   names, though, and of course everything is typed dynamically.
+
+   Common List Functions
+   ~~~~~~~~~~~~~~~~~~~~~
+
+   .. function:: any p xs
+
+      test whether the predicate ``p`` holds for any of the members of ``xs``
+
+   .. function:: all p xs
+
+      test whether the predicate ``p`` holds for all of the members of ``xs``
+
+   .. function:: cat xs
+
+      concatenate a list of lists
+
+   .. function:: catmap f xs
+
+      convenience function which combines :func:`cat` and :func:`map`; this is
+      also used to implement list comprehensions
+
+   .. function:: do f xs
+
+      apply ``f`` to all members of ``xs``, like :func:`map`, but throw away
+      all intermediate results and return ``()``
+
+   .. function:: drop n xs
+
+      remove ``n`` elements from the front of ``xs``
+
+   .. function:: dropwhile p xs
+
+      remove elements from the front of ``xs`` while the predicate ``p`` is
+      satisfied
+
+   .. function:: filter p xs
+
+      return the list of all members of ``xs`` satisfying the predicate ``p``
+
+   .. function:: foldl f a xs
+
+      accumulate the binary function ``f`` over all members of ``xs``,
+      starting from the initial value ``a`` and working from the front of the
+      list towards its end
+
+   .. function:: foldl1 f xs
+
+      accumulate the binary function ``f`` over all members of ``xs``,
+      starting from the value ``head xs`` and working from the front of the
+      list towards its end; ``xs`` must be nonempty
+
+   .. function:: foldr f a xs
+
+      accumulate the binary function ``f`` over all members of ``xs``,
+      starting from the initial value ``a`` and working from the end of the
+      list towards its front
+
+   .. function:: foldr1 f xs
+
+      accumulate the binary function ``f`` over all members of ``xs``,
+      starting from the value ``last xs`` and working from the end of the list
+      towards its front; ``xs`` must be nonempty
+
+   .. function:: head xs
+
+      return the first element of ``xs``; ``xs`` must be nonempty
+
+   .. function:: index xs x
+
+      search for an occurrence of ``x`` in ``xs`` and return the index of the
+      first occurrence, if any, ``-1`` otherwise
+
+      Note: This uses equality :func:`==` to decide whether a member of ``xs``
+      is an occurrence of ``x``, so :func:`==` must have an appropriate
+      definition on the list members.
+
+   .. function:: init xs
+
+      return all but the last element of ``xs``; ``xs`` must be nonempty
+
+   .. function:: last xs
+
+      return the last element of ``xs``; ``xs`` must be nonempty
+
+   .. function:: listmap f xs
+
+      convenience function which works like :func:`map`, but also deals with
+      matrix and string arguments while ensuring that the result is always a
+      list; this is primarily used to implement list comprehensions
+
+   .. function:: map f xs
+
+      apply ``f`` to each member of ``xs``
+
+   .. function:: scanl f a xs
+
+      accumulate the binary function ``f`` over all members of ``xs``, as with
+      :func:`foldl`, but return all intermediate results as a list
+
+   .. function:: scanl1 f xs
+
+      accumulate the binary function ``f`` over all members of ``xs``, as with
+      :func:`foldl1`, but return all intermediate results as a list
+
+   .. function:: scanr f a xs
+
+      accumulate the binary function ``f`` over all members of ``xs``, as with
+      :func:`foldr`, but return all intermediate results as a list
+
+   .. function:: scanr1 f xs
+
+      accumulate the binary function ``f`` over all members of ``xs``, as with
+      :func:`foldr1`, but return all intermediate results as a list
+
+   .. function:: sort p xs
+
+      Sorts the elements of the list ``xs`` in ascending order according to
+      the given predicate ``p``, using the C ``qsort`` function. The predicate
+      ``p`` is invoked with two arguments and should return a truth value
+      indicating whether the first argument is "less than" the second. (An
+      exception is raised if the result of a comparison is not a machine
+      integer.) ::
+
+        > sort (>) (1..10);
+     	[10,9,8,7,6,5,4,3,2,1]
+     	> sort (<) ans;
+     	[1,2,3,4,5,6,7,8,9,10]
+
+   .. function:: tail xs
+
+      return all but the first element of ``xs``; ``xs`` must be nonempty
+
+   .. function:: take n xs
+
+      take ``n`` elements from the front of ``xs``
+
+   .. function:: takewhile p xs
+
+      take elements from the front of ``xs`` while the predicate ``p`` is
+      satisfied
+
+*/
+
+/* Some of the definitions aren't exactly pretty, but they are like that
+   because we want them to be both efficient and robust. In particular, we
+   require that they do all the necessary argument checking, are
+   tail-recursive and handle lazy lists as gracefully as possible. */
+
+all p []		= 1;
+all p (x:xs)		= p x && all p xs;
+
+any p []		= 0;
+any p (x:xs)		= p x || any p xs;
+
+do f []			= ();
+do f (x:xs)		= f x $$ do f xs;
+
+drop n::int []		= [];
+drop n::int ys@(x:xs)	= drop (n-1) xs if n>1;
+			= xs if n==1;
+			= ys otherwise;
+
+dropwhile p []		= [];
+dropwhile p ys@(x:xs)	= dropwhile p xs if p x;
+			= ys otherwise;
+
+filter p []		= [];
+filter p xs@(_:_)	= tick [] xs
+with
+  add p x xs		= if p x then x:xs else xs;
+  tick zs (x:xs)	= tack (add p x zs) (filter p xs&) if thunkp xs;
+			= tick (add p x zs) xs;
+  tick zs []		= tack zs [];
+  tick _ xs		= throw (bad_list_value xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+foldl f a []		= a;
+foldl f a (x:xs)	= foldl f (f a x) xs;
+
+foldl1 f (x:xs)		= foldl f x xs;
+
+foldr f a []		= a;
+foldr f a xs@(_:_)	= tick [] xs
+with
+  tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+			= tick (x:zs) xs;
+  tick zs []		= tack zs a;
+  tick zs xs		= tack zs (foldr f a xs);
+  tack (x:xs) y		= tack xs (f x y);
+  tack [] y		= y;
+end;
+
+foldr1 f [x]		= x;
+foldr1 f xs@(_:_)	= tick [] xs
+with
+  /* Do the thunkp check first, before probing the tail. Note that the first
+     foldr1 rule above ensures that the topmost tail is already evaluated, so
+     that we always make some progress here. */
+  tick zs ys@(_:xs)	= tack zs (foldr1 f ys&) if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs x;
+			    x:xs = tick (x:zs) xs;
+			    _    = tack zs (foldr1 f xs);
+			  end;
+  tack (x:xs) y		= tack xs (f x y);
+  tack [] y		= y;
+end;
+
+head (x:xs)		= x;
+
+init [x]		= [];
+init xs@(_:_)		= tick [] xs
+with
+  tick zs ys@(_:xs)	= tack zs (init ys&) if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs [];
+			    x:xs = tick (x:zs) xs;
+			    _    = tack zs (init xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+last [x]		= x;
+last (x:xs)		= last xs;
+
+map f []		= [];
+map f xs@(_:_)		= tick [] xs
+with
+  tick zs (x:xs)	= tack (f x:zs) (map f xs&) if thunkp xs;
+			= tick (f x:zs) xs;
+  tick zs []		= tack zs [];
+  tick zs xs		= tack zs (map f xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+scanl f a []		= [a];
+scanl f a xs@(_:_)	= tick a [] xs
+with
+  tick a zs (x:xs)	= tack (a:zs) (scanl f (f a x) xs&) if thunkp xs;
+			= tick (f a x) (a:zs) xs;
+  tick a zs []		= tack zs [a];
+  tick a zs xs		= tack zs (scanl f a xs);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+scanl1 f []		= [];
+scanl1 f (x:xs)		= scanl f x xs;
+
+scanr f a []		= [a];
+scanr f a xs@(_:_)	= tick [] xs
+with
+  /* Hack around with thunks to make these matches irrefutable. */
+  tick zs (x:xs)	= tack zs us when
+			    ys = scanr f a xs&;
+			    y  = (case ys of
+				    y:_ = y;
+				    scanr _ _ ys = throw (bad_list_value ys);
+				    _ = throw (bad_list_value ys);
+				  end)&;
+			    us = f x y : ys;
+			  end if thunkp xs;
+  tick zs (x:xs)	= tack zs (f x (y when y:_ = ys end)&:ys
+				   when ys = scanr f a xs& end) if thunkp xs;
+			= tick (x:zs) xs;
+  tick zs []		= tack zs [a];
+  tick zs xs		= throw (bad_list_value xs);
+  tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
+  tack [] ys		= ys;
+end;
+
+scanr1 f []		= [];
+scanr1 f [x]		= [x];
+scanr1 f xs@(_:_)	= tick [] xs
+with
+  tick zs (x:xs)	= tack zs us when
+			    ys = scanr1 f xs&;
+			    y  = (case ys of
+				    y:_ = y;
+				    scanr1 _ ys = throw (bad_list_value ys);
+				    _ = throw (bad_list_value ys);
+				  end)&;
+			    us = f x y : ys;
+			  end if thunkp xs;
+  tick zs xs		= case xs of
+			    [x]  = tack zs [x];
+			    x:xs = tick (x:zs) xs;
+			    _    = throw (bad_list_value xs);
+			  end;
+  tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
+  tack [] ys		= ys;
+end;
+
+tail (x:xs)		= xs;
+
+take n::int []		= [];
+take n::int xs@(_:_)	= tick n [] xs
+with
+  tick n::int zs xs	= tack zs [] if n<=0;
+			= tack zs (take n xs&) if thunkp xs;
+			= case xs of
+			    []   = tack zs [];
+			    x:xs = tick (n-1) (x:zs) xs;
+			    _    = tack zs (take n xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+takewhile p []	= [];
+takewhile p xs@(_:_)	= tick [] xs
+with
+  tick zs xs		= tack zs (takewhile p xs&) if thunkp xs;
+			= case xs of
+			    []   = tack zs [];
+			    x:xs = tick (x:zs) xs if p x;
+			         = tack zs [];
+			    _    = tack zs (takewhile p xs);
+			  end;
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+end;
+
+/* Concatenate a list of lists. */
+
+cat []			= [];
+cat xs@(_:_)		= foldr (tick []) [] xs
+with
+  /* Unfortunately, the global list concatenation operator (+) isn't fully
+     lazy in Pure, because it's also used for arithmetic operations. Using it
+     here would make foldr (and hence cat) eager. Therefore we use our own
+     concatenation operation here, which properly deals with the case that ys
+     is an infinite stream when applied recursively. */
+  tick zs (x:xs) ys	= tack (x:zs) (tick [] xs ys&) if thunkp xs;
+			= tick (x:zs) xs ys;
+  tick zs [] ys		= tack zs ys;
+  tick zs xs ys		= tack zs (xs+ys);
+  tack (x:xs) ys	= tack xs (x:ys);
+  tack [] ys		= ys;
+  /* We also use a slightly modified foldr function here, so that we can
+     handle the case that xs is an improper list more gracefully. */
+  foldr f a []		= a;
+  foldr f a xs@(_:_)	= tick [] xs
+  with
+    tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+			= tick (x:zs) xs;
+    tick zs []		= tack zs a;
+    tick zs xs		= tack zs (foldr f a xs);
+    tack (x:xs) y	= tack xs (f x y);
+    tack [] y		= y;
+  end;
+  foldr (tick _) [] x	= cat x;
+end;
+
+/* Map a function to a list and concatenate the results. This is used by list
+   comprehensions. */
+
+catmap f []		= [];
+catmap f xs@(_:_)	= cat (map f xs);
+
+/* NOTE: This definition (from the Haskell prelude) is better, but doesn't
+   preserve left-to-right execution order. */
+//catmap f xs@(_:_)	= foldr ((+).f) [] xs;
+
+/* Map a function to a list, like map, but first promote the argument to a
+   list if possible. This is used by list comprehensions. */
+
+listmap f []		= [];
+listmap f xs@(_:_)	= map f xs;
+
+/* Search an element in a list. Returns -1 if not found, index of first
+   occurrence otherwise. */
+
+index [] _		= -1;
+index (x:xs) y		= search 0 (x:xs) with
+  search _ []		= -1;
+  search n::int (x:xs)	= n if x==y;
+			= search (n+1) xs;
+  search _ xs		= index xs y;
+end;
+
+/* ..
+
+   List Generators
+   ~~~~~~~~~~~~~~~
+
+   Some useful (infinite) list generators, as well as some finite (and eager)
+   variations of these. The latter work like a combination of :func:`take` or
+   :func:`takewhile` and the former, but are implemented directly for better
+   efficiency.
+
+   .. function:: cycle xs
+
+      cycles through the elements of the nonempty list ``xs``, ad infinitum
+
+   .. function:: cyclen n xs
+
+      eager version of :func:`cycle`, returns the first ``n`` elements of
+      ``cycle xs``
+
+   .. function:: iterate f x
+
+      returns the stream containing ``x``, ``f x``, ``f (f x)``, etc.,
+      ad infinitum
+
+   .. function:: iteraten n f x
+
+      eager version of :func:`iterate`, returns the first ``n`` elements of
+      ``iterate f x``
+
+   .. function:: iterwhile p f x
+
+      another eager version of :func:`iterate`, returns the list of all
+      elements from the front of ``iterate f x`` for which the predicate ``p``
+      holds
+
+   .. function:: repeat x
+
+      returns an infinite stream of ``x``\ s
+
+   .. function:: repeatn n x
+
+      eager version of :func:`repeat`, returns a list with ``n`` ``x``\ s
+
+*/
+
+/* Some useful (infinite) list generators. */
+
+iterate f x		= x : iterate f (f x)&;
+repeat x		= x : repeat x&;
+cycle ys@(x:xs)		= x : (xs+cycle ys)&;
+
+/* Some finite (and strict) generators. These work like the a combination of
+   takewhile/take and the above, but are implemented directly for maximum
+   efficiency. */
+
+iterwhile p f x		= accum [] p f x with
+			    accum xs p f x = accum (x:xs) p f (f x) if p x;
+				           = reverse xs otherwise;
+			  end;
+
+iteraten n::int f x	= [] if n<=0;
+			= accum [] n f x
+with
+  accum xs n::int f x	= reverse (x:xs) if n==1;
+			= accum (x:xs) (n-1) f (f x);
+end;
+
+repeatn n::int x	= accum [] n x with
+  accum xs n::int x	= xs if n<=0;
+			= accum (x:xs) (n-1) x;
+end;
+
+cyclen n::int (x:xs)	= [] if n<=0;
+			= accum [] n with
+			    accum ys n::int = cat ys+take n xs if n<=m;
+			                    = accum (xs:ys) (n-m) otherwise;
+			  end when xs = x:xs; m::int = #xs end if rlistp xs;
+
+/* ..
+
+   Zip and Friends
+   ~~~~~~~~~~~~~~~
+
+   .. function:: unzip xys
+
+      takes a list of pairs to a pair of lists of corresponding elements
+
+   .. function:: unzip3 xyzs
+
+      :func:`unzip` with triples
+
+   .. function:: zip xs ys
+
+      return the list of corresponding pairs ``(x,y)`` where ``x`` runs
+      through the elements of ``xs`` and ``y`` runs through the elements of
+      ``ys``
+
+   .. function:: zip3 xs ys zs
+
+      :func:`zip` with three lists, returns a list of triples
+
+   .. function:: zipwith f xs ys
+
+      apply the binary function ``f`` to corresponding elements of ``xs``
+      and ``ys``
+
+   .. function:: zipwith3 f xs ys zs
+
+      apply the ternary function ``f`` to corresponding elements of ``xs``,
+      ``ys`` and ``zs``
+
+   Pure also has the following variations of :func:`zipwith` and
+   :func:`zipwith3` which throw away all intermediate results and return the
+   empty tuple ``()``. That is, these work like :func:`do` but pull arguments
+   from two or three lists, respectively:
+
+   .. function:: dowith f xs ys
+
+      apply the binary function ``f`` to corresponding elements of ``xs``
+      and ``ys``, return ``()``
+
+   .. function:: dowith3 f xs ys zs
+
+      apply the ternary function ``f`` to corresponding elements of ``xs``,
+      ``ys`` and ``zs``, return ``()``
+
+*/
+
+zip [] _		|
+zip _ []		= [];
+zip xs@(_:_) ys@(_:_)	= tick [] xs ys
+with
+  tick us (x:xs) (y:ys)	= tack ((x,y):us) (zip xs ys&)
+			    if thunkp xs || thunkp ys;
+			= tick ((x,y):us) xs ys;
+  tick us [] _		|
+  tick us _ []		= tack us [];
+  tick us xs ys		= tack us (zip xs ys);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
+end;
+
+zip3 [] _ _		|
+zip3 _ [] _		|
+zip3 _ _ []		= [];
+zip3 xs@(_:_) ys@(_:_) zs@(_:_)
+			= tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)
+			= tack ((x,y,z):us) (zip3 xs ys zs&)
+			    if thunkp xs || thunkp ys || thunkp zs;
+			= tick ((x,y,z):us) xs ys zs;
+  tick us [] _ _	|
+  tick us _ [] _	|
+  tick us _ _ []	= tack us [];
+  tick us xs ys zs	= tack us (zip3 xs ys zs);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
+end;
+
+zipwith f [] _		|
+zipwith f _ []		= [];
+zipwith f xs@(_:_) ys@(_:_)
+			= tick [] xs ys
+with
+  tick us (x:xs) (y:ys)	= tack (f x y:us) (zipwith f xs ys&)
+			    if thunkp xs || thunkp ys;
+			= tick (f x y:us) xs ys;
+  tick us [] _		|
+  tick us _ []		= tack us [];
+  tick us xs ys		= tack us (zipwith f xs ys);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
+end;
+
+zipwith3 f [] _ _		|
+zipwith3 f _ [] _		|
+zipwith3 f _ _ []		= [];
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
+			= tick [] xs ys zs
+with
+  tick us (x:xs) (y:ys) (z:zs)
+			= tack (f x y z:us) (zipwith3 f xs ys zs&)
+			    if thunkp xs || thunkp ys || thunkp zs;
+			= tick (f x y z:us) xs ys zs;
+  tick us [] _ _	|
+  tick us _ [] _	|
+  tick us _ _ []	= tack us [];
+  tick us xs ys zs	= tack us (zipwith3 f xs ys zs);
+  tack (u:us) vs	= tack us (u:vs);
+  tack [] vs		= vs;
+end;
+
+dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
+dowith f _ _		= () otherwise;
+
+dowith3 f (x:xs) (y:ys) (z:zs)
+			= f x y z $$ dowith3 f xs ys zs;
+dowith3 f _ _ _		= () otherwise;
+
+unzip []		= [],[];
+unzip us@(_:_)		= foldr accum ([],[]) us
+with
+  accum u@(x,y) us	= x:(xs when xs,_ = check us end)&,
+			  y:(ys when _,ys = check us end)& if thunkp us;
+			= x:xs,y:ys when xs,ys = check us end;
+  accum u _		= throw (bad_tuple_value u);
+  check us@(_,_)	= us;
+  check (foldr _ _ us)	= throw (bad_list_value us);
+  check us		= throw (bad_tuple_value us);
+end;
+
+unzip3 []		= [],[],[];
+unzip3 us@(_:_)		= foldr accum ([],[],[]) us
+with
+  accum u@(x,y,z) us	= x:(xs when xs,_,_ = check us end)&,
+			  y:(ys when _,ys,_ = check us end)&,
+			  z:(zs when _,_,zs = check us end)& if thunkp us;
+			= x:xs,y:ys,z:zs when xs,ys,zs = check us end;
+  accum u _		= throw (bad_tuple_value u);
+  check us@(_,_,_)	= us;
+  check (foldr _ _ us)	= throw (bad_list_value us);
+  check us		= throw (bad_tuple_value us);
+end;
+
+/* Add below any extra stuff which doesn't belong elsewhere, or needs to be
+   defined after all the basic prelude operations have been loaded. */
+
+/* Optimize the case of "throwaway" list and matrix comprehensions (useful if
+   a comprehension is evaluated solely for its side effects). */
+
+#! --if common-opt
+
+namespace __std__ with
+  public __do__ __voidchk__ __voidchk1__ __voidchk2__ __voidfun__;
+end;
+
+using namespace __std__;
+
+// This is needed to make the following rules work.
+#! --quoteargs __std__::__do__
+
+// Entry points.
+def void (catmap f x) | void (listmap f x) = __do__ f x;
+def void (rowcatmap f x) | void (colcatmap f x) = __do__ f x;
+def void (rowmap f x) | void (colmap f x) = __do__ f x;
+
+/* Handle the case of an outermost filter clause. We have to go to some
+   lengths here since we want to avoid making 'void' quote its argument. But
+   we need to get the argument in quoted form so that we can check for a
+   conditional expression. The '__voidchk__' macro takes care of that. */
+
+#! --quoteargs __std__::__voidchk__
+def void x = __voidchk__ x x;
+
+// Check for an outermost filter clause.
+def __voidchk__ (__ifelse__ y z []) | __voidchk__ (__ifelse__ y z {}) =
+  __voidchk1__ (__ifelse__ y (void z) ());
+def __voidchk1__ x y = x;
+
+// Default case. This is the tricky part. We want '__voidchk2__ x y' to expand
+// to just 'void y'. We can't just write 'void y', though, since that would
+// make the __voidchk__ macro loop. But since __voidfun__ is a constant, it
+// gets substituted only after macro evaluation, so we can use that here.
+const __voidfun__ = void;
+def __voidchk__ x = __voidchk2__ x;
+def __voidchk2__ x y = __voidfun__ y;
+
+/* The '__do__' macro eventually reduces to just a plain 'do' call, but
+   applies some optimizations along the way. While the following rules are
+   always valid, we use a separate macro here instead of clobbering 'do'
+   itself, so that these optimizations do not interfere with ordinary calls
+   to 'do'. */
+
+// Recurse into embedded generator clauses.
+def __do__ (__lambda__ [x] y@(listmap _ _)) |
+    __do__ (__lambda__ [x] y@(rowmap _ _)) |
+    __do__ (__lambda__ [x] y@(colmap _ _)) |
+    __do__ (__lambda__ [x] y@(catmap _ _)) |
+    __do__ (__lambda__ [x] y@(rowcatmap _ _)) |
+    __do__ (__lambda__ [x] y@(colcatmap _ _)) =
+    __do__ $ (__lambda__ [x] (void y));
+
+// Recurse into embedded filter clauses.
+def __do__ (__lambda__ [x] (__ifelse__ y z [])) |
+    __do__ (__lambda__ [x] (__ifelse__ y z {})) =
+    __do__ $ (__lambda__ [x] (__ifelse__ y (void z) ()));
+
+// Eliminate extra calls to 'void' in generator clauses.
+def __do__ (__lambda__ [x] (void y)) |
+    __do__ (__lambda__ [x] (__voidfun__ y)) = __do__ (__lambda__ [x] y);
+
+// Eliminate extra calls to 'void' in filter clauses.
+def __do__ (__lambda__ [x] (__ifelse__ y (void z) ())) |
+    __do__ (__lambda__ [x] (__ifelse__ y (__voidfun__ z) ())) =
+    __do__ (__lambda__ [x] (__ifelse__ y z ()));
+
+// Any remaining instances reduce to a plain 'do' (this must come last).
+def __do__ f = do f;
+
+#! --endif
+
+/* List defined symbols using evalcmd "show". */
+
+namespace __C;
+// These are provided by the runtime.
+extern int pure_getsym(char*);
+extern expr *pure_quoted_symbol(int);
+pure_quoted_symbol s::string = pure_quoted_symbol id if id>0 when
+  id::int = pure_getsym s;
+end;
+namespace;
+
+globsym pat::string level::int = uniq $ catmap descr info when
+  res = evalcmd $ "show -gst"+str level+" "+pat;
+  stringp res || throw evalcmd;
+  info = init $ init $ split "\n" res;
+end with
+  descr s::string = case filter (~="") $ split " " s of
+    sym:_ =
+      if any (==sym) ["extern", "private", "infix", "infixl", "infixr",
+		      "prefix", "postfix", "outfix", "nonfix"] then []
+      else [x | x = [__C::pure_quoted_symbol sym]; symbolp x];
+    _ = [] otherwise;
+  end;
+  uniq (x:xs@(y:_)) = if x===y then uniq xs else x:uniq xs;
+  uniq xs = xs otherwise;
+end;
+
+/* Clear defined symbols using evalcmd "show". */
+
+clearsym sym::string level::int = () when
+  res = evalcmd $ "clear -t"+str level+" "+sym;
+  stringp res || throw evalcmd;
+end;
+
+// We also allow allow the symbol to be specified directly.
+clearsym sym::symbol level::int = clearsym sym level when
+  sym = str sym; sym = if sym!0=="(" then substr sym 2 (#sym-2) else sym;
+end;
