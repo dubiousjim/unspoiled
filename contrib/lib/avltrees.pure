@@ -52,7 +52,7 @@ namespace baltree;
    fashion on them. In this case keys a and b are considered equal if neither
    a<b nor b<a holds. */
 
-private nonfix nil;
+private nonfix nil fail;
 private bin;
 
 /* Private helper functions. */
@@ -77,7 +77,33 @@ null (bin _ _ _ _) = 0;
 
 /* Basic AVL tree operations, single value per key. */
 
+public foldl foldl1 foldr foldr1;
 public size members keys vals first last rmfirst rmlast;
+
+
+// General folds.
+
+foldl f a t = tick a t with
+    tick a nil = a;
+    tick a (bin x _ l r) = tick (f (tick a l) x) r;
+end;
+
+foldl1 f t = tick fail t with
+    tick fail (bin x _ nil _) = x;
+    tick a nil = a;
+    tick a (bin x _ l r) = tick (f (tick a l) x) r;
+end if t~==nil;
+
+foldr f a t = tick t a with
+    tick nil a = a;
+    tick (bin x _ l r) a = tick l (f x (tick r a));
+end;
+
+foldr1 f t = tick t fail with
+    tick (bin x _ _ nil) fail = x;
+    tick nil a = a;
+    tick (bin x _ l r) a = tick l (f x (tick r a));
+end if t~==nil;
 
 // Compute the size of a tree.
 
@@ -88,23 +114,14 @@ end;
 
 // Get the list of all members.
 
-members t = members t with
-  members nil = [];
-  members (bin x _ l r) = members l + (x : members r);
-end;
+members t = foldr (:) [] t;
 
 // Get the list of all keys and values. This requires a dictionary-like
 // structure with separate key values.
 
-keys t = keys t with
-  keys nil = [];
-  keys (bin (k=>v) _ l r) = keys l + (k : keys r);
-end;
+keys t = foldr ((:).(::key)) [] t;
 
-vals t = vals t with
-  vals nil = [];
-  vals (bin (k=>v) _ l r) = vals l + (v : vals r);
-end;
+vals t = foldr ((:).(::val)) [] t;
 
 // Get the first and the last member of a tree.
 
@@ -136,26 +153,44 @@ end;
 
 /* Basic AVL tree operations, multiple values per key. */
 
+public mfoldl mfoldl1 mfoldr mfoldr1;
 public msize mmembers mkeys mvals mfirst mlast mrmfirst mrmlast;
+
+mfoldl f a t = tick a t with
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (::foldl f (tick a l) xs) r;
+end;
+
+mfoldl1 f t = tick fail t with
+    tick fail (bin (_=>xs) _ nil _) = ::foldl1 f xs;
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (::foldl f (tick a l) xs) r;
+end if t~==nil;
+
+mfoldr f a t = tick t a with
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (::foldr f (tick r a) xs);
+end;
+
+mfoldr1 f t = tick t fail with
+    tick (bin (_=>xs) _ _ nil) fail = ::foldr1 f xs;
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (::foldr f (tick r a) xs);
+end if t~==nil;
 
 msize t = size t with
   size nil = 0;
   size (bin (k=>xs) _ l r) = size l + size r + #xs;
 end;
 
-mmembers t = members t with
-  members nil = [];
-  members (bin (k=>xs) _ l r) = members l + xs + members r;
+mmembers t = mfoldr ((:)) [] t;
+
+mkeys t = foldr f [] t with
+    f xs a = map_onto ::key a (::val xs);
 end;
 
-mkeys t = keys t with
-  keys nil = [];
-  keys (bin (k=>xs) _ l r) = keys l + [k | k=>v = xs] + keys r;
-end;
-
-mvals t = vals t with
-  vals nil = [];
-  vals (bin (k=>xs) _ l r) = vals l + [v | k=>v = xs] + vals r;
+mvals t = foldr f [] t with
+    f xs a = map_onto ::val a (::val xs);
 end;
 
 mfirst t = first t with
