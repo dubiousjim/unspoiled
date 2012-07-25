@@ -263,26 +263,40 @@ using namespace __C;
    Predicates
    ~~~~~~~~~~
 
-   A fine-grained equality test is provided, as well as various type checking
-   predicates. Note that type definitions are provided for most of the type
-   checking predicates which don't denote built-in types; see `Prelude Types`_
-   for details.
+   Fine- and coarse-grained equality tests are provided, as well as various
+   type checking predicates. Note that type definitions are provided for most
+   of the type checking predicates which don't denote built-in types; see
+   `Prelude Types`_ for details.
 
    .. function:: same x y
                  infix === x y
                  infix ~== x y
 
-      Fine-grained equality. In contrast to :func:`==` and :func:`~=`, this is
-      defined on all Pure expressions. Two expressions are fine-grained
-      equal if they have the same structures and all their components are
-      fine-grained equal, where simple immutable values are fine-grained equal
-      based on their value, and pointer objects and closures are fine-grained
-      equal based on their physical identity. Some expressions print out the
-      same in the interpreter despite not being fine-grained equal (such as
-      symbols with global and local rule bindings, or the same symbol quoted).
+      Fine-grained or structural equality. In contrast to :func:`==` and
+      :func:`~=`, this is defined on all Pure expressions. Two expressions are
+      fine-grained equal if they have the same structures and all their
+      components are fine-grained equal, where simple immutable values are
+      fine-grained equal based on their value, and pointer objects and closures
+      are fine-grained equal based on their physical identity. Some expressions
+      print out the same in the interpreter despite not being fine-grained
+      equal (such as symbols with global and local rule bindings, or the same
+      symbol quoted).
 
-      Coarser-grained equality predicates :func:`==?` and :func:`~=?` are
-      defined in prelude.pure.
+   .. function:: infix ==? x y
+                 infix ~=? x y
+
+      A coarser-grained equality than `===`. This tracks :func:`==` when it's
+      defined but otherwise falls back to func:`===`.
+
+      Unlike func:`===`, this will for example group together sets whose
+      implementing balanced trees happen to have different structures. Unlike
+      func:`==`, this is defined on all Pure expressions.
+
+      See |equality|_ at the Pure wiki for further discussion of these
+      predicates.
+
+   .. |equality| replace:: Equality
+   .. _equality: http://code.google.com/p/pure-lang/wiki/Equality
 
    .. function:: typep ty x
 
@@ -1074,6 +1088,8 @@ extern void exit(int status);
 extern bool same(expr* x, expr* y);
 x === y		= same x y;
 x ~== y		= ~same x y;
+
+// Coarse-grained equality is defined in prelude.pure.
 
 /* Generic type checking predicate. */
 
