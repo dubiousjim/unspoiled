@@ -483,27 +483,70 @@ def void [x] | void {x} = void x;
 
 /* ..
 
-   Tuples
-   ------
+   Lists and Tuples
+   ----------------
 
+   .. index:: lists
    .. index:: tuples
 
-   The prelude defines the tuple constructor, as well as equality
-   and inequality on this structure. It also provides a number of other
-   useful basic operations on tuples. These are all described below.
+   The prelude defines the list and tuple constructors, as well as equality
+   and inequality on these structures. It also provides a number of other
+   useful basic operations on lists and tuples. These are all described below.
 
-   .. constructor:: ()
+   .. constructor:: []
+		    ()
 
-      Empty tuple.
+      Empty list and tuple.
 
-   .. constructor:: infix , x y
+   .. constructor:: infix : x y
+                    infix , x y
 
-      Tuple constructor. This is right-associative in Pure.
+      List and tuple constructors. These are right-associative in Pure.
 
-   Like lists, tuples are right-recursive aggregates that may contain an
-   arbitrary mixture of arguments, i.e., they are fully polymorphic.
+   Lists are the usual right-recursive aggregates of the form ``x:xs``, where
+   ``x`` denotes the `head` and ``xs`` the `tail` of the list, pretty much the
+   same as in Lisp or Prolog except that they use a Haskell-like syntax. In
+   contrast to Haskell, list concatenation is denoted '\ :func:`+/list`\ '
+   (see below), and lists may contain an arbitrary mixture of arguments, i.e.,
+   they are fully polymorphic::
 
-   The pairing constructor '\ :cons:`,`\ ' is associative (it always produces
+     > 1:2:3:[];
+     [1,2,3]
+     > [1,2,3]+[u,v,w]+[3.14];
+     [1,2,3,u,v,w,3.14]
+
+   Lists are `eager` in Pure by default, but they can also be made `lazy` (in
+   the latter case they are also called `streams`). This is accomplished by
+   turning the tail of a list into a "thunk" (a.k.a. "future") which defers
+   evaluation until the list tail is actually needed, see section :ref:`Lazy
+   Evaluation and Streams` in the Pure Manual. For instance, an infinite
+   arithmetic sequence (see below) will always produce a list with a thunked
+   tail::
+
+     > 1:3..inf;
+     1:#<thunk 0x7f696cd2dbd8>
+
+   Pure also distinguishes `proper` and `improper` lists. The former are
+   always terminated by an empty list in the final tail and can thus be
+   written using the conventional ``[x1,x2,...,xn]`` syntax::
+
+     > 1:2:3:[];
+     [1,2,3]
+
+   In contrast, improper lists are terminated with a non-list value and
+   can only be represented using the '\ :func:`:`\ ' operator::
+
+     > 1:2:3;
+     1:2:3
+
+   These aren't of much use as ordinary list values, but are frequently
+   encountered as patterns on the left-hand side of an equation, where the
+   final tail is usually a variable. Also note that technically, a lazy list
+   is also an improper list (although it may expand to a proper list value as
+   it is traversed).
+
+   Tuples work in a similar fashion, but with the special twist that the
+   pairing constructor '\ :cons:`,`\ ' is associative (it always produces
    right-recursive pairs) and '\ :cons:`()`\ ' acts as a neutral element on
    these constructs, so that '\ :cons:`,`\ ' and '\ :cons:`()`\ ' define a
    complete monoid structure. Note that this means that '\ :cons:`,`\ ' is
@@ -525,19 +568,54 @@ def void [x] | void {x} = void x;
    Also, tuples are always `eager` in Pure. Adding a thunk to a tuple will
    force it.
 
-   Some important basic operations on tuples are listed below.
+   Some important basic operations on lists and tuples are listed below.
 
+   .. index:: list; concatenation
+
+   .. function:: infix + /list x y
+
+      List concatenation. This non-destructively appends the elements of ``y``
+      to ``x``. ::
+
+        > [1,2,3]+[u,v,w];
+        [1,2,3,u,v,w]
+
+      Note that this operation in fact just recurses into ``x`` and replaces
+      the empty list marking the "end" of ``x`` with ``y``, as if defined by
+      the following equations (however, the prelude actually defines this
+      operation in a tail-recursive fashion)::
+
+        [] + ys = ys;
+	(x:xs) + ys = x : xs+ys;
+
+      To make this work, both operands should be proper lists, otherwise you
+      may get somewhat surprising (but correct) improper list results like the
+      following::
+
+        > [1,2,3]+99;
+	1:2:3:99
+	> (1:2:3)+33;
+	1:2:36
+
+      This happens because Pure is dynamically typed and places no limits on
+      ad hoc polymorphism. Note that the latter result is due to the fact
+      that '\ :func:`+`\ ' also denotes the addition of numbers, and the
+      improper tail of the first operand is a number in this case, as is the
+      second operand. Otherwise you might have got an unreduced instance of
+      the '\ :func:`+`\ ' operator instead.
+
+   .. index:: list; equality
    .. index:: tuple; equality
 
-   .. function:: infix == /tuple x y
-                 infix ~= /tuple x y
+   .. function:: infix == /list x y
+		 infix ~= /list x y
 
-      Equality and inequality of tuples. These compare two tuples
-      by recursively comparing their members, so '\ :func:`==`\ ' must
-      be defined on the tuple members if you want to use these
+      Equality and inequality of lists and tuples. These compare two lists or
+      tuples by recursively comparing their members, so '\ :func:`==`\ ' must
+      be defined on the list or tuple members if you want to use these
       operations. ::
 
-        > reverse (a,b,c) == (c,b,a);
+        > reverse [a,b,c] == [c,b,a];
 	1
 	> (a,b,c) == ();
 	0
@@ -546,38 +624,51 @@ def void [x] | void {x} = void x;
       members of the tuples are '\ :func:`==`\ ', or when that's not
       defined, whether they are '\ :func:`===`\ '.
 
+      Note that applying these operations to two infinite lists
+      may take an infinite amount of time.
+
+   .. index:: list; size
    .. index:: tuple; size
 
    .. function:: prefix # x
 
-      Tuple size. This operation counts the number of elements in a
-      tuple::
+      List and tuple size. This operation counts the number of elements in a
+      list or tuple::
 
+        > #[a,b,c];
+	3
         > #(a,b,c);
 	3
 
+      Please note that for obvious reasons this operation is inherently eager,
+      so trying to compute the size of an infinite list will take forever.
+
+   .. index:: list; indexing
    .. index:: tuple; indexing
 
    .. function:: infix ! x i
 
-      Indexing of tuples is always zero-based (i.e., indices run
+      Indexing of lists and tuples is always zero-based (i.e., indices run
       from ``0`` to ``#x-1``), and an exception will be raised if the index is
       out of bounds::
 
-        > (1,2,3)!2;
+        > [1,2,3]!2;
         3
-        > (1,2,3)!4;
+	> [1,2,3]!4;
         <stdin>, line 34: unhandled exception 'out_of_bounds' while evaluating
-        '(1,2,3)!4'
+	'[1,2,3]!4'
 
+   .. index:: list; slicing
    .. index:: tuple; slicing
 
    .. function:: infix !! x is
 
-      The slicing operation takes a tuple and a list of indices and
-      returns the tuple of the corresponding elements.
+      The slicing operation takes a list or tuple and a list of indices and
+      returns the list or tuple of the corresponding elements, respectively.
       Indices which are out of the valid range are silently ignored::
 
+        > (1..5)!!(3..10);
+	[4,5]
      	> (1,2,3,4,5)!!(3..10);
      	4,5
 
@@ -586,30 +677,72 @@ def void [x] | void {x} = void x;
       indices can actually be specified in any order, so that you can retrieve
       any permutation of the members, also with duplicates. E.g.::
 
-        > (1,2,3,4,5)!![2,4,4,1];
+        > (1..5)!![2,4,4,1];
      	[3,5,5,2]
 
       This is less efficient than the case of contiguous index ranges, because
-      it requires repeated traversals of the tuple for each index. For larger
-      tuples you should hence use vectors or matrices instead, to avoid the
+      it requires repeated traversals of the list for each index. For larger
+      lists you should hence use vectors or matrices instead, to avoid the
       quadratic complexity.
+
+   .. index:: list; arithmetic sequence
+
+   .. function:: infix .. x y
+
+      Arithmetic sequences. Note that the Pure syntax differs from Haskell in
+      that there are no brackets around the construct and a step width is
+      indicated by specifying the first two elements as ``x:y`` instead of
+      ``x,y``. ::
+
+        > 1..5;
+	[1,2,3,4,5]
+	> 1:3..11;
+	[1,3,5,7,9,11]
+
+      To prevent unwanted artifacts due to rounding errors, the upper bound in
+      a floating point sequence is always rounded to the nearest grid point::
+
+        > 0.0:0.1..0.29;
+	[0.0,0.1,0.2,0.3]
+	> 0.0:0.1..0.31;
+	[0.0,0.1,0.2,0.3]
+
+      Last but not least, you can specify infinite sequences with an infinite
+      upper bound (``inf`` or ``-inf``)::
+
+        > 1:3..inf;
+	1:#<thunk 0x7f696cd2dbd8>
+	> -1:-3..-inf;
+	-1:#<thunk 0x7f696cd2fde8>
+
+      The lower bounds of an arithmetic sequence must always be finite.
 
    .. function:: null x
 
-      Test for the empty tuple. ::
+      Test for the empty list and tuple. ::
 
-        > null ();
+        > null [];
 	1
 	> null (a,b,c);
 	0
 
    .. function:: reverse x
 
-      Reverse a tuple. ::
+      Reverse a list or tuple. ::
 
+        > reverse (1..5);
+	[5,4,3,2,1]
 	> reverse (a,b,c);
 	(c,b,a)
 
+   .. function:: reverse_onto base x
+
+      Reverse a list onto a specified base. ::
+
+        > reverse_onto [20,10] (3..5);
+        [5, 4, 3, 20, 10]
+
+      Note: This operation and '\ :func:`reverse`\ ' are both inherently eager.
 
    Conversions
    -----------
@@ -860,7 +993,42 @@ reverse (x,xs)	= accum x xs with
   accum ys x		= x,ys;
 end;
 
+
+/* Lists are the usual "conses" written using the infix ':' operator. '[]'
+   denotes the empty list. Moreover, the parser provides the customary sugar
+   for proper list values [x] where x is any singleton or tuple (in the latter
+   case you'll get a list made from all the elements of x). The usual basic
+   operations are provided to test for equality/inequality and emptiness, to
+   compute the size of a list, for indexing, slicing and concatenation, and
+   for reversing a list. */
+
+[]==[]		= 1;
+(x:xs)==[]	= 0;
+[]==(x:xs)	= 0;
+(x:xs)==(y:ys)	= x==y && xs==ys;
+
+[]~=[]		= 0;
+(x:xs)~=[]	= 1;
+[]~=(x:xs)	= 1;
+(x:xs)~=(y:ys)	= x~=y || xs~=ys;
+
+null []		= 1;
+null (x:xs)	= 0;
+
+#[]		= 0;
+#(x:xs)		= accum 1 xs with
+  accum n::int (x:xs)	= accum (n+1) xs;
+  accum n::int []	= n;
+  accum	n::int xs	= n+#xs;
+end;
+
+[]!n::int	= throw out_of_bounds;
+(x:xs)!0	= x;
+(x:xs)!n::int	= xs!(n-1) if n>0;
+		= throw out_of_bounds otherwise;
+
 using lists;
+
 
 /* Slicing. xs!!ns returns the list of xs!n for all members n of the index
    list ns which are in the valid index range. This is a generic fallback
