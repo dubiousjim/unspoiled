@@ -154,6 +154,11 @@ end;
 
       :func:`catmap` onto the specified base
 
+   .. function:: delete xs y
+
+      return ``xs`` without the first member satisfying (y==?);
+      if no member matches ``y``, will just return ``xs``
+
    .. function:: do f xs
 
       apply ``f`` to all members of ``xs``, like :func:`map`, but throw away
@@ -372,6 +377,14 @@ all p (x:xs)		= p x && all p xs;
 
 any p []		= 0;
 any p (x:xs)		= p x || any p xs;
+
+// we don't provide skip-ahead version
+delete [] y = [];
+delete xs@(_:_) y = tick xs [] with
+    tick [] _ = xs; // no match
+    tick (x:xs) ws = if y ==? x then reverse_onto xs ws else tick xs (x:ws);
+    tick xs ws = reverse_onto (delete xs y) ws;
+end;
 
 // inherently eager
 do f []			= ();
