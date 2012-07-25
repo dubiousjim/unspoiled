@@ -71,7 +71,7 @@ private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3;
 private head2 head3 whenfail;
-private splitby popl popr; // custom versions of list functions
+private partition popl popr; // custom versions of list functions
 private spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
@@ -981,7 +981,7 @@ end;
 private base_mpopkva;
 
 base_mpopkva k v t = pop k v t with
-    del v us = splitby ((v==?).val) us; // rotate reversed list of hits to head
+    del v us = partition ((v==?).val) us; // rotate reversed list of hits to head
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -1462,7 +1462,7 @@ end);
 private base_mhpopkva;
 
 base_mhpopkva k old t = pop (hash k) old t with
-    del (k=>v) us = splitby (\(uk=>uv) -> k===uk && v==?uv) us;
+    del (k=>v) us = partition (\(uk=>uv) -> k===uk && v==?uv) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1742,8 +1742,8 @@ popr p xs = pop p xs [] [] [] with
     aux zs (y:ys) xss      = aux (y:zs) ys xss;
 end;
 
-// custom version of splitby
-splitby p ys = spl p ys [] [] with
+// custom version of partition
+partition p ys = spl p ys [] [] with
     spl p []     _  [] = []:ys; // no hits, use original
     spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
     spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;

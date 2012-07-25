@@ -57,7 +57,7 @@ private bin;
 
 /* Private helper functions. */
 
-private adjusti adjustd init rotate cmp replace popl popr splitby swap;
+private adjusti adjustd init rotate cmp replace popl popr partition swap;
 
 /* Operations to construct an empty tree, and to check for an empty tree.
    These are the same for all variations of the data structure. */
@@ -747,7 +747,7 @@ end with
             else if r===nil then [vs, l, 1]
             else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when vs:newxs = splitby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when vs:newxs = partition (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
       end;
 end;
 
@@ -1007,7 +1007,7 @@ end with
       else if r===nil then [vs, l, 1]
       else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
-      when vs:newxs = splitby (\(k=>v) -> k===rawkey && v==?val) xs end;
+      when vs:newxs = partition (\(k=>v) -> k===rawkey && v==?val) xs end;
 end;
 
 public mhdeletea mhdeleteka;
@@ -1186,8 +1186,8 @@ popr p xs = tick xs [] [] [] with
     tack zs (y:ys) xss        = tack (y:zs) ys xss;
 end;
 
-// custom version of splitby
-splitby p ys = spl p ys [] [] with
+// custom version of partition
+partition p ys = spl p ys [] [] with
     spl p []     _  [] = []:ys; // no hits, use original
     spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
     spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
