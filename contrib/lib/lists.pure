@@ -707,10 +707,8 @@ end;
 last [x]		= x;
 last (x:xs)		= last xs;
 
-
 map_onto f base []	= base;
 map f []		= [];
-map f xs@(_:_)	        = map_onto f [] xs;
 
 #! --ifnot list-opt
 // reverse-based
@@ -720,6 +718,14 @@ with
 			= tick (f x:zs) xs;
   tick zs []		= reverse_onto base zs;
   tick zs xs		= reverse_onto (map_onto f base xs) zs;
+end;
+
+map f xs@(_:_) = tick [] xs
+with
+  tick zs (x:xs)	= reverse_onto (map f xs&) (f x:zs) if thunkp xs;
+			= tick (f x:zs) xs;
+  tick zs []		= reverse_onto [] zs;
+  tick zs xs		= reverse_onto (map f xs) zs;
 end;
 
 #! --else
@@ -736,6 +742,20 @@ map_onto f base xs@(_:_) = aux xs with
     skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
                                = skip_ahead (n+1) xs;
     skip_ahead n::int xs       = n (map_onto f base xs);
+end;
+
+map f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _            = mapped_tail;
+        map_pre n::int (x:xs)  = f x:map_pre (n-1) xs;
+    end when
+        len_pre@_ mapped_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (map f xs);
 end;
 #! --endif
 
@@ -1053,11 +1073,13 @@ end;
 
 catmap_onto f base []	= base;
 catmap f []		= [];
-catmap f xs@(_:_)       = catmap_onto f [] xs;
 
 #! --ifnot list-opt
 // reverse-based
 catmap_onto f base xs@(_:_)	= cat (map_onto f base xs);
+
+catmap f xs@(_:_)	        = cat (map f xs);
+
 /* NOTE: This definition (from the Haskell prelude) is better, but doesn't
    preserve left-to-right execution order. */
 //catmap f xs@(_:_)	= foldr ((+).f) [] xs;
@@ -1076,6 +1098,31 @@ catmap_onto f base xs@(_:_) = aux xs with
     skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
                                  = skip_map (n+1) xs;
     skip_map n::int xs           = n (catmap_onto f base xs);
+    lazy_cat xs yss              = cat_pre len_pre xs with
+        cat_pre 0 _              = catted_tail;
+        cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
+    end when
+        len_pre@_ catted_tail    = skip_cat yss 0 xs;
+    end;
+    skip_cat yss n::int []       = n yss;
+    skip_cat yss n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_cat yss n::int (x:xs)   = n (x:lazy_cat xs yss&) if thunkp xs;
+    skip_cat yss n::int (x:xs)   = skip_cat yss (n+1) xs;
+    skip_cat yss n::int xs       = n (xs+yss);
+end;
+
+catmap f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _              = mapped_tail;
+        map_pre n::int (x:xs)    = lazy_cat (f x) (map_pre (n-1) xs);
+    end when
+        len_pre@_ mapped_tail    = skip_map 0 xs;
+    end;
+    skip_map n::int []           = n [];
+    skip_map n::int xs@(_:_)     = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
+                                 = skip_map (n+1) xs;
+    skip_map n::int xs           = n (catmap f xs);
     lazy_cat xs yss              = cat_pre len_pre xs with
         cat_pre 0 _              = catted_tail;
         cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
