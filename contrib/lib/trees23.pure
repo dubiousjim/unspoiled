@@ -71,7 +71,7 @@ private shrink_left shrink_center shrink_right;
 private pop_left pop_right mpop_left mpop_right;
 private cmp cmp1 cmp2 cmp3;
 private head2 head3 whenfail;
-private partition popl popr; // custom versions of list functions
+private partition pickfirstby picklastby; // custom versions of list functions
 private spaces center tostring;
 
 private LT EQ GT GE MID LT2 EQ2 GT2 GE2;
@@ -543,7 +543,7 @@ hgetk t k = get (hash k) k t with
         = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match k us = val (findl (same k.key) us); // throw out_of_bounds if no hits
+    match k us = val (::firstby (same k.key) us); // throw out_of_bounds if no hits
 end;
 
 mhgetka t k = get (hash k) k t with
@@ -586,9 +586,9 @@ base_mhgetk k find t = get (hash k) k t with
         end;
 end;
 
-mhgetko t k = base_mhgetk k findr t;
+mhgetko t k = base_mhgetk k ::lastby t;
 
-mhgetkn t k = base_mhgetk k findl t;
+mhgetkn t k = base_mhgetk k ::firstby t;
 
 
 /* 2-3-tree insertion and deletion. */
@@ -905,7 +905,7 @@ mpopkn t k = catch (whenfail {}) ({| v, child |} when
 end);
 
 mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
-    del v us = popr ((v==?).val) us; // throw fail if no hits
+    del v us = picklastby ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -942,7 +942,7 @@ mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
 end;
 
 mdeletekvn t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
-    del v us = popl ((v==?).val) us; // throw fail if no hits
+    del v us = pickfirstby ((v==?).val) us; // throw fail if no hits
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -1119,7 +1119,7 @@ public hdelete hdeletek hpopk;
 public hdeletekv hpopkv;
 
 hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
-    // custom version of deletel, that doesn't tolerate failure
+    // custom version of rmfirstby, that doesn't tolerate failure
     del _ _ [] = throw fail;
     del old ws (old:us) = reverse_onto us ws;
     del old ws (u:us) = del old (u:ws) us;
@@ -1161,7 +1161,7 @@ end;
 private base_hpopk;
 
 base_hpopk k t = pop (hash k) k t with
-    del k us = popl (same k.key) us; // throw fail if no hits
+    del k us = pickfirstby (same k.key) us; // throw fail if no hits
     pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1207,7 +1207,7 @@ end);
 private base_hpopkv;
 
 base_hpopkv k old t = pop (hash k) old t with
-    // custom version of popl
+    // custom version of pickfirstby
     del _ _ [] = throw fail;
     del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws else throw fail; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
@@ -1337,7 +1337,7 @@ mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
 mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
-    del (k=>v) us = popr (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    del (k=>v) us = picklastby (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1375,7 +1375,7 @@ end;
 
 mhdeletekvn t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     // unlike hdeletekv, we continue searching when keys match but values don't
-    del (k=>v) us = popl (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    del (k=>v) us = pickfirstby (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1416,7 +1416,7 @@ end;
 private base_mhpopko;
 
 base_mhpopko k t = pop (hash k) k t with
-    del k us = popr (same k.key) us; // throw fail if no hits
+    del k us = picklastby (same k.key) us; // throw fail if no hits
     pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1713,7 +1713,7 @@ end;
 replace [] p y = [y];
 replace (x:xs) p y = if p x then y:xs else x:replace xs p y;
 
-popl p xs = tick xs with
+pickfirstby p xs = tick xs with
     tick [] = throw fail;
     tick (x:xs) = if p x then x:xs
                      else swap x (tick xs) [];
@@ -1722,17 +1722,17 @@ popl p xs = tick xs with
 end;
 */
 
-// custom version of popl
+// custom version of pickfirstby
 // throws fail when no hits, else leftmost p is rotated to head
-popl p xs = pop p xs [] with
+pickfirstby p xs = pop p xs [] with
     pop p [] _ = throw fail;
     pop p (x:xs) ws = if p x then x:reverse_onto xs ws
                          else pop p xs (x:ws);
 end;
 
-// custom version of popr
+// custom version of picklastby
 // throws fail when no hits, else rightmost p is rotated to head
-popr p xs = pop p xs [] [] [] with
+picklastby p xs = pop p xs [] [] [] with
     pop p []     _  []     _   = throw fail;
     pop p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
     pop p (x:xs) ms hs     hss = pop p xs [] (x:ms) (hs:hss) if p x;

@@ -57,7 +57,8 @@ private bin;
 
 /* Private helper functions. */
 
-private adjusti adjustd init rotate cmp replace popl popr partition swap;
+private adjusti adjustd init rotate cmp;
+private replace pickfirstby picklastby partition swap;
 
 /* Operations to construct an empty tree, and to check for an empty tree.
    These are the same for all variations of the data structure. */
@@ -424,7 +425,7 @@ mhgetko t y = get t (hash y) y with
   get (bin (k::int=>xs) _ l r) key::int y
     = get l key y if k > key;
     = get r key y if k < key;
-    = ::val (findl (same y.(::key)) xs); // may throw out_of_bounds
+    = ::val (::firstby (same y.(::key)) xs); // may throw out_of_bounds
 end;
 
 mhgetkn t y = get t (hash y) y with
@@ -432,7 +433,7 @@ mhgetkn t y = get t (hash y) y with
   get (bin (k::int=>xs) _ l r) key::int y
     = get l key y if k > key;
     = get r key y if k < key;
-    = ::val (findr (same y.(::key)) xs); // may throw out_of_bounds
+    = ::val (::lastby (same y.(::key)) xs); // may throw out_of_bounds
 end;
 
 /* AVL tree insertion and deletion. */
@@ -689,7 +690,7 @@ mdeletekvo t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
       	          when [newl, leftHasChanged] = init l end)
-            when newxs = deletel (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when newxs = ::rmfirstby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
       end;
 end;
 
@@ -707,7 +708,7 @@ mdeletekvn t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when newxs = deleter (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when newxs = ::rmlastby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
       end;
 end;
 
@@ -798,7 +799,7 @@ hdelete t y = delete t (hash y) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
-      when newxs = deletel (same y) xs end;
+      when newxs = ::rmfirstby (same y) xs end;
 end;
 
 hdeletek t y = delete t (hash y) y!0 with
@@ -813,7 +814,7 @@ hdeletek t y = delete t (hash y) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
-      when newxs = deletel (same y.(::key)) xs end;
+      when newxs = ::rmfirstby (same y.(::key)) xs end;
 end;
 
 hpopk t y = case pop t (hash y) y of
@@ -826,7 +827,7 @@ end with
       when [v, newl, leftHasChanged] = pop l key y end if key < k;
     = v:adjustd rightHasChanged (bin x b l newr) 1
       when [v, newr, rightHasChanged] = pop r key y end if key > k;
-    = case popl (same y.(::key)) xs of
+    = case pickfirstby (same y.(::key)) xs of
         [] = [fail, nil, 0];
         (_=>v):newxs = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
                   else if l===nil then [v, r, 1]
@@ -923,7 +924,7 @@ mhdeletekn t y = delete t (hash y) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
-      when newxs = deleter (same y.(::key)) xs end;
+      when newxs = ::rmlastby (same y.(::key)) xs end;
 end;
 
 mhpopkn t y = case pop t (hash y) y of
@@ -936,7 +937,7 @@ end with
       when [v, newl, leftHasChanged] = pop l key y end if key < k;
     = v:adjustd rightHasChanged (bin x b l newr) 1
       when [v, newr, rightHasChanged] = pop r key y end if key > k;
-    = case popr (same y.(::key)) xs of
+    = case picklastby (same y.(::key)) xs of
         [] = [fail, nil, 0];
         (_=>v):newxs = if ~::null newxs then [v, bin (k=>newxs) b l r, 0]
                   else if l===nil then [v, r, 1]
@@ -958,7 +959,7 @@ mhdeletekvo t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
            when [newl, leftHasChanged] = init l end)
-      when newxs = deletel (\(k=>v) -> k===rawkey && v==?val) xs end;
+      when newxs = ::rmfirstby (\(k=>v) -> k===rawkey && v==?val) xs end;
 end;
 
 mhdeletekvn t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
@@ -973,7 +974,7 @@ mhdeletekvn t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
       else if r===nil then [l, 1]
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
            when [newl, leftHasChanged] = init l end)
-      when newxs = deleter (\(k=>v) -> k===rawkey && v==?val) xs end;
+      when newxs = ::rmlastby (\(k=>v) -> k===rawkey && v==?val) xs end;
 end;
 
 mhdeletekva t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
@@ -1168,14 +1169,14 @@ swap y (x:xs) default = x:y:xs;
 swap _ []     default = default;
 
 // [] when no hits, else leftmost p is rotated to head
-popl p xs = tick xs with
+pickfirstby p xs = tick xs with
     tick [] = [];
     tick (x:xs) = if p x then x:xs
                      else swap x (tick xs) [];
 end;
 
 // [] when no hits, else rightmost p is rotated to head
-popr p xs = tick xs [] [] [] with
+picklastby p xs = tick xs [] [] [] with
     tick []     _  []     _   = [];
     tick []     ms (h:hs) hss = h:tack (reverse ms) hs hss;
     tick (x:xs) ms hs     hss = if p x
