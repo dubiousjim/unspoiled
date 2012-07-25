@@ -690,7 +690,9 @@ mdeletekvo t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
       	          when [newl, leftHasChanged] = init l end)
-            when newxs = ::rmfirstby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when
+                newxs = ::rmfirstby (\(k=>v) -> cmp k key == 0 && v==?val) xs
+            end;
       end;
 end;
 
@@ -708,7 +710,9 @@ mdeletekvn t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when newxs = ::rmlastby (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when
+                newxs = ::rmlastby (\(k=>v) -> cmp k key == 0 && v==?val) xs
+            end;
       end;
 end;
 
@@ -726,7 +730,9 @@ mdeletekva t y@(key=>val) = delete t y!0 with
             else if r===nil then [l, 1]
             else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when newxs = filter (\(k=>v) -> ~(cmp k key == 0 && v==?val)) xs end;
+            when
+                newxs = filter (\(k=>v) -> ~(cmp k key == 0 && v==?val)) xs
+            end;
       end;
 end;
 
@@ -748,7 +754,9 @@ end with
             else if r===nil then [vs, l, 1]
             else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when vs:newxs = partition (\(k=>v) -> cmp k key == 0 && v==?val) xs end;
+            when
+                vs:newxs = partition (\(k=>v) -> cmp k key == 0 && v==?val) xs
+            end;
       end;
 end;
 
