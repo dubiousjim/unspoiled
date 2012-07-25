@@ -57,7 +57,7 @@ private bin;
 
 /* Private helper functions. */
 
-private adjusti adjustd init rotate cmp replace popl popr splitby;
+private adjusti adjustd init rotate cmp replace popl popr splitby swap;
 
 /* Operations to construct an empty tree, and to check for an empty tree.
    These are the same for all variations of the data structure. */
@@ -1163,6 +1163,9 @@ cmp a b = if a<b then -1 else b<a;
 // replace first x satisfying p with y, else add y at end
 replace [] p y = [y];
 replace (x:xs) p y = if p x then y:xs else x:replace xs p y;
+
+swap y (x:xs) default = x:y:xs;
+swap _ []     default = default;
 
 // [] when no hits, else leftmost p is rotated to head
 popl p xs = tick xs with

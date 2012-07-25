@@ -1717,6 +1717,8 @@ popl p xs = tick xs with
     tick [] = throw fail;
     tick (x:xs) = if p x then x:xs
                      else swap x (tick xs) [];
+    swap y (x:xs) default   = x:y:xs;
+    swap _ [] default       = default;
 end;
 */
 
