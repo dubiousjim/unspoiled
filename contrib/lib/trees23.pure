@@ -34,6 +34,8 @@
    http://en.wikipedia.org/wiki/AA_tree
    http://demakov.com/snippets/aatree.html */
 
+public __show__;
+
 #! --if trees23
 namespace baltree;
 #! --else
@@ -1760,7 +1762,7 @@ center s width fill =
     rem = width - #s
 end;
 
-__show__ t::tree = case t of
+::__show__ t::tree = case t of
     nil = "emptytree";
     _ = (join "\n" (reverse lst)) + "\n";
 end when
