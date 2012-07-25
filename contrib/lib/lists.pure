@@ -101,7 +101,7 @@ end;
 
    Along with '\ :func:`#`\ ', '\ :func:`reverse`\ ', and
    '\ :func:`reverse_onto`\ ', above, the following functions are inherently
-   eager: '\ :func:`bisect`\ ', '\ :func:`deleter`\ ', '\ :func:`do`\ ',
+   eager: '\ :func:`deleter`\ ', '\ :func:`do`\ ',
    '\ :func:`dowith`\ ', '\ :func:`dowith3`\ ', '\ :func:`findr`\ ',
    '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
    '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`popr`\ ', and
@@ -141,11 +141,6 @@ end;
    .. function:: all p xs
 
       test whether the predicate ``p`` holds for all of the members of ``xs``
-
-   .. function:: bisect xs
-
-      splits ``xs`` approximately in half in a single traversal; returns
-      results as ``{ front, back }``
 
    .. function:: cat xs
 
@@ -380,15 +375,6 @@ all p (x:xs)		= p x && all p xs;
 
 any p []		= 0;
 any p (x:xs)		= p x || any p xs;
-
-// inherently eager
-bisect [] = [];
-bisect xs@(_:_) = res if matrixp res when
-    res = aux [] xs xs;
-end with
-    aux ws xs [] | aux ws xs [_] = {| reverse ws, xs |};
-    aux ws (x:xs) (_:_:ys) = aux (x:ws) xs ys;
-end;
 
 // inherently eager
 do f []			= ();
