@@ -938,24 +938,24 @@ end;
 tail (x:xs)		= xs;
 
 
-take n::int []		= [];
+take m::int []		= [];
 takewhile p []	= [];
 #! --ifnot list-opt
 // reverse-based
-take n::int xs@(_:_)	= tick n [] xs
+take m::int xs@(_:_)	= tick m [] xs
 with
-  tick n::int zs xs	= reverse_onto [] zs if n<=0;
-			= reverse_onto (take n xs&) zs if thunkp xs;
+  tick m::int zs xs	= reverse_onto (take m xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+  tick m::int zs xs	= reverse_onto [] zs if m<=0;
 			= case xs of
 			    []   = reverse_onto [] zs;
-			    x:xs = tick (n-1) (x:zs) xs;
-			    _    = reverse_onto (take n xs) zs;
+			    x:xs = tick (m-1) (x:zs) xs;
+			    _    = reverse_onto (take m xs) zs;
 			  end;
 end;
 
 takewhile p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= reverse_onto (takewhile p xs&) zs if thunkp xs;
+  tick zs xs		= reverse_onto (takewhile p xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
 			    []   = reverse_onto [] zs;
 			    x:xs = tick (x:zs) xs if p x;
@@ -974,9 +974,10 @@ take m::int xs@(_:_) = aux m xs with
     end when
         len_pre@_ front_tail          = skip_ahead m 0 xs;
     end;
-    skip_ahead m::int n::int xs       = n [] if m <= 0 || xs === [];
+    skip_ahead m::int n::int []       = n [];
     skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
-    skip_ahead m::int n::int (x:xs)   = n (x:aux (m-1) xs&) if thunkp xs;
+    skip_ahead m::int n::int (x:xs)   = n [] if m <= 0;
+                                      = n (x:aux (m-1) xs&) if thunkp xs;
                                       = skip_ahead (m-1) (n+1) xs;
     skip_ahead m::int n::int xs       = n (take m xs);
 end;
@@ -990,9 +991,9 @@ takewhile p xs@(_:_) = aux xs with
     end;
     skip_ahead n::int []       = n [];
     skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
-    skip_ahead n::int (x:xs)
-            = if p x then n (x:aux xs&) else n [] if thunkp xs;
-            = skip_ahead (n+1) xs;
+    skip_ahead n::int (x:xs)   = n [] if ~p x;
+                               = n (x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
     skip_ahead n::int xs       = n (takewhile p xs);
 end;
 #! --endif
