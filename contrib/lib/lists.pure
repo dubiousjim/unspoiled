@@ -63,7 +63,7 @@ reverse xs@(_:_)	 = reverse_onto [] xs;
    again, pushing elements in front of the result list ('reverse_onto'). */
 xs@(_:_)+ys	= tick [] xs ys
 with
-  tick zs (x:xs) ys	= reverse_onto ((xs+ys)&) (x:zs) if thunkp xs;
+  tick zs (x:xs) ys	= reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
 			= tick (x:zs) xs ys;
   tick zs [] ys		= reverse_onto ys zs;
   /* Handle an improper list tail (xs+ys is in normal form here). */
@@ -405,7 +405,7 @@ filter p []		= [];
 filter p xs@(_:_)	= tick [] xs
 with
   add p x xs		= if p x then x:xs else xs;
-  tick zs (x:xs)	= reverse_onto (filter p xs&) (add p x zs) if thunkp xs;
+  tick zs (x:xs)	= reverse_onto (tick [] xs&) (add p x zs) if thunkp xs;
 			= tick (add p x zs) xs;
   tick zs []		= reverse_onto [] zs;
   tick zs xs		= reverse_onto (filter p xs) zs;
@@ -565,7 +565,7 @@ foldr3 f a _ _ [] | foldr3 f a _ [] _ | foldr3 f a [] _ _ = a;
 // reverse-based
 foldr f a xs@(_:_)	= tick [] xs
 with
-  tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+  tick zs (x:xs)	= tack (x:zs) (tick [] xs&) if thunkp xs;
 			= tick (x:zs) xs;
   tick zs []		= tack zs a;
   tick zs xs		= tack zs (foldr f a xs);
@@ -590,7 +590,7 @@ end;
 
 foldr2 f a xs@(_:_) ys@(_:_)      = tick [] xs ys
 with
-  tick us (x:xs) (y:ys)           = tack (x:y:us) (foldr2 f a xs ys&)
+  tick us (x:xs) (y:ys)           = tack (x:y:us) (tick [] xs ys&)
                                     if thunkp xs || thunkp ys;
                                   = tick (x:y:us) xs ys;
   tick us _ [] | tick us [] _     = tack us a;
@@ -601,7 +601,7 @@ end;
 
 foldr3 f a xs@(_:_) ys@(_:_) zs@(_:_) = tick [] xs ys zs
 with
-  tick us (x:xs) (y:ys) (z:zs)    = tack (x:y:z:us) (foldr3 f a xs ys zs&)
+  tick us (x:xs) (y:ys) (z:zs)    = tack (x:y:z:us) (tick [] xs ys zs&)
                                     if thunkp xs || thunkp ys || thunkp zs;
                                   = tick (x:y:z:us) xs ys zs;
   tick us _ _ [] | tick us _ [] _ | tick us [] _ _
@@ -726,7 +726,7 @@ map f []		= [];
 // reverse-based
 map_onto f base xs@(_:_) = tick [] xs
 with
-  tick zs (x:xs)	= reverse_onto (map_onto f base xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
   tick zs []		= reverse_onto base zs;
   tick zs xs		= reverse_onto (map_onto f base xs) zs;
@@ -734,7 +734,7 @@ end;
 
 map f xs@(_:_) = tick [] xs
 with
-  tick zs (x:xs)	= reverse_onto (map f xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
   tick zs []		= reverse_onto [] zs;
   tick zs xs		= reverse_onto (map f xs) zs;
@@ -840,7 +840,7 @@ end;
 scanl f a []		= [a];
 scanl f a xs@(_:_)	= tick a [] xs
 with
-  tick a zs (x:xs)	= reverse_onto (scanl f (f a x) xs&) (a:zs) if thunkp xs;
+  tick a zs (x:xs)	= reverse_onto (tick (f a x) xs&) (a:zs) if thunkp xs;
 			= tick (f a x) (a:zs) xs;
   tick a zs []		= reverse_onto [a] zs;
   tick a zs xs		= reverse_onto (scanl f a xs) zs;
@@ -1052,7 +1052,7 @@ with
   foldr f a []		= a;
   foldr f a xs@(_:_)	= tick [] xs
   with
-    tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+    tick zs (x:xs)	= tack (x:zs) (tick [] xs&) if thunkp xs;
 			= tick (x:zs) xs;
     tick zs []		= tack zs a;
     tick zs xs		= tack zs (foldr f a xs);
@@ -1367,7 +1367,7 @@ namespace __std__ with
 zip f base improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= reverse_onto (improper xs ys&) (f x y:us)
+  tick us (x:xs) (y:ys)	= reverse_onto (tick [] xs ys&) (f x y:us)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
@@ -1379,7 +1379,7 @@ zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= reverse_onto (improper xs ys zs&) (f x y z:us)
+			= reverse_onto (tick [] xs ys zs&) (f x y z:us)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
