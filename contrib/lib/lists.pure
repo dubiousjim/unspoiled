@@ -439,7 +439,9 @@ pickfirstby p xs@(_:_) = tick xs [] with
     tick [] _ = {}; // no match
     tick (x:xs) ws = if p x then {| x, reverse_onto xs ws |}
                      else tick xs (x:ws);
-    tick xs ws     = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tick xs ws     = throw (bad_list_value xs);
+    // doesn't handle case where no match is found:
+    // tick xs ws     = {| firstby p xs, reverse_onto (rmfirstby p xs) ws |};
 end;
 
 // we don't provide skip-ahead version
@@ -457,12 +459,11 @@ public lastby picklastby rmlastby;
 namespace __std__;
 private nonfix notfound;
 
-// lastby p xs::list = gfold::right (\x _ e -> if p x then abort x else e) throw improper out_of_bounds xs;
 ::lastby p [] = throw out_of_bounds;
 ::lastby p xs@(_:_) = tick xs notfound with
     tick [] w = if w===notfound then throw out_of_bounds else w;
     tick (x:xs) w = tick xs (if p x then x else w);
-    tick xs w = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tick xs w = throw (bad_list_value xs);
 end;
 
 #! --ifnot list-opt
@@ -470,11 +471,11 @@ end;
 ::picklastby p [] = {};
 ::picklastby p xs@(_:_) = tick xs [] [] [] with
     tick []     _  []     _   = {}; // no match
-    tick []     ms (h:hs) hss = {| h, tack (reverse ms) hs hss |};
+    tick []     ms (h:hs) hss = {| h, tack (reverse_onto [] ms) hs hss |};
     tick (x:xs) ms hs     hss = if p x
                                 then tick xs [] (x:ms) (hs:hss)
                                 else tick xs (x:ms) hs hss;
-    tick xs     _  _      _   = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tick xs     _  _      _   = throw (bad_list_value xs);
     tack zs []     []         = zs;
     tack zs []     (xs:xss)   = tack zs xs xss;
     tack zs (y:ys) xss        = tack (y:zs) ys xss;
@@ -483,11 +484,11 @@ end;
 ::rmlastby p [] = [];
 ::rmlastby p ys@(_:_) = tick ys [] [] [] with
     tick []     _  []     _   = ys; // no match
-    tick []     ms (_:hs) hss = tack (reverse ms) hs hss;
+    tick []     ms (_:hs) hss = tack (reverse_onto [] ms) hs hss;
     tick (x:xs) ms hs     hss = if p x
                                 then tick xs [] (x:ms) (hs:hss)
                                 else tick xs (x:ms) hs hss;
-    tick xs     _  _      _   = throw (bad_list_value xs); // returning an unreduced function in this case would get ugly
+    tick xs     _  _      _   = throw (bad_list_value xs);
     tack zs []     []         = zs;
     tack zs []     (xs:xss)   = tack zs xs xss;
     tack zs (y:ys) xss        = tack (y:zs) ys xss;
@@ -683,14 +684,14 @@ end;
 
 head (x:xs)		= x;
 
-init [x]		= [];
+init [_]		= [];
 #! --ifnot list-opt
 // reverse-based
 init xs@(_:_)		= tick [] xs
 with
   tick zs ys@(_:xs)	= reverse_onto (init ys&) zs if thunkp xs;
   tick zs xs		= case xs of
-			    [x]  = reverse_onto [] zs;
+			    [_]  = reverse_onto [] zs;
 			    x:xs = tick (x:zs) xs;
 			    _    = reverse_onto (init xs) zs;
 			  end;
@@ -778,7 +779,7 @@ partition p [] = { [], [] };
 partition p xs@(_:_) = aux xs [] [] with
     aux []     [] _  = {| xs, [] |}; // no misses, use original
     aux []     _  [] = {| [], xs |}; // no hits, use original
-    aux []     ms hs = {| reverse hs, reverse ms |};
+    aux []     ms hs = {| reverse_onto [] hs, reverse_onto [] ms |};
     aux (x:xs) ms hs
         = if p x
           then {| reverse_onto (filter p xs&) (x:hs), reverse_onto (filter ((~).p) xs&) ms |}
@@ -816,7 +817,7 @@ end;
 #! --ifnot list-opt
 // reverse-based
 rotate xs@(_:_) = rot xs [] with
-    rot [x] ys = x:reverse ys;
+    rot [x] ys = x:reverse_onto [] ys;
     rot (x:xs) ys = rot xs (x:ys);
 end;
 
@@ -876,7 +877,7 @@ scanr1 f [x]		= [x];
 scanr1 f xs@(_:_)	= tick [] xs
 with
   tick zs (x:xs)	= tack zs us when
-			    ys = scanr1 f xs&;
+			    ys = scanr1 f xs&; // these thunks get forced two elements at a time
 			    y  = (case ys of
 				    y:_ = y;
 				    scanr1 _ ys = throw (bad_list_value ys);
@@ -899,7 +900,7 @@ span p []	= { [], [] };
 // reverse-based
 span p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= { reverse_onto (takewhile p xs&) zs, dropwhile p xs& } if thunkp xs; // we don't decoonstruct xs so as to check p x only one on one codepath
+  tick zs xs		= { reverse_onto (takewhile p xs&) zs, dropwhile p xs& } if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
 			    []   = { reverse_onto [] zs, [] };
 			    x:xs = tick (x:zs) xs if p x;
@@ -937,7 +938,7 @@ split m::int [] = { [], [] };
 // reverse-based
 split m::int xs@(_:_) = aux m [] xs with
     aux _::int ws []     = {| xs, [] |}; // use original
-    aux 0 ws xs          = {| reverse ws, xs |};
+    aux 0 ws xs          = {| reverse_onto [] ws, xs |};
     aux m::int ws (x:xs) = {| reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs& |}
                            if thunkp xs;
                          = aux (m-1) (x:ws) xs;
@@ -1248,13 +1249,13 @@ cycle ys@(x:xs)		= x : (xs+cycle ys)&;
 // no skip-ahead implentations yet, I'm lazy
 iterwhile p f x		= accum [] p f x with
 			    accum xs p f x = accum (x:xs) p f (f x) if p x;
-				           = reverse xs otherwise;
+				           = reverse_onto [] xs otherwise;
 			  end;
 
 iteraten n::int f x	= [] if n<=0;
 			= accum [] n f x
 with
-  accum xs n::int f x	= reverse (x:xs) if n==1;
+  accum xs n::int f x	= reverse_onto [] (x:xs) if n==1;
 			= accum (x:xs) (n-1) f (f x);
 end;
 
