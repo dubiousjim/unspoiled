@@ -28,7 +28,8 @@
 
 /* Based on descriptions of AA-trees, which are binary emulations of
    2-3-trees. See:
-   A. Andersson. Balanced search trees made simple. <http://user.it.uu.se/~arnea/abs/simp.html>
+   A. Andersson. Balanced search trees made simple.
+       <http://user.it.uu.se/~arnea/abs/simp.html>
    http://eternallyconfuzzled.com/tuts/datastructures/jsw_tut_andersson.aspx
    http://thomaswilburn.net/typedefs/index.php/tree/aa/aa_trees.html
    http://en.wikipedia.org/wiki/AA_tree
@@ -210,7 +211,8 @@ public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 mfoldl f a t = tick a t with
     tick a nil = a;
     tick a (bin l (_=>xs) r) = tick (ff (tick a l) xs) r;
-    tick a (tri l (_=>ys) c (_=>zs) r) = tick (ff (tick (ff (tick a l) ys) c) zs) r;
+    tick a (tri l (_=>ys) c (_=>zs) r)
+        = tick (ff (tick (ff (tick a l) ys) c) zs) r;
 end when
     ff = ::foldr (flip f);
 end;
@@ -220,7 +222,8 @@ mfoldl1 f t = tick fail t with
     tick fail (tri nil (_=>ys) nil (_=>zs) nil) = ff (::foldr1 (flip f) ys) zs;
     tick a nil = a;
     tick a (bin l (_=>xs) r) = tick (ff (tick a l) xs) r;
-    tick a (tri l (_=>ys) c (_=>zs) r) = tick (ff (tick (ff (tick a l) ys) c) zs) r;
+    tick a (tri l (_=>ys) c (_=>zs) r)
+        = tick (ff (tick (ff (tick a l) ys) c) zs) r;
 end when
     ff = ::foldr (flip f);
 end if t~==nil;
@@ -228,7 +231,8 @@ end if t~==nil;
 mfoldr f a t = tick t a with
     tick nil a = a;
     tick (bin l (_=>xs) r) a = tick l (ff (tick r a) xs);
-    tick (tri l (_=>ys) c (_=>zs) r) a = tick l (ff (tick c (ff (tick r a) zs)) ys);
+    tick (tri l (_=>ys) c (_=>zs) r) a
+        = tick l (ff (tick c (ff (tick r a) zs)) ys);
 end when
     ff = ::foldl (flip f);
 end;
@@ -238,7 +242,8 @@ mfoldr1 f t = tick t fail with
     tick (tri nil (_=>ys) nil (_=>zs) nil) fail = ff (::foldl1 (flip f) zs) ys;
     tick nil a = a;
     tick (bin l (_=>xs) r) a = tick l (ff (tick r a) xs);
-    tick (tri l (_=>ys) c (_=>zs) r) a = tick l (ff (tick c (ff (tick r a) zs)) ys);
+    tick (tri l (_=>ys) c (_=>zs) r) a
+        = tick l (ff (tick c (ff (tick r a) zs)) ys);
 end when
     ff = ::foldl (flip f);
 end if t~==nil;
@@ -249,7 +254,8 @@ msize t = size t with
     size (tri l (_=>ys) c (_=>zs) r) = size l + size c + size r + #ys + #zs;
 end;
 
-// For compatibility with avltrees, we return the member list with first-added elements first.
+// For compatibility with avltrees, we return the member list with first-added
+// elements first.
 
 mmembers t = mfoldr ((:)) [] t;
 
@@ -393,7 +399,8 @@ hmember t old = mem (hash old) old t with
         = any (same old) xs if res == EQ;
         = mem h old r if res == GT;
     end;
-    mem h::int old (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
+    mem h::int old (tri l (yh::int=>ys) c (zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = mem h old l if res == LT;
         = any (same old) ys if res == EQ;
@@ -453,8 +460,8 @@ getk t k = get k fail () t with
     end;
 end;
 
-/* Indexing for ordered multidicts. mgetka always returns the list of all members
-   for the given key, which may be empty if the key is not in the tree.
+/* Indexing for ordered multidicts. mgetka always returns the list of all
+   members for the given key, which may be empty if the key is not in the tree.
    mgetko returns the "oldest" value for the given k, and mgetkn returns the
    "newest" (most recently added) value. The latter two functions throw an
    out_of_bounds exception if the key doesn't exist in the tree.
@@ -543,7 +550,7 @@ hgetk t k = get (hash k) k t with
         = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match k us = val (::firstby (same k.key) us); // throw out_of_bounds if no hits
+    match k us = val (::firstby (same k.key) us); // throw oob if no hits
 end;
 
 mhgetka t k = get (hash k) k t with
@@ -573,15 +580,15 @@ base_mhgetk k find t = get (hash k) k t with
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
           res::int
             = get h k l if res == LT;
-            = val (find (same k.key) xs) if res == EQ; // throw out_of_bounds if no hits
+            = val (find (same k.key) xs) if res == EQ; // throw oob if no hits
             = get h k r if res == GT;
         end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
           res::int
             = get h k l if res == LT;
-            = val (find (same k.key) ys) if res == EQ; // throw out_of_bounds if no hits
+            = val (find (same k.key) ys) if res == EQ; // throw oob if no hits
             = get h k c if res == LT2;
-            = val (find (same k.key) zs) if res == EQ2; // throw out_of_bounds if no hits
+            = val (find (same k.key) zs) if res == EQ2; // throw oob if no hits
             = get h k r if res == GT2;
         end;
 end;
@@ -598,7 +605,7 @@ mhgetkn t k = base_mhgetk k ::firstby t;
 public insert insertk;
 
 insert t new = catch (whenfail t) (head2 $ ins new t) with
-    ins new nil = (bin nil new nil) true; // bump height at prev level
+    ins new nil = (bin nil new nil) true;
     ins new (bin l1 x1 r1) = case cmp new x1 of
       res::int
         = case ins new l1 of
@@ -615,23 +622,23 @@ insert t new = catch (whenfail t) (head2 $ ins new t) with
       res::int
         = case ins new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = throw fail if res == EQ;
         = case ins new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = throw fail if res == EQ2;
         = case ins new r1 of
                 child@_ 0 = (tri l1 y1 c1 z1 child) false;
-                child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+                child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
 
 insertk t new@(k=>v) = catch (whenfail t) (head2 $ ins k v new t) with
-    ins k v new nil = (bin nil new nil) true; // bump height at prev level
+    ins k v new nil = (bin nil new nil) true;
     ins k v new (bin l1 x1@(xk=>xv) r1) = case cmp k xk of
       res::int
         = case ins k v new l1 of
@@ -649,19 +656,19 @@ insertk t new@(k=>v) = catch (whenfail t) (head2 $ ins k v new t) with
       res::int
         = case ins k v new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = if v==?yv then throw fail // keep existing tree
           else (tri l1 new c1 z1 r1) false if res == EQ;
         = case ins k v new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = if v==?zv then throw fail // keep existing tree
           else (tri l1 y1 c1 new r1) false if res == EQ2;
         = case ins k v new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
@@ -780,7 +787,7 @@ end);
 public minsert minsertk;
 
 minsert t new = head2 $ ins new t with
-    ins new nil = (bin nil (new=>[new]) nil) true; // bump height at prev level
+    ins new nil = (bin nil (new=>[new]) nil) true;
     ins new (bin l1 x1@(xk=>xs) r1) = case cmp new xk of
       res::int
         = case ins new l1 of
@@ -797,23 +804,23 @@ minsert t new = head2 $ ins new t with
       res::int
         = case ins new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
         = case ins new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
 
 minsertk t new@(k=>_) = head2 $ ins k new t with
-    ins k new nil = (bin nil (k=>[new]) nil) true; // bump height at prev level
+    ins k new nil = (bin nil (k=>[new]) nil) true;
     ins k new (bin l1 x1@(xk=>xs) r1) = case cmp k xk of
       res::int
         = case ins k new l1 of
@@ -830,17 +837,17 @@ minsertk t new@(k=>_) = head2 $ ins k new t with
       res::int
         = case ins k new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yk=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins k new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zk=>new:zs) r1) false if res == EQ2;
         = case ins k new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
@@ -981,7 +988,8 @@ end;
 private base_mpopkva;
 
 base_mpopkva k v t = pop k v t with
-    del v us = partition ((v==?).val) us; // rotate reversed list of hits to head
+    // rotate reversed list of hits to head
+    del v us = partition ((v==?).val) us;
     pop k v nil = throw fail;
     pop k v cur@(bin l x@(xk=>xs) r) = case cmp k xk of
       res::int
@@ -1044,7 +1052,7 @@ hinsert t new = catch (whenfail t) (head2 $ ins (hash new) new t) with
     add new ws [] = new:ws; // adding new to front of list is less presure on GC
     add new _ (new:_) = throw fail; // keep existing tree
     add new ws (u:us) = add new ws us;
-    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
@@ -1057,31 +1065,33 @@ hinsert t new = catch (whenfail t) (head2 $ ins (hash new) new t) with
             (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
-    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1)
+    = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yh=>add new ys ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zh=>add new zs zs) r1) false if res == EQ2;
         = case ins h new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
 
 hinsertk t new@(k=>_) = catch (whenfail t) (head2 $ ins (hash k) new t) with
-    add new ws [] = new:ws; // adding new to front of list is less pressure on GC
-    add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing tree
-                                     else new:reverse_onto us ws; // update value
+    // adding new to front of list is less pressure on GC
+    add new ws [] = new:ws;
+    add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing
+                                     else new:reverse_onto us ws; // update
     add new ws (u:us) = add new (u:ws) us;
-    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
@@ -1094,21 +1104,22 @@ hinsertk t new@(k=>_) = catch (whenfail t) (head2 $ ins (hash k) new t) with
             (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
-    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1)
+    = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yh=>add new [] ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zh=>add new [] zs) r1) false if res == EQ2;
         = case ins h new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
@@ -1136,7 +1147,8 @@ hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] ys of
@@ -1175,7 +1187,8 @@ base_hpopk k t = pop (hash k) k t with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k ys of
@@ -1209,7 +1222,8 @@ private base_hpopkv;
 base_hpopkv k old t = pop (hash k) old t with
     // custom version of pickfirstby
     del _ _ [] = throw fail;
-    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws else throw fail; // (k=>v) not found
+    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws
+                                   else throw fail; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1224,7 +1238,8 @@ base_hpopkv k old t = pop (hash k) old t with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old [] ys of
@@ -1259,7 +1274,7 @@ end);
 public mhinsert mhinsertk;
 
 mhinsert t new = head2 $ ins (hash new) new t with
-    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
@@ -1272,27 +1287,28 @@ mhinsert t new = head2 $ ins (hash new) new t with
             (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
-    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1)
+    = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
         = case ins h new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
 
 mhinsertk t new@(k=>_) = head2 $ ins (hash k) new t with
-    ins h::int new nil = (bin nil (h=>[new]) nil) true; // bump height at prev level
+    ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
       res::int
         = case ins h new l1 of
@@ -1305,21 +1321,22 @@ mhinsertk t new@(k=>_) = head2 $ ins (hash k) new t with
             (bin l2 x2 r2) 1 = (tri l1 x1 l2 x2 r2) false;
           end if res == GT;
     end;
-    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1) = case cmp2 h yh zh of
+    ins h::int new (tri l1 y1@(yh::int=>ys) c1 z1@(zh::int=>zs) r1)
+    = case cmp2 h yh zh of
       res::int
         = case ins h new l1 of
                 child@_ 0 = (tri child y1 c1 z1 r1) false;
-                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true; // bump height at prev level
+                child@_ 1 = (bin child y1 (bin c1 z1 r1)) true;
           end if res == LT;
         = (tri l1 (yh=>new:ys) c1 z1 r1) false if res == EQ;
         = case ins h new c1 of
                 child@_ 0 = (tri l1 y1 child z1 r1) false;
-                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true; // bump height at prev level
+                (bin l2 x2 r2) 1 = (bin (bin l1 y1 l2) x2 (bin r2 z1 r1)) true;
           end if res == LT2;
         = (tri l1 y1 c1 (zh=>new:zs) r1) false if res == EQ2;
         = case ins h new r1 of
             child@_ 0 = (tri l1 y1 c1 z1 child) false;
-            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true; // bump height at prev level
+            child@_ 1 = (bin (bin l1 y1 c1) z1 child) true;
           end if res == GT2;
     end;
 end;
@@ -1327,7 +1344,8 @@ end;
 public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
 public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
-// mhdelete deletes the first (newest) match, which will be === old (not merely EQ, as with mdelete).
+// mhdelete deletes the first (newest) match, which will be === old
+// (not merely EQ, as with mdelete).
 
 mhdelete        t old = hdelete   t old;
 
@@ -1337,7 +1355,8 @@ mhdeletekn     t k   = hdeletek  t k;
 mhpopkn        t k   = hpopk     t k;
 
 mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
-    del (k=>v) us = picklastby (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    // throw fail if no hits
+    del (k=>v) us = picklastby (\(uk=>uv) -> k===uk && v==?uv) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1351,7 +1370,8 @@ mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old ys of
@@ -1375,7 +1395,8 @@ end;
 
 mhdeletekvn t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     // unlike hdeletekv, we continue searching when keys match but values don't
-    del (k=>v) us = pickfirstby (\(uk=>uv) -> k===uk && v==?uv) us; // throw fail if no hits
+    // throw fail if no hits
+    del (k=>v) us = pickfirstby (\(uk=>uv) -> k===uk && v==?uv) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1389,7 +1410,8 @@ mhdeletekvn t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old ys of
@@ -1430,7 +1452,8 @@ base_mhpopko k t = pop (hash k) k t with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case del k ys of
@@ -1476,7 +1499,8 @@ base_mhpopkva k old t = pop (hash k) old t with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case del old ys of
@@ -1524,7 +1548,8 @@ mhdeletea t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
           end if res == EQ;
         = shrink_right (pop h old) cur if res == GT;
     end;
-    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int old cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h old) cur if res == LT;
         = case filter (~==old) ys of
@@ -1560,7 +1585,8 @@ mhdeleteka t k = catch (whenfail t) (head3 $ pop (hash k) k t) with
           end if res == EQ;
         = shrink_right (pop h k) cur if res == GT;
     end;
-    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r) = case cmp2 h yh zh of
+    pop h::int k cur@(tri l y@(yh::int=>ys) c z@(zh::int=>zs) r)
+    = case cmp2 h yh zh of
       res::int
         = shrink_left (pop h k) cur if res == LT;
         = case filter (\(uk=>_) -> uk~==k) ys of
@@ -1597,7 +1623,8 @@ shrink_left aux (tri l1 y1 c1 z1 r1) = case aux l1 of
     child@_ 0 w = (tri child y1 c1 z1 r1) false w;
     child@_ 1 w = case c1 of
         bin l2 x2 r2 = (bin (tri child y1 l2 x2 r2) z1 r1) false w;
-        tri l2 y2 c2 z2 r2 = (tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1) false w;
+        tri l2 y2 c2 z2 r2
+            = (tri (bin child y1 l2) y2 (bin c2 z2 r2) z1 r1) false w;
     end;
 end;
 
@@ -1605,7 +1632,8 @@ shrink_center aux (tri l1 y1 c1 z1 r1) = case aux c1 of
     child@_ 0 w = (tri l1 y1 child z1 r1) false w;
     child@_ 1 w = case l1 of // we arbitrarily chose to decons the left side
         bin l2 x2 r2 = (bin (tri l2 x2 r2 y1 child) z1 r1) false w;
-        tri l2 y2 c2 z2 r2 = (tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1) false w;
+        tri l2 y2 c2 z2 r2
+            = (tri (bin l2 y2 c2) z2 (bin r2 y1 child) z1 r1) false w;
     end;
 end;
 
@@ -1621,7 +1649,8 @@ shrink_right aux (tri l1 y1 c1 z1 r1) = case aux r1 of
     child@_ 0 w = (tri l1 y1 c1 z1 child) false w;
     child@_ 1 w = case c1 of
         bin l2 x2 r2 = (bin l1 y1 (tri l2 x2 r2 z1 child)) false w;
-        tri l2 y2 c2 z2 r2 = (tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child)) false w;
+        tri l2 y2 c2 z2 r2
+            = (tri l1 y1 (bin l2 y2 c2) z2 (bin r2 z1 child)) false w;
     end;
 end;
 
@@ -1668,7 +1697,9 @@ mpop_right cur = shrink_right mpop_right cur;
 cmp a::string b::string | cmp1 a::string b::string =
     // from http://graphics.stanford.edu/~seander/bithacks.html
     // sign = (v > 0) - (v < 0); // -1, 0, or +1
-    if res<0 then LT else if res>0 then GT else EQ when res = __C::strcmp a b end;
+    if res<0 then LT else if res>0 then GT else EQ when
+        res = __C::strcmp a b
+    end;
 cmp a::bigint b::bigint | cmp1 a::bigint b::bigint = __C::bigint_cmp a b;
 cmp a::int b::int | cmp a::double b::double |
 cmp1 a::int b::int | cmp1 a::double b::double =
@@ -1688,11 +1719,15 @@ cmp3 a::string b::string c::string =
         end;
 cmp2 a::bigint b::bigint c::bigint |
 cmp3 a::bigint b::bigint c::bigint =
-    if res > 0 then EQ2 + __C::bigint_cmp a c else res when res = __C::bigint_cmp a b end;
+    if res > 0 then EQ2 + __C::bigint_cmp a c else res when
+        res = __C::bigint_cmp a b
+    end;
 cmp2 a::int b::int c::int | cmp2 a::double b::double c::double |
 cmp3 a::int b::int c::int | cmp3 a::double b::double c::double =
-    if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
-cmp2 a b c = if a<b then LT else if b<a then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
+    if a<b then LT else if b<a
+    then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
+cmp2 a b c = if a<b then LT else if b<a
+    then (if a<c then LT2 else if c<a then GT2 else EQ2) else EQ;
 cmp3 a b c = if a<b then LT else (if a<c then MID else GE2);
 
 
@@ -1760,7 +1795,8 @@ spaces n = string (repeatn n " ");
 
 center s width fill =
     if rem < 1 then s
-    else string (repeatn (rem - rem div 2) fill) + s + string (repeatn (rem div 2) fill) when
+    else string (repeatn (rem - rem div 2) fill) + s +
+        string (repeatn (rem div 2) fill) when
     rem = width - #s
 end;
 
@@ -1771,7 +1807,8 @@ end when
     lst, _, _ = recurse t true true
 end with
     pad_length until width lines = aux (#lines) until lines with
-        aux n until lines = if n < until then aux (n+1) until (spaces width : lines)
+        aux n until lines = if n < until
+                            then aux (n+1) until (spaces width : lines)
                             else lines
     end;
     recurse nil _ _ = [], 0, 0;
@@ -1788,10 +1825,13 @@ end with
         label2 = if 1 == (middle - #label) mod 2 && not istop && isleft &&
                  #label < middle then label + "." else label;
         label3 = center label2 middle ".";
-        label3 = if label3!0 == "." then " " + label3!!(1..#label3-1) else label3;
-        label3 = if label3!(#label3-1) == "." then label3!!(0..#label3-2) + " " else label3;
+        label3 = if label3!0 == "." then " " +
+            label3!!(1..#label3-1) else label3;
+        label3 = if label3!(#label3-1) == "."
+                 then label3!!(0..#label3-2) + " " else label3;
         a = spaces left_pos + label3 + spaces (right_width - right_pos);
-        d = spaces left_pos + "/" + spaces (middle-2) + "\\" + spaces (right_width - right_pos);
+        d = spaces left_pos + "/" + spaces (middle-2) +
+                 "\\" + spaces (right_width - right_pos);
         lines = zip_onto (\left_line right_line ->
                     left_line + spaces (width - left_width - right_width) +
                     right_line)
@@ -1803,7 +1843,8 @@ end with
         left_lines, left_pos, left_width = recurse left2 false true;
         center_lines, center_pos, center_width = recurse center2 false true;
         right_lines, right_pos, right_width = recurse right2 false false;
-        middle = max 2 (max ((2 + right_pos + center_width + left_width) - left_pos) (#label));
+        middle = max 2 (max ((2 + right_pos + center_width + left_width)
+                - left_pos) (#label));
         pos = (left_pos + middle) div 2;
         width = (left_pos + middle + right_width) - right_pos;
         center_lines = pad_length (#right_lines) center_width center_lines;
@@ -1814,13 +1855,16 @@ end with
         label2 = if 1 == (middle - #label) mod 2 && not istop && isleft &&
                  #label < middle then label + "." else label;
         label3 = center label2 middle ".";
-        label3 = if label3!0 == "." then " " + label3!!(1..#label3-1) else label3;
-        label3 = if label3!(#label3-1) == "." then label3!!(0..#label3-2) + " " else label3;
+        label3 = if label3!0 == "." then " " +
+                 label3!!(1..#label3-1) else label3;
+        label3 = if label3!(#label3-1) == "."
+                 then label3!!(0..#label3-2) + " " else label3;
         a = spaces left_pos + label3 + spaces (right_width - right_pos);
         totalspace = middle - 3;
         spacer1 = totalspace div 2;
         d = spaces left_pos + "/" + spaces spacer1 + "|" +
-            spaces (totalspace - spacer1) + "\\" + spaces (right_width - right_pos);
+            spaces (totalspace - spacer1) + "\\" +
+            spaces (right_width - right_pos);
         totalspace = width - left_width - center_width - right_width;
         spacer1 = totalspace div 2;
         lines = zip3_onto (\left_line center_line right_line ->
