@@ -1280,6 +1280,14 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
       :func:`zip` with three lists, returns a list of triples
 
+   .. function:: zip_onto f base xs ys
+
+      :func:`zip` onto the specified base
+
+   .. function:: zip3_onto f base xs ys zs
+
+      :func:`zip3` onto the specified base
+
    .. function:: zipwith f xs ys
 
       apply the binary function ``f`` to corresponding elements of ``xs``
@@ -1290,11 +1298,11 @@ cyclen n::int (x:xs)	= [] if n<=0;
       apply the ternary function ``f`` to corresponding elements of ``xs``,
       ``ys`` and ``zs``
 
-   .. function:: zip_onto f base xs ys
+   .. function:: zipwith_onto f base xs ys
 
       :func:`zipwith` onto the specified base
 
-   .. function:: zip3_onto f base xs ys zs
+   .. function:: zipwith3_onto f base xs ys zs
 
       :func:`zipwith3` onto the specified base
 
@@ -1317,113 +1325,60 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
 
 zip [] _		|
-zip _ []		= [];
-zip3 [] _ _		|
-zip3 _ [] _		|
-zip3 _ _ []		= [];
-
-zip_onto f base [] _		|
-zip_onto f base _ []		= base;
-zip3_onto f base [] _ _		|
-zip3_onto f base _ [] _		|
-zip3_onto f base _ _ []		= base;
+zip _ []		|
 zipwith f [] _		|
 zipwith f _ []		= [];
-zipwith f xs@(_:_) ys@(_:_) = zip_onto f [] xs ys;
-zipwith3 f [] _ _		|
-zipwith3 f _ [] _		|
-zipwith3 f _ _ []		= [];
-zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = zip3_onto f [] xs ys zs;
 
+zip3 [] _ _		|
+zip3 _ [] _		|
+zip3 _ _ []		|
+zipwith3 f [] _ _	|
+zipwith3 f _ [] _	|
+zipwith3 f _ _ []	= [];
+
+zip_onto base [] _		|
+zip_onto base _ []		|
+zipwith_onto f base [] _	|
+zipwith_onto f base _ []	= base;
+
+zip3_onto base [] _ _		|
+zip3_onto base _ [] _		|
+zip3_onto base _ _ []		|
+zipwith3_onto f base [] _ _	|
+zipwith3_onto f base _ [] _	|
+zipwith3_onto f base _ _ []	= base;
+
+
+namespace __std__ with
 #! --ifnot list-opt
 // reverse-based
-zip xs@(_:_) ys@(_:_)	= tick [] xs ys
-with
-  tick us (x:xs) (y:ys)	= reverse_onto (zip xs ys&) ((x,y):us)
-			    if thunkp xs || thunkp ys;
-			= tick ((x,y):us) xs ys;
-  tick us [] _		|
-  tick us _ []		= reverse_onto [] us;
-  tick us xs ys		= reverse_onto (zip xs ys) us;
-end;
-
-zip3 xs@(_:_) ys@(_:_) zs@(_:_)
-			= tick [] xs ys zs
-with
-  tick us (x:xs) (y:ys) (z:zs)
-			= reverse_onto (zip3 xs ys zs&) ((x,y,z):us)
-			    if thunkp xs || thunkp ys || thunkp zs;
-			= tick ((x,y,z):us) xs ys zs;
-  tick us [] _ _	|
-  tick us _ [] _	|
-  tick us _ _ []	= reverse_onto [] us;
-  tick us xs ys zs	= reverse_onto (zip3 xs ys zs) us;
-end;
-
-zip_onto f base xs@(_:_) ys@(_:_)
+zip f base improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= reverse_onto (zip_onto f base xs ys&) (f x y:us)
+  tick us (x:xs) (y:ys)	= reverse_onto (improper xs ys&) (f x y:us)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
   tick us _ []		= reverse_onto base us;
-  tick us xs ys		= reverse_onto (zip_onto f base xs ys) us;
+  tick us xs ys		= reverse_onto (improper xs ys) us;
 end;
 
-zip3_onto f base xs@(_:_) ys@(_:_) zs@(_:_)
+zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= reverse_onto (zip3_onto f base xs ys zs&) (f x y z:us)
+			= reverse_onto (improper xs ys zs&) (f x y z:us)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
   tick us _ [] _	|
   tick us _ _ []	= reverse_onto base us;
-  tick us xs ys zs	= reverse_onto (zip3_onto f base xs ys zs) us;
+  tick us xs ys zs	= reverse_onto (improper xs ys zs) us;
 end;
 
 #! --else
 // skip-ahead
-zip xs@(_:_) ys@(_:_) = aux xs ys with
-    aux xs ys = zip_pre len_pre xs ys with
-        zip_pre 0 _ _ = zipped_tail;
-        zip_pre n::int (x:xs) (y:ys) = (x,y):zip_pre (n-1) xs ys;
-    end when
-        len_pre@_ zipped_tail = skip_ahead 0 xs ys;
-    end;
-    skip_ahead n::int [] _  |
-    skip_ahead n::int _ []  = n [];
-    skip_ahead n::int xs@(_:_) ys@(_:_)
-                            = n (aux xs ys) if n == __std__::SKIPSIZE;
-    skip_ahead n::int (x:xs) (y:ys)
-                            = n ((x,y):aux xs ys&)
-                              if thunkp xs || thunkp ys;
-                            = skip_ahead (n+1) xs ys;
-    skip_ahead n::int xs ys = n (zip xs ys);
-end;
-
-zip3 xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
-    aux xs ys zs = zip_pre len_pre xs ys zs with
-        zip_pre 0 _ _ _ = zipped_tail;
-        zip_pre n::int (x:xs) (y:ys) (z:zs) = (x,y,z):zip_pre (n-1) xs ys zs;
-    end when
-        len_pre@_ zipped_tail = skip_ahead 0 xs ys zs;
-    end;
-    skip_ahead n::int [] _ _   |
-    skip_ahead n::int _ [] _   |
-    skip_ahead n::int _ _ []   = n [];
-    skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
-                               = n (aux xs ys zs) if n == __std__::SKIPSIZE;
-    skip_ahead n::int (x:xs) (y:ys) (z:zs)
-                               = n ((x,y,z):aux xs ys zs&)
-                                 if thunkp xs || thunkp ys || thunkp zs;
-                               = skip_ahead (n+1) xs ys zs;
-    skip_ahead n::int xs ys zs = n (zip3 xs ys zs);
-end;
-
-zip_onto f base xs@(_:_) ys@(_:_) = aux xs ys with
+zip f base improper xs@(_:_) ys@(_:_) = aux xs ys with
     aux xs ys = zip_pre len_pre xs ys with
         zip_pre 0 _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) = f x y:zip_pre (n-1) xs ys;
@@ -1438,10 +1393,10 @@ zip_onto f base xs@(_:_) ys@(_:_) = aux xs ys with
                             = n (f x y:aux xs ys&)
                               if thunkp xs || thunkp ys;
                             = skip_ahead (n+1) xs ys;
-    skip_ahead n::int xs ys = n (zip_onto f base xs ys);
+    skip_ahead n::int xs ys = n (improper xs ys);
 end;
 
-zip3_onto f base xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
     aux xs ys zs = zip_pre len_pre xs ys zs with
         zip_pre 0 _ _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:zip_pre (n-1) xs ys zs;
@@ -1457,9 +1412,22 @@ zip3_onto f base xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
                                = n (f x y z:aux xs ys zs&)
                                  if thunkp xs || thunkp ys || thunkp zs;
                                = skip_ahead (n+1) xs ys zs;
-    skip_ahead n::int xs ys zs = n (zip3_onto f base xs ys zs);
+    skip_ahead n::int xs ys zs = n (improper xs ys zs);
 end;
+
 #! --endif
+end;
+
+zip xs@(_:_) ys@(_:_) = __std__::zip (,) [] (zip) xs ys;
+zipwith f xs@(_:_) ys@(_:_) = __std__::zip f [] (zipwith f) xs ys;
+zip_onto base xs@(_:_) ys@(_:_) = __std__::zip (,) base (zip_onto base) xs ys;
+zipwith_onto f base xs@(_:_) ys@(_:_) = __std__::zip f base (zipwith_onto f base) xs ys;
+
+zip3 xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 comma [] (zip3) xs ys zs with comma x y z = x,y,z end;
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 f [] (zipwith3 f) xs ys zs;
+zip3_onto base xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 comma base (zip3_onto base) xs ys zs with comma x y z = x,y,z end;
+zipwith3_onto f base xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 f base (zipwith3_onto f base) xs ys zs;
+
 
 unzip []		= [],[];
 unzip us@(_:_)		= foldr accum ([],[]) us
