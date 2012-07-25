@@ -789,24 +789,24 @@ def void [x] | void {x} = void x;
 
    The following gives a different way to build streams from lists.
 
-   .. function:: chain xs
+   .. function:: catstream xs
 
    It lazily concatenates a list of lists or streams. Note that if all the
    arguments are already streams, then '\ :func:`cat`\ ' gives the same result.
    However, '\ :func:`cat`\ ' handles any list elements eagerly; whereas
-   '\ :func:`chain`\ ' treats everything lazily. It is equivalent to
+   '\ :func:`catstream`\ ' treats everything lazily. It is equivalent to
    ``cat.(map stream)``, but more efficient.
 
-   There is some small overhead that makes '\ :func:`chain`\ ' an inappropriate
-   general replacement for '\ :func:`cat`\ ' or '\ :func:`+`\ ': chaining two
+   There is some small overhead that makes '\ :func:`catstream`\ ' an inappropriate
+   general replacement for '\ :func:`cat`\ ' or '\ :func:`+`\ ': catstreaming two
    lists and then converting the resulting stream back to a list using the
    '\ :func:`list`\ ' function, above, takes about 3-4x as long as using
-   '\ :func:`+`\ ' on those lists in the first place. However, chaining two
+   '\ :func:`+`\ ' on those lists in the first place. However, catstreaming two
    lists and then iterating through them (for example, with
    '\ :func:`last`\ ') takes about the same time as if you had used
    '\ :func:`+`\ ' and iterated on the result. For such purposes, and
    especially if you're likely not to need to iterate past the first list,
-   '\ :func:`chain`\ ' may be a good alternative to '\ :func:`cat`\ ' or
+   '\ :func:`catstream`\ ' may be a good alternative to '\ :func:`cat`\ ' or
    '\ :func:`+`\ '.
 
    Slicing
@@ -1124,12 +1124,12 @@ stream xs@(_,_)	= stream (list xs);
 
 /* Lazy version of `cat`. Equivalent to `cat.(map stream)` but more efficient. */
 
-chain [] = [];
+catstream [] = [];
 // the stdlib doesn't reduce `xs+[]` or `cat [xs]` when xs isn't a proper list
-// so we don't reduce `chain (xs:[]) = xs` either.
-chain ((x:xs):yss) = x:chain (xs:yss)&;
-chain ([]:yss) = chain yss;
-chain (xs:yss) = xs + chain yss;
+// so we don't reduce `catstream (xs:[]) = xs` either.
+catstream ((x:xs):yss) = x:catstream (xs:yss)&;
+catstream ([]:yss) = catstream yss;
+catstream (xs:yss) = xs + catstream yss;
 
 
 /* Coarse-grained equality. We optimize the definitions for native aggregates
