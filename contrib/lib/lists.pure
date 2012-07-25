@@ -340,6 +340,10 @@ end;
         > sort (<) ans;
         [1,2,3,4,5,6,7,8,9,10]
 
+   .. function:: span p xs
+
+      equivalent to ``{ takewhile p xs, dropwhile p xs }``, but more efficient
+
    .. function:: split n xs
 
       equivalent to ``{ take n xs, drop n xs }``, but more efficient
@@ -856,6 +860,43 @@ with
   tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
   tack [] ys		= ys;
 end;
+
+
+span p []	= { [], [] };
+#! --ifnot list-opt
+// reverse-based
+span p xs@(_:_)	= tick [] xs
+with
+  tick zs xs		= { reverse_onto (takewhile p xs&) zs, dropwhile p xs& } if thunkp xs; // we don't decoonstruct xs so as to check p x only one on one codepath
+			= case xs of
+			    []   = { reverse_onto [] zs, [] };
+			    x:xs = tick (x:zs) xs if p x;
+			    xs@(_:_)  = { reverse_onto [] zs, xs };
+			    xs   = { reverse_onto (takewhile p xs) zs, dropwhile p xs };
+			  end;
+end;
+
+#! --else
+// skip-ahead
+span p xs@(_:_) = case aux xs of
+    pre:post = {| pre, post |};
+end with
+    aux xs = split_pre len_pre xs with
+        add x (pre:post)        = (x:pre):post;
+        split_pre 0      _      = split_tails;
+        split_pre n::int (x:xs) = add x (split_pre (n-1) xs);
+    end when
+        len_pre@_ split_tails   = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n ([]:[]);
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int xx@(x:xs)
+            = n ([]:xx) if ~p x;
+            = n ((x:takewhile p xs&):dropwhile p xs&) if thunkp xs;
+            = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (takewhile p xs:dropwhile p xs);
+end;
+#! --endif
 
 
 // split m xs = { subseq xs 0 (m-1), subseq xs m (#xs-1) };
