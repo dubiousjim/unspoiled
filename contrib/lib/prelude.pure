@@ -928,9 +928,19 @@ val (x=>v)	= v;
    inequality and emptiness, to determine the size of a tuple, for zero-based
    indexing and slicing, and to reverse a tuple. */
 
-x,()		= x;
-(),y		= y;
-(x,y),z		= x,(y,z);
+// Curried nonsplicing constructors, currently undocumented.
+tuple2 x y      = 'comma x y when comma = (,) end;
+tuple3 x y z    = 'comma x (comma y z) when comma = (,) end;
+
+x,y                 = flatten x y with
+    flatten () (x,y) |
+    flatten (x,y) () = flatten x y;
+    flatten ()    x  |
+    flatten x     () = x;
+    flatten (x,y) z  = flatten x (flatten y z);
+    flatten x  (y,z) = tuple2 x (flatten y z);
+    flatten x     z  = tuple2 x z;
+end;
 
 ()==()		= 1;
 (x,xs)==(y,ys)	= x==y && xs==ys;
