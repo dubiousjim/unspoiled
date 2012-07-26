@@ -111,7 +111,7 @@ type tree nil | tree (bin _ _ _) | tree (tri _ _ _ _ _);
 
 /* Basic 2-3-tree operations, single value per key. */
 
-public foldl foldl1 foldr foldr1;
+public foldl foldl1 foldr foldr1 all any;
 public size members keys vals;
 public first last rmfirst rmlast popfirst poplast;
 
@@ -145,6 +145,18 @@ foldr1 w f t = tick t fail with
     tick (bin l x r) a = tick l (f (w x) (tick r a));
     tick (tri l y c z r) a = tick l (f (w y) (tick c (f (w z) (tick r a))));
 end if t~==nil;
+
+all p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin l x r) a = tick r (tick l (a && p x));
+    tick (tri l y c z r) a = tick r (tick c (tick l (a && p y && p z)));
+end;
+
+any p nil = 0;
+any p (bin l x r) = p x || any p l || any p r;
+any p (tri l y c z r) = p y || p z || any p l || any p c || any p r;
+
 
 // Compute the size of a tree.
 
@@ -206,7 +218,7 @@ end;
 /* Basic 2-3-tree operations, multiple values per key. */
 
 public hfoldl hfoldl1 hfoldr hfoldr1;
-public mfoldl mfoldl1 mfoldr mfoldr1;
+public mfoldl mfoldl1 mfoldr mfoldr1 mall many;
 public msize mmembers mkeys mvals;
 public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
@@ -214,6 +226,17 @@ mfoldl  f a t = hfoldl  id f a t;
 mfoldl1 f   t = hfoldl1 id f   t;
 mfoldr  f a t = hfoldr  id f a t;
 mfoldr1 f   t = hfoldr1 id f   t;
+
+mall p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin l (_=>xs) r) a = tick r (tick l (a && ::all p xs));
+    tick (tri l (_=>ys) c (_=>zs) r) a = tick r (tick c (tick l (a && ::all p ys && ::all p zs)));
+end;
+
+many p nil = 0;
+many p (bin l (_=>xs) r) = ::any p xs || many p l || many p r;
+many p (tri l (_=>ys) c (_=>zs) r) = ::any p ys || ::any p zs || many p l || many p c || many p r;
 
 msize t = size t with
     size nil = 0;
@@ -310,9 +333,12 @@ end if t~==nil;
 /* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
+public hall hany;
 public hsize hmembers hkeys hvals;
 public hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
 
+hall p t     = mall p t;
+hany p t     = many p t;
 hsize t    = msize t;
 hmembers t = mmembers t;
 hkeys t    = mkeys t;
@@ -324,8 +350,8 @@ hrmlast t  = mrmlast t;
 hpopfirst t = mpopfirst t;
 hpoplast t  = mpoplast t;
 
-public mhfoldl mhfoldl1 mhfoldr mhfoldr1;
-public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k;
+public mhfoldl mhfoldl1 mhfoldr mhfoldr1 mhall mhany;
+public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k mhallk mhanyk;
 
 // for mtrees, one can use something like `all (p.(::val))` to test
 // equal-keyed values all-at-once; for mhtrees, special treatment is needed
@@ -389,6 +415,31 @@ mhfoldr1 f t = tick t fail with
     end;
 end if t~==nil;
 
+mhall p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin l (_=>xs) r) a
+        = tick r (tick l (a && aux xs 1));
+    tick (tri l (_=>ys) c (_=>zs) r) a
+        = tick r (tick c (tick l (a && aux ys 1 && aux zs 1)));
+    aux _ 0 = 0;
+    aux [] a = a;
+    aux (x:xs) a = aux xs (a && p (x:xvs)) when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhany p t = tick t with
+    tick nil = 0;
+    tick (bin l (_=>xs) r)
+        = aux xs || tick l || tick r;
+    tick (tri l (_=>ys) c (_=>zs) r)
+        = aux ys || aux zs || tick l || tick c || tick r;
+    aux [] = 0;
+    aux (x:xs) = p (x:xvs) || aux xs when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
 
 // mhfold*s for dictionaries
 
@@ -457,6 +508,34 @@ mhfoldr1k f t = tick t fail with
         xvs = revmap_onto val [xv] xvs;
     end;
 end if t~==nil;
+
+mhallk p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin l (_=>xs) r) a
+        = tick r (tick l (a && aux xs 1));
+    tick (tri l (_=>ys) c (_=>zs) r) a
+        = tick r (tick c (tick l (a && aux ys 1 && aux zs 1)));
+    aux _ 0 = 0;
+    aux [] a = a;
+    aux ((xk=>xv):xs) a = aux xs (a && p (xk=>xvs)) when
+        xvs, xs = ::partition (same xk.key) xs;
+        xvs = revmap_onto val [xv] xvs;
+    end;
+end;
+
+mhanyk p t = tick t with
+    tick nil = 0;
+    tick (bin l (_=>xs) r)
+        = aux xs || tick l || tick r;
+    tick (tri l (_=>ys) c (_=>zs) r)
+        = aux ys || aux zs || tick l || tick c || tick r;
+    aux [] = 0;
+    aux ((xk=>xv):xs) = p (xk=>xvs) || aux xs when
+        xvs, xs = ::partition (same xk.key) xs;
+        xvs = revmap_onto val [xv] xvs;
+    end;
+end;
 
 /* Membership test for ordered sets and dictionaries. */
 
@@ -533,16 +612,16 @@ hmember t old = mem (hash old) old t with
     mem h::int old (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = mem h old l if res == LT;
-        = any (same old) xs if res == EQ;
+        = ::any (same old) xs if res == EQ;
         = mem h old r if res == GT;
     end;
     mem h::int old (tri l (yh::int=>ys) c (zh::int=>zs) r)
     = case cmp2 h yh zh of
       res::int
         = mem h old l if res == LT;
-        = any (same old) ys if res == EQ;
+        = ::any (same old) ys if res == EQ;
         = mem h old c if res == LT2;
-        = any (same old) zs if res == EQ2;
+        = ::any (same old) zs if res == EQ2;
         = mem h old r if res == GT2;
     end;
 end;
@@ -552,15 +631,15 @@ hmemberk t k = mem (hash k) k t with
     mem h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = mem h k l if res == LT;
-        = any (same k.key) xs if res == EQ;
+        = ::any (same k.key) xs if res == EQ;
         = mem h k r if res == GT;
     end;
     mem h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = mem h k l if res == LT;
-        = any (same k.key) ys if res == EQ;
+        = ::any (same k.key) ys if res == EQ;
         = mem h k c if res == LT2;
-        = any (same k.key) zs if res == EQ2;
+        = ::any (same k.key) zs if res == EQ2;
         = mem h k r if res == GT2;
     end;
 end;

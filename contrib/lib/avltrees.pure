@@ -78,7 +78,7 @@ null (bin _ _ _ _) = 0;
 
 /* Basic AVL tree operations, single value per key. */
 
-public foldl foldl1 foldr foldr1;
+public foldl foldl1 foldr foldr1 all any;
 public size members keys vals;
 public first last rmfirst rmlast popfirst poplast;
 
@@ -106,6 +106,16 @@ foldr1 w f t = tick t fail with
     tick nil a = a;
     tick (bin x _ l r) a = tick l (f (w x) (tick r a));
 end if t~==nil;
+
+all p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin x _ l r) a = tick r (tick l (a && p x));
+end;
+
+any p nil = 0;
+any p (bin x _ l r) = p x || any p l || any p r;
+
 
 // Compute the size of a tree.
 
@@ -176,7 +186,7 @@ end;
 /* Basic AVL tree operations, multiple values per key. */
 
 public hfoldl hfoldl1 hfoldr hfoldr1;
-public mfoldl mfoldl1 mfoldr mfoldr1;
+public mfoldl mfoldl1 mfoldr mfoldr1 mall many;
 public msize mmembers mkeys mvals;
 public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
@@ -184,6 +194,15 @@ mfoldl  f a t = hfoldl  id f a t;
 mfoldl1 f   t = hfoldl1 id f   t;
 mfoldr  f a t = hfoldr  id f a t;
 mfoldr1 f   t = hfoldr1 id f   t;
+
+mall p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick r (tick l (a && ::all p xs));
+end;
+
+many p nil = 0;
+many p (bin (_=>xs) _ l r) = ::any p xs || many p l || many p r;
 
 msize t = size t with
   size nil = 0;
@@ -286,9 +305,12 @@ end if t~==nil;
 /* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
+public hall hany;
 public hsize hmembers hkeys hvals;
 public hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
 
+hall p t     = mall p t;
+hany p t     = many p t;
 hsize t     = msize t;
 hmembers t  = mmembers t;
 hkeys t     = mkeys t;
@@ -300,8 +322,8 @@ hrmlast t   = mrmlast t;
 hpopfirst t = mpopfirst t;
 hpoplast t  = mpoplast t;
 
-public mhfoldl mhfoldl1 mhfoldr mhfoldr1;
-public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k;
+public mhfoldl mhfoldl1 mhfoldr mhfoldr1 mhall mhany;
+public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k mhallk mhanyk;
 
 // for mtrees, one can use `all (p.(::val))` to test
 // equal-keyed values all together; for mhtrees, special treatment is needed
@@ -351,6 +373,26 @@ mhfoldr1 f t = tick t fail with
         xvs, xs = ::partition (x==?) xs;
     end;
 end if t~==nil;
+
+mhall p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick r (tick l (a && aux xs 1));
+    aux _ 0 = 0;
+    aux [] a = a;
+    aux (x:xs) a = aux xs (a && p (x:xvs)) when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhany p t = tick t with
+    tick nil = 0;
+    tick (bin (_=>xs) _ l r) = aux xs || tick l || tick r;
+    aux [] = 0;
+    aux (x:xs) = p (x:xvs) || aux xs when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
 
 // mhfold*s for dictionaries
 
@@ -406,6 +448,28 @@ mhfoldr1k f t = tick t fail with
     end;
 end if t~==nil;
 
+mhallk p t  = tick t 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick r (tick l (a && aux xs 1));
+    aux _ 0 = 0;
+    aux [] a = a;
+    aux ((xk=>xv):xs) a = aux xs (a && p (xk=>xvs)) when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
+mhanyk p t = tick t with
+    tick nil = 0;
+    tick (bin (_=>xs) _ l r) = aux xs || tick l || tick r;
+    aux [] = 0;
+    aux ((xk=>xv):xs) = p (xk=>xvs) || aux xs when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
 /* Membership test for ordered sets and dictionaries. */
 
 public member memberk;
@@ -441,7 +505,7 @@ hmember t y = member t (hash y) y with
   member (bin (k::int=>xs) _ l r) key::int y
     = member l key y if k > key;
     = member r key y if k < key;
-    = any (same y) xs;
+    = ::any (same y) xs;
 end;
 
 hmemberk t y = member t (hash y) y with
@@ -449,7 +513,7 @@ hmemberk t y = member t (hash y) y with
   member (bin (k::int=>xs) _ l r) key::int y
     = member l key y if k > key;
     = member r key y if k < key;
-    = any (same y.(::key)) xs;
+    = ::any (same y.(::key)) xs;
 end;
 
 /* Indexing for ordered dictionaries. An out_of_bounds exception is thrown if
