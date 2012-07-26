@@ -1047,12 +1047,12 @@ end);
 
 // Delete all members for a given key.
 
-public mdeletea mdeleteka;
+public mdeletea mdeleteka mpopka;
 
 mdeletea t old = deletek t old;
 
 mdeleteka t k = mdeletea t k;
-
+mpopka t k = popk t k;
 
 /* Hashed trees, single value. */
 
@@ -1541,7 +1541,7 @@ mhpopkva t old@(k=>_) = catch (whenfail ()) (tuple2 vs child when
 end);
 
 
-public mhdeletea mhdeleteka;
+public mhdeletea mhdeleteka mhpopka;
 
 mhdeletea t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     pop h::int old nil = throw fail;
@@ -1580,7 +1580,9 @@ mhdeletea t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     end;
 end;
 
-mhdeleteka t k = catch (whenfail t) (head3 $ pop (hash k) k t) with
+private base_mhpopka;
+
+base_mhpopka k t = pop (hash k) k t with
     pop h::int k nil = throw fail;
     pop h::int k cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
       res::int
@@ -1617,6 +1619,11 @@ mhdeleteka t k = catch (whenfail t) (head3 $ pop (hash k) k t) with
     end;
 end;
 
+mhdeleteka t k = catch (whenfail t) (head3 $ base_mhpopka k t);
+
+mhpopka t k = catch (whenfail ()) (vs, child when
+    child@_ _ (_=>vs) = base_mhpopka k t;
+end);
 
 /* Private helper functions. */
 

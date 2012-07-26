@@ -766,11 +766,12 @@ end with
 end;
 
 // Delete all members for a given key.
-public mdeletea mdeleteka;
+public mdeletea mdeleteka mpopka;
 
 mdeletea t y = deletek t y;
 
 mdeleteka t y = mdeletea t y;
+mpopka t y = popk t y;
 
 /* Hashed trees, single value. */
 
@@ -1023,7 +1024,7 @@ end with
       when vs:newxs = partition (\(k=>v) -> k===rawkey && v==?val) xs end;
 end;
 
-public mhdeletea mhdeleteka;
+public mhdeletea mhdeleteka mhpopka;
 
 mhdeletea t y = delete t (hash y) y!0 with
   delete nil _ _ = [nil, 0];
@@ -1053,6 +1054,26 @@ mhdeleteka t y = delete t (hash y) y!0 with
       else (adjustd leftHasChanged (bin (last l) b newl r) (-1)
             when [newl, leftHasChanged] = init l end)
       when newxs = filter (\(k=>v) -> k~==y) xs end;
+end;
+
+mhpopka t y = case pop t (hash y) y!0 of
+  [fail, _, _] = ();
+  [vs, t, _] = vs, t;
+end with
+  pop nil _ _ = [fail, nil, 0];
+  pop (bin x@(k::int=>xs) b l r) key::int y
+    = vs:adjustd leftHasChanged (bin x b newl r) (-1)
+      when [vs, newl, leftHasChanged] = pop l key y end if key < k;
+    = vs:adjustd rightHasChanged (bin x b l newr) 1
+      when [vs, newr, rightHasChanged] = pop r key y end if key > k;
+    = case partition (same y.(::key)) xs of
+      [],_ = [fail, nil, 0];
+      (_=>vs), newxs = if ~::null newxs then [vs, bin (k=>newxs) b l r, 0]
+      else if l===nil then [vs, r, 1]
+      else if r===nil then [vs, l, 1]
+      else (vs:adjustd leftHasChanged (bin (last l) b newl r) (-1)
+            when [newl, leftHasChanged] = init l end);
+      end;
 end;
 
 /* Private helper functions. */
