@@ -113,9 +113,7 @@ end;
    a stream argument it will return a stream result.
 
    The indexing function '\ :func:`!`\ ' throws the
-   exception ``out_of_bounds`` when given an invalid index. The functions
-   '\ :func:`firstby`\ ' and '\ :func:`lastby`\ ' throw this same exception
-   if no member of the list satisfies the supplied predicate.
+   exception ``out_of_bounds`` when given an invalid index.
 
    Additionally, the following functions will throw the exception
    ``bad_list_value`` when given an improper list:
@@ -177,10 +175,10 @@ end;
 
       return the list of all members of ``xs`` satisfying the predicate ``p``
 
-   .. function:: firstby p xs
+   .. function:: firstby p none xs
 
-      return the first member of ``xs`` satisfying the predicate ``p``; an
-      exception will be raised if no member does
+      return the first member of ``xs`` satisfying the predicate ``p``; else
+      return the supplied ``none`` value
 
       Note: :func:`filter` can be thought of as a `findall`.
 
@@ -249,10 +247,10 @@ end;
 
       return the last element of ``xs``; ``xs`` must be nonempty
 
-   .. function:: lastby p xs
+   .. function:: lastby p none xs
 
-      return the last member of ``xs`` satisfying the predicate ``p``; an
-      exception will be raised if no member does
+      return the last member of ``xs`` satisfying the predicate ``p``; else
+      return the supplied ``none`` value
 
    .. function:: listmap f xs
 
@@ -281,14 +279,14 @@ end;
 
    .. function:: pickfirstby p xs
 
-      equivalent to ``firstby p xs, rmfirstby p xs``, but more efficient;
+      equivalent to ``firstby p _ xs, rmfirstby p xs``, but more efficient;
       if no member of ``xs`` satisfies predicate ``p``, returns ``()``
 
       Note: ``partition`` can be thought of as a `popall`.
 
    .. function:: picklastby p xs
 
-      equivalent to ``lastby p xs, rmlastby p xs``, but more efficient;
+      equivalent to ``lastby p _ xs, rmlastby p xs``, but more efficient;
       if no member of ``xs`` satisfies predicate ``p``, returns ``()``
 
    .. function:: rmfirstby p xs
@@ -435,8 +433,8 @@ end;
 #! --endif
 
 
-firstby p [] = throw out_of_bounds; // no match
-firstby p (x:xs) = if p x then x else firstby p xs;
+firstby p none [] = none; // no match
+firstby p none (x:xs) = if p x then x else firstby p none xs;
 
 // we don't provide skip-ahead version
 pickfirstby p [] = ();
@@ -446,7 +444,7 @@ pickfirstby p xs@(_:_) = tick xs [] with
                      else tick xs (x:ws);
     tick xs ws     = throw (bad_list_value xs);
     // doesn't handle case where no match is found:
-    // tick xs ws     = tuple2 (firstby p xs) (reverse_onto (rmfirstby p xs) ws);
+    // tick xs ws     = tuple2 (firstby p _ xs) (reverse_onto (rmfirstby p xs) ws);
 end;
 
 // we don't provide skip-ahead version
@@ -464,9 +462,9 @@ public lastby picklastby rmlastby;
 namespace __std__;
 private nonfix notfound;
 
-::lastby p [] = throw out_of_bounds;
-::lastby p xs@(_:_) = tick xs notfound with
-    tick [] w = if w===notfound then throw out_of_bounds else w;
+::lastby p none [] = none;
+::lastby p none xs@(_:_) = tick xs notfound with
+    tick [] w = if w===notfound then none else w;
     tick (x:xs) w = tick xs (if p x then x else w);
     tick xs w = throw (bad_list_value xs);
 end;

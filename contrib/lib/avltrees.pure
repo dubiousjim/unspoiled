@@ -425,7 +425,10 @@ mhgetko t y = get t (hash y) y with
   get (bin (k::int=>xs) _ l r) key::int y
     = get l key y if k > key;
     = get r key y if k < key;
-    = ::val (::firstby (same y.(::key)) xs); // may throw out_of_bounds
+    = case ::firstby (same y.(::key)) fail xs of
+        fail = throw out_of_bounds;
+        _=>v = v;
+      end;
 end;
 
 mhgetkn t y = get t (hash y) y with
@@ -433,7 +436,10 @@ mhgetkn t y = get t (hash y) y with
   get (bin (k::int=>xs) _ l r) key::int y
     = get l key y if k > key;
     = get r key y if k < key;
-    = ::val (::lastby (same y.(::key)) xs); // may throw out_of_bounds
+    = case ::lastby (same y.(::key)) fail xs of
+        fail = throw out_of_bounds;
+        _=>v = v;
+      end;
 end;
 
 /* AVL tree insertion and deletion. */

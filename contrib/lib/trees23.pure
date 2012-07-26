@@ -539,18 +539,26 @@ hgetk t k = get (hash k) k t with
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
       res::int
         = get h k l if res == LT;
-        = match k xs if res == EQ;
+        = case ::firstby (same k.key) fail xs of
+            fail = throw out_of_bounds;
+            _=>v = v;
+          end if res == EQ;
         = get h k r if res == GT;
     end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
       res::int
         = get h k l if res == LT;
-        = match k ys if res == EQ;
+        = case ::firstby (same k.key) fail ys of
+            fail = throw out_of_bounds;
+            _=>v = v;
+          end if res == EQ;
         = get h k c if res == LT2;
-        = match k zs if res == EQ2;
+        = case ::firstby (same k.key) fail zs of
+            fail = throw out_of_bounds;
+            _=>v = v;
+          end if res == EQ2;
         = get h k r if res == GT2;
     end;
-    match k us = val (::firstby (same k.key) us); // throw oob if no hits
 end;
 
 mhgetka t k = get (hash k) k t with
@@ -580,15 +588,24 @@ base_mhgetk k find t = get (hash k) k t with
     get h::int k (bin l (xh::int=>xs) r) = case cmp h xh of
           res::int
             = get h k l if res == LT;
-            = val (find (same k.key) xs) if res == EQ; // throw oob if no hits
+            = case find (same k.key) fail xs of
+                fail = throw out_of_bounds;
+                _=>v = v;
+              end if res == EQ;
             = get h k r if res == GT;
         end;
     get h::int k (tri l (yh::int=>ys) c (zh::int=>zs) r) = case cmp2 h yh zh of
           res::int
             = get h k l if res == LT;
-            = val (find (same k.key) ys) if res == EQ; // throw oob if no hits
+            = case find (same k.key) fail ys of
+                fail = throw out_of_bounds;
+                _=>v = v;
+              end if res == EQ;
             = get h k c if res == LT2;
-            = val (find (same k.key) zs) if res == EQ2; // throw oob if no hits
+            = case find (same k.key) fail zs of
+                fail = throw out_of_bounds;
+                _=>v = v;
+              end if res == EQ2;
             = get h k r if res == GT2;
         end;
 end;
