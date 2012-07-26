@@ -192,14 +192,14 @@ rmfirst t = head3 $ pop_left t;
 rmlast nil = nil;
 rmlast t = head3 $ pop_right t;
 
-popfirst nil = {};
+popfirst nil = ();
 popfirst t = case pop_left t of
-    child@_ _ w = {| w, child |};
+    child@_ _ w = tuple2 w child;
 end;
 
-poplast nil = {};
+poplast nil = ();
 poplast t = case pop_right t of
-    child@_ _ w = {| w, child |};
+    child@_ _ w = tuple2 w child;
 end;
 
 /* Basic 2-3-tree operations, multiple values per key. */
@@ -292,14 +292,14 @@ mrmfirst t = head3 $ mpop_left t;
 mrmlast nil = nil;
 mrmlast t = head3 $ mpop_right t;
 
-mpopfirst nil = {};
+mpopfirst nil = ();
 mpopfirst t = case mpop_left t of
-    child@_ _ w = {| w, child |};
+    child@_ _ w = tuple2 w child;
 end;
 
-mpoplast nil = {};
+mpoplast nil = ();
 mpoplast t = case mpop_right t of
-    child@_ _ w = {| w, child |};
+    child@_ _ w = tuple2 w child;
 end;
 
 
@@ -733,7 +733,7 @@ end;
 
 deletek t k = catch (whenfail t) (head3 $ base_popk k t);
 
-popk t k = catch (whenfail {}) ({| v, child |} when
+popk t k = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_popk k t;
 end);
 
@@ -777,7 +777,7 @@ deletekv t (k=>v) = catch (whenfail t) (head3 $ base_popkv k v t);
 // The popkv methods may seem like overkill: you already know the k=>v so
 // why isn't deletekv enough? However we do need these methods for weak-value
 // dicts.
-popkv t (k=>v) = catch (whenfail {}) ({| v, child |} when
+popkv t (k=>v) = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_popkv k v t;
 end);
 
@@ -901,13 +901,13 @@ mdelete t old = catch (whenfail t) (head3 $ base_mpopk id old t);
 
 mdeleteko t k = catch (whenfail t) (head3 $ base_mpopk rotate k t);
 
-mpopko t k = catch (whenfail {}) ({| v, child |} when
+mpopko t k = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_mpopk rotate k t;
 end);
 
 mdeletekn t k = catch (whenfail t) (head3 $ base_mpopk id k t);
 
-mpopkn t k = catch (whenfail {}) ({| v, child |} when
+mpopkn t k = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_mpopk id k t;
 end);
 
@@ -1028,7 +1028,7 @@ end;
 mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t);
 
 // See comments to popkv on why this is needed.
-mpopkva t (k=>v) = catch (whenfail {}) ({| vs, child |} when
+mpopkva t (k=>v) = catch (whenfail ()) (tuple2 vs child when
     child@_ _ vs = base_mpopkva k v t;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;
@@ -1212,7 +1212,7 @@ end;
 
 hdeletek t k = catch (whenfail t) (head3 $ base_hpopk k t);
 
-hpopk t k = catch (whenfail {}) ({| v, child |} when
+hpopk t k = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_hpopk k t;
 end);
 
@@ -1264,7 +1264,7 @@ end;
 hdeletekv t old@(k=>_) = catch (whenfail t) (head3 $ base_hpopkv k old t);
 
 // See comments to popkv on why this is needed.
-hpopkv t old@(k=>_) = catch (whenfail {}) ({| v, child |} when
+hpopkv t old@(k=>_) = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_hpopkv k old t;
 end);
 
@@ -1477,7 +1477,7 @@ end;
 
 mhdeleteko t k = catch (whenfail t) (head3 $ base_mhpopko k t);
 
-mhpopko t k = catch (whenfail {}) ({| v, child |} when
+mhpopko t k = catch (whenfail ()) (tuple2 v child when
     child@_ _ (_=>v) = base_mhpopko k t;
 end);
 
@@ -1525,7 +1525,7 @@ end;
 mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t);
 
 // See comments to popkv on why this is needed.
-mhpopkva t old@(k=>_) = catch (whenfail {}) ({| vs, child |} when
+mhpopkva t old@(k=>_) = catch (whenfail ()) (tuple2 vs child when
     child@_ _ vs = base_mhpopkva k old t;
     // extract values and reverse
     vs = ::foldl (flip((:).val)) [] vs;

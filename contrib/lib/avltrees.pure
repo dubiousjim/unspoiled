@@ -154,18 +154,18 @@ rmlast t = rmlast t!0 with
     when [newr, rightHasChanged] = rmlast r end;
 end;
 
-popfirst nil = {};
+popfirst nil = ();
 popfirst t = case popfirst t of
-  [y, t, _] = {| y, t |};
+  [y, t, _] = tuple2 y t;
 end with
   popfirst (bin x _ nil r) = [x, r, 1];
   popfirst (bin x b l r) = y:adjustd leftHasChanged (bin x b newl r) (-1)
     when [y, newl, leftHasChanged] = popfirst l end;
 end;
 
-poplast nil = {};
+poplast nil = ();
 poplast t = case poplast t of
-  [y, t, _] = {| y, t |};
+  [y, t, _] = tuple2 y t;
 end with
   poplast (bin x _ l nil) = [x, l, 1];
   poplast (bin x b l r) = y:adjustd rightHasChanged (bin x b l newr) 1
@@ -251,9 +251,9 @@ mrmlast t = rmlast t!0 with
     when [newr, rightHasChanged] = rmlast r end;
 end;
 
-mpopfirst nil = {};
+mpopfirst nil = ();
 mpopfirst t = case popfirst t of
-  [y, t, _] = {| y, t |};
+  [y, t, _] = tuple2 y t;
 end with
   popfirst (bin (k=>xs) b nil r)
     = if ::null newxs then [x, r, 1]
@@ -263,9 +263,9 @@ end with
     when [y, newl, leftHasChanged] = popfirst l end;
 end;
 
-mpoplast nil = {};
+mpoplast nil = ();
 mpoplast t = case poplast t of
-  [y, t, _] = {| y, t |};
+  [y, t, _] = tuple2 y t;
 end with
   poplast (bin (k=>xs) b l nil)
     = if ::null newxs then [x, l, 1]
@@ -503,8 +503,8 @@ deletek t y = delete t y!0 with
 end;
 
 popk t y = case pop t y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ = [fail, nil, 0];
   pop (bin x@(k=>v) b l r) y@key
@@ -544,8 +544,8 @@ end;
 // why isn't deletekv enough? However we do need these methods for weak-value
 // dicts.
 popkv t y@(key=>val) = case pop t y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ = [fail, nil, 0];
   pop t@(bin x@(k=>v) b l r) y@(key=>val)
@@ -617,8 +617,8 @@ end;
 mdeleteko t y = mdelete t y;
 
 mpopko t y = case pop t y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ = [fail, nil, 0];
   pop (bin x@(k=>xs) b l r) y@key
@@ -656,8 +656,8 @@ mdeletekn t y = delete t y!0 with
 end;
 
 mpopkn t y = case pop t y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ = [fail, nil, 0];
   pop (bin x@(k=>xs) b l r) y@key
@@ -736,7 +736,7 @@ mdeletekva t y@(key=>val) = delete t y!0 with
       end;
 end;
 
-mpopkva t y@(key=>val) = {| vs, t |} when
+mpopkva t y@(key=>val) = tuple2 vs t when
   [vs, t, _] = pop t y;
   // extract values and reverse
   vs = ::foldl (flip((:).(::val))) [] vs;
@@ -826,8 +826,8 @@ hdeletek t y = delete t (hash y) y!0 with
 end;
 
 hpopk t y = case pop t (hash y) y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ _ = [fail, nil, 0];
   pop (bin x@(k::int=>xs) b l r) key::int y
@@ -866,8 +866,8 @@ end;
 
 // See comments to popkv on why this is needed.
 hpopkv t y@(key=>val) = case pop t (hash key) y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ _ = [fail, nil, 0];
   pop (bin x@(k::int=>xs) b l r) key::int y
@@ -936,8 +936,8 @@ mhdeletekn t y = delete t (hash y) y!0 with
 end;
 
 mhpopkn t y = case pop t (hash y) y of
-  [fail, _, _] = {};
-  [v, t, _] = {| v, t |};
+  [fail, _, _] = ();
+  [v, t, _] = tuple2 v t;
 end with
   pop nil _ _ = [fail, nil, 0];
   pop (bin x@(k::int=>xs) b l r) key::int y
@@ -1000,7 +1000,7 @@ mhdeletekva t y@(rawkey=>val) = delete t (hash rawkey) y!0 with
       when newxs = filter (\(k=>v) -> ~(k===rawkey && v==?val)) xs end;
 end;
 
-mhpopkva t y@(rawkey=>val) = {| vs, t |} when
+mhpopkva t y@(rawkey=>val) = tuple2 vs t when
   [vs, t, _] = pop t (hash rawkey) y;
   // extract values and reverse
   vs = ::foldl (flip((:).(::val))) [] vs;
