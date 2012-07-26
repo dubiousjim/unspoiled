@@ -277,19 +277,19 @@ end;
 
    .. function:: partition p xs
 
-      equivalent to ``{ filter p xs, filter ((~).p) xs }``, but more efficient
+      equivalent to ``filter p xs, filter ((~).p) xs``, but more efficient
 
    .. function:: pickfirstby p xs
 
-      equivalent to ``{| firstby p xs, rmfirstby p xs |}``, but more efficient;
-      if no member of ``xs`` satisfies predicate ``p``, returns ``{}``
+      equivalent to ``firstby p xs, rmfirstby p xs``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``()``
 
       Note: ``partition`` can be thought of as a `popall`.
 
    .. function:: picklastby p xs
 
-      equivalent to ``{| lastby p xs, rmlastby p xs |}``, but more efficient;
-      if no member of ``xs`` satisfies predicate ``p``, returns ``{}``
+      equivalent to ``lastby p xs, rmlastby p xs``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``()``
 
    .. function:: rmfirstby p xs
 
@@ -346,11 +346,11 @@ end;
 
    .. function:: span p xs
 
-      equivalent to ``{ takewhile p xs, dropwhile p xs }``, but more efficient
+      equivalent to ``takewhile p xs, dropwhile p xs``, but more efficient
 
    .. function:: split n xs
 
-      equivalent to ``{ take n xs, drop n xs }``, but more efficient
+      equivalent to ``take n xs, drop n xs``, but more efficient
 
    .. function:: tail xs
 
@@ -439,14 +439,14 @@ firstby p [] = throw out_of_bounds; // no match
 firstby p (x:xs) = if p x then x else firstby p xs;
 
 // we don't provide skip-ahead version
-pickfirstby p [] = {};
+pickfirstby p [] = ();
 pickfirstby p xs@(_:_) = tick xs [] with
-    tick [] _ = {}; // no match
-    tick (x:xs) ws = if p x then {| x, reverse_onto xs ws |}
+    tick [] _ = (); // no match
+    tick (x:xs) ws = if p x then tuple2 x (reverse_onto xs ws)
                      else tick xs (x:ws);
     tick xs ws     = throw (bad_list_value xs);
     // doesn't handle case where no match is found:
-    // tick xs ws     = {| firstby p xs, reverse_onto (rmfirstby p xs) ws |};
+    // tick xs ws     = tuple2 (firstby p xs) (reverse_onto (rmfirstby p xs) ws);
 end;
 
 // we don't provide skip-ahead version
@@ -473,10 +473,10 @@ end;
 
 #! --ifnot list-opt
 // reverse-based
-::picklastby p [] = {};
+::picklastby p [] = ();
 ::picklastby p xs@(_:_) = tick xs [] [] [] with
-    tick []     _  []     _   = {}; // no match
-    tick []     ms (h:hs) hss = {| h, tack (reverse_onto [] ms) hs hss |};
+    tick []     _  []     _   = (); // no match
+    tick []     ms (h:hs) hss = tuple2 h (tack (reverse_onto [] ms) hs hss);
     tick (x:xs) ms hs     hss = if p x
                                 then tick xs [] (x:ms) (hs:hss)
                                 else tick xs (x:ms) hs hss;
@@ -501,24 +501,21 @@ end;
 
 #! --else
 // skip-ahead
-::picklastby p [] = {};
-::picklastby p xs@(_:_) = case aux xs of
-    notfound = {}; // no match
-    y:ys = {| y, ys |};
-end with
+::picklastby p [] = ();
+::picklastby p xs@(_:_) = aux xs with
     aux xs = case skip_ahead 0 xs of
-        len_pre@_ notfound = pop_pre len_pre xs with
-            pop_pre 0 _ = notfound;
+        len_pre@_ () = pop_pre len_pre xs with
+            pop_pre 0 _ = ();
             pop_pre n::int xx@(x:xs) = case pop_pre (n-1) xs of
-                                          notfound = if p x then xx else notfound;
-                                          y:ys = y:x:ys;
+                                          () = if p x then xx else ();
+                                          y,ys = tuple2 y (x:ys);
                                        end;
         end;
-        len_pre@_ (y:ys) = y:append len_pre xs ys;
+        len_pre@_ (y:ys) = tuple2 y (append len_pre xs ys);
     end;
     append n::int [] ys | append 0 _ ys = ys;
     append n::int (x:xs) ys = x:append (n-1) xs ys;
-    skip_ahead n::int [] = n notfound;
+    skip_ahead n::int [] = n ();
     skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
     skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
     skip_ahead n::int xs = throw (bad_list_value xs);
@@ -778,42 +775,40 @@ end;
 #! --endif
 
 
-partition p [] = { [], [] };
+partition p [] = [], [];
 #! --ifnot list-opt
 // reverse-based
 partition p xs@(_:_) = aux xs [] [] with
-    aux []     [] _  = {| xs, [] |}; // no misses, use original
-    aux []     _  [] = {| [], xs |}; // no hits, use original
-    aux []     ms hs = {| reverse_onto [] hs, reverse_onto [] ms |};
+    aux []     [] _  = xs, []; // no misses, use original
+    aux []     _  [] = [], xs; // no hits, use original
+    aux []     ms hs = reverse_onto [] hs, reverse_onto [] ms;
     aux (x:xs) ms hs
         = if p x
-          then {| reverse_onto (filter p xs&) (x:hs), reverse_onto (filter ((~).p) xs&) ms |}
-          else {| reverse_onto (filter p xs&) hs, reverse_onto (filter ((~).p) xs&) (x:ms) |} if thunkp xs;
+          then reverse_onto (filter p xs&) (x:hs), reverse_onto (filter ((~).p) xs&) ms
+          else reverse_onto (filter p xs&) hs, reverse_onto (filter ((~).p) xs&) (x:ms) if thunkp xs;
         = if p x
           then aux xs ms (x:hs)
           else aux xs (x:ms) hs;
-    aux xs ms hs     = {| reverse_onto (filter p xs) hs, reverse_onto (filter ((~).p) xs) ms |};
+    aux xs ms hs     = reverse_onto (filter p xs) hs, reverse_onto (filter ((~).p) xs) ms;
 end;
 
 #! --else
 // skip-ahead
-partition p xs@(_:_) = case aux xs of
-    yes:no = {| yes, no |};
-end with
-    add p x (yes:no) = if p x then (x:yes):no else yes:(x:no);
+partition p xs@(_:_) = aux xs with
+    add p x (yes, no) = if p x then x:yes, no else yes, x:no;
     aux xs = split_pre len_pre xs with
         split_pre 0 _           = split_tails;
         split_pre n::int (x:xs) = add p x (split_pre (n-1) xs);
     end when
         len_pre@_ split_tails   = skip_ahead 0 xs;
     end;
-    skip_ahead n::int []        = n ([]:[]);
+    skip_ahead n::int []        = n ([],[]);
     skip_ahead n::int xs@(_:_)  = n (aux xs) if n == __std__::SKIPSIZE;
     skip_ahead n::int (x:xs)
-                         = n (add p x (filter p xs&:filter ((~).p) xs&))
+                         = n (add p x (filter p xs&, filter ((~).p) xs&))
                            if thunkp xs;
                          = skip_ahead (n+1) xs;
-    skip_ahead n::int xs = n (filter p xs:filter ((~).p) xs);
+    skip_ahead n::int xs = n (filter p xs, filter ((~).p) xs);
 end;
 #! --endif
 
@@ -900,76 +895,72 @@ with
 end;
 
 
-span p []	= { [], [] };
+span p []	= [], [];
 #! --ifnot list-opt
 // reverse-based
 span p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= { reverse_onto (takewhile p xs&) zs, dropwhile p xs& } if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+  tick zs xs		= reverse_onto (takewhile p xs&) zs, dropwhile p xs& if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
-			    []   = { reverse_onto [] zs, [] };
+			    []   = reverse_onto [] zs, [];
 			    x:xs = tick (x:zs) xs if p x;
-			    xs@(_:_)  = { reverse_onto [] zs, xs };
-			    xs   = { reverse_onto (takewhile p xs) zs, dropwhile p xs };
+			    xs@(_:_)  = reverse_onto [] zs, xs;
+			    xs   = reverse_onto (takewhile p xs) zs, dropwhile p xs;
 			  end;
 end;
 
 #! --else
 // skip-ahead
-span p xs@(_:_) = case aux xs of
-    pre:post = {| pre, post |};
-end with
+span p xs@(_:_) = aux xs with
     aux xs = split_pre len_pre xs with
-        add x (pre:post)        = (x:pre):post;
+        add x (pre, post)        = x:pre, post;
         split_pre 0      _      = split_tails;
         split_pre n::int (x:xs) = add x (split_pre (n-1) xs);
     end when
         len_pre@_ split_tails   = skip_ahead 0 xs;
     end;
-    skip_ahead n::int []       = n ([]:[]);
+    skip_ahead n::int []       = n ([],[]);
     skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
     skip_ahead n::int xx@(x:xs)
-            = n ([]:xx) if ~p x;
-            = n ((x:takewhile p xs&):dropwhile p xs&) if thunkp xs;
+            = n ([],xx) if ~p x;
+            = n (x:takewhile p xs&, dropwhile p xs&) if thunkp xs;
             = skip_ahead (n+1) xs;
-    skip_ahead n::int xs       = n (takewhile p xs:dropwhile p xs);
+    skip_ahead n::int xs       = n (takewhile p xs, dropwhile p xs);
 end;
 #! --endif
 
 
-// split m xs = { subseq xs 0 (m-1), subseq xs m (#xs-1) };
-split m::int [] = { [], [] };
+// split m xs = subseq xs 0 (m-1), subseq xs m (#xs-1);
+split m::int [] = [], [];
 #! --ifnot list-opt
 // reverse-based
 split m::int xs@(_:_) = aux m [] xs with
-    aux _::int ws []     = {| xs, [] |}; // use original
-    aux 0 ws xs          = {| reverse_onto [] ws, xs |};
-    aux m::int ws (x:xs) = {| reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs& |}
+    aux _::int ws []     = xs, []; // use original
+    aux 0 ws xs          = reverse_onto [] ws, xs;
+    aux m::int ws (x:xs) = reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs&
                            if thunkp xs;
                          = aux (m-1) (x:ws) xs;
-    aux m::int ws xs     = {| reverse_onto (take m xs) ws, drop m xs |};
+    aux m::int ws xs     = reverse_onto (take m xs) ws, drop m xs;
 end;
 
 #! --else
 // skip-ahead
-split m::int xs@(_:_) = case aux m xs of
-    front:back = {| front, back |};
-end with
-    add x (front:back) = (x:front):back;
+split m::int xs@(_:_) = aux m xs with
+    add x (front, back) = x:front, back;
     aux m::int xs = split_pre len_pre xs with
         split_pre 0      _            = split_tails;
         split_pre n::int (x:xs)       = add x (split_pre (n-1) xs);
     end when
         len_pre@_ split_tails         = skip_ahead m 0 xs;
     end;
-    skip_ahead m::int n::int []       = n ([]:[]);
+    skip_ahead m::int n::int []       = n ([],[]);
     skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
-    skip_ahead m::int n::int xs       = n ([]:xs) if m <= 0;
+    skip_ahead m::int n::int xs       = n ([],xs) if m <= 0;
     skip_ahead m::int n::int (x:xs)
-                           = n ((x:take (m-1) xs&):drop (m-1) xs&)
+                           = n (x:take (m-1) xs&, drop (m-1) xs&)
                              if thunkp xs;
                            = skip_ahead (m-1) (n+1) xs;
-    skip_ahead m::int n::int xs       = n ((take m xs):drop m xs);
+    skip_ahead m::int n::int xs       = n (take m xs, drop m xs);
 end;
 #! --endif
 
