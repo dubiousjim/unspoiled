@@ -962,8 +962,9 @@ end with
     end when
         len_pre@_ split_tails         = skip_ahead m 0 xs;
     end;
-    skip_ahead m::int n::int xs       = n ([]:xs) if m <= 0 || xs === [];
+    skip_ahead m::int n::int []       = n ([]:[]);
     skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
+    skip_ahead m::int n::int xs       = n ([]:xs) if m <= 0;
     skip_ahead m::int n::int (x:xs)
                            = n ((x:take (m-1) xs&):drop (m-1) xs&)
                              if thunkp xs;
