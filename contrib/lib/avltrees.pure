@@ -290,7 +290,7 @@ end with
   poplast (bin (k=>xs) b l nil)
     = if ::null newxs then [x, l, 1]
       else [x, bin (k=>newxs) b l nil, 0]
-      when x:newxs = ::rotate xs end;
+      when x:newxs = (::rotate 1) xs end;
   poplast (bin x b l r) = y:adjustd rightHasChanged (bin x b l newr) 1
     when [y, newr, rightHasChanged] = poplast r end;
 end;
@@ -918,7 +918,7 @@ end with
             else if r===nil then [v, l, 1]
             else (v:adjustd leftHasChanged (bin (last l) b newl r) (-1)
                   when [newl, leftHasChanged] = init l end)
-            when v:newxs = ::rotate xs end;
+            when v:newxs = (::rotate 1) xs end;
       end;
 end;
 

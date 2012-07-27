@@ -1207,10 +1207,10 @@ end;
 // avltrees on the other hand removes the element added first.
 mdelete t old = catch (whenfail t) (head3 $ base_mpopk id old t);
 
-mdeleteko t k = catch (whenfail t) (head3 $ base_mpopk rotate k t);
+mdeleteko t k = catch (whenfail t) (head3 $ base_mpopk (rotate 1) k t);
 
 mpopko t k = catch (whenfail ()) (tuple2 v child when
-    child@_ _ (_=>v) = base_mpopk rotate k t;
+    child@_ _ (_=>v) = base_mpopk (rotate 1) k t;
 end);
 
 mdeletekn t k = catch (whenfail t) (head3 $ base_mpopk id k t);
