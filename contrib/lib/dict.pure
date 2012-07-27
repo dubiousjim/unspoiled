@@ -150,6 +150,16 @@
       actually returns a list of values (which may be empty if ``d`` doesn't
       contain ``x``)
 
+   .. function:: grob /dict d x
+
+      get the value from ``d`` by key ``x``; in the case of a multidict this
+      returns the oldest value
+
+   .. function:: grob_other /dict d x
+
+      get the value from ``d`` by key ``x``; in the case of a multidict this
+      returns the newest value
+
    .. function:: null /dict d
 
       test whether ``d`` is an empty dictionary
@@ -181,6 +191,12 @@
 
       remove the first and the last member from ``d``, respectively
 
+   .. function:: pickfirst /dict d
+                 picklast /dict d
+
+      return the pair ``(first member of d, rest of d)`` or ``(last member of d, rest of d)``,
+      respectively; if ``d`` is empty, return ``()`` instead
+
    .. function:: insert /dict d (x=>y)
                  update /dict d x y
 
@@ -195,6 +211,23 @@
       remove ``x`` from ``d`` if present (in the multidict case, only the
       first member with the given key ``x`` is removed)
 
+   .. function:: delete_other /dict d x
+
+      remove ``x`` from ``d`` if present (in the multidict case, only the
+      last member with the given key ``x`` is removed)
+
+   .. function:: pick /dict d x
+
+      remove ``x`` from ``d``, and return the pair ``(x, rest of d)``;
+      if ``x`` is not present in ``d``, return ``()`` instead
+      (in the multidict case, only the first member with the given key ``x`` is picked)
+
+   .. function:: pick_other /dict d x
+
+      remove ``x`` from ``d``, and return the pair ``(x, rest of d)``;
+      if ``x`` is not present in ``d``, return ``()`` instead
+      (in the multidict case, only the last member with the given key ``x`` is picked)
+
    .. function:: delete_val /dict d (x=>y)
 
       remove a specific key-value pair ``x=>y`` from ``d`` if present (in the
@@ -205,6 +238,11 @@
 
       remove all instances of ``x`` from ``d`` (in the non-multidict case,
       this is just the same as :func:`delete/dict`)
+
+   .. function:: pick_all /dict d x
+
+      remove all instances of ``x`` from ``d``, and return the pair ``(list of xs, rest of d)``;
+      if ``x`` is not present in ``d``, return ``()`` instead
 
    .. note::
 
@@ -396,17 +434,41 @@ delete (HDict  d) x = HDict  (baltree::hdeletek   d x);
 delete (MDict  d) x = MDict  (baltree::mdeleteko  d x);
 delete (HMDict d) x = HMDict (baltree::mhdeleteko d x);
 
+// delete a member by "other" key
+delete_other (Dict   d) x = Dict   (baltree::deletek    d x);
+delete_other (HDict  d) x = HDict  (baltree::hdeletek   d x);
+delete_other (MDict  d) x = MDict  (baltree::mdeletekn  d x);
+delete_other (HMDict d) x = HMDict (baltree::mhdeletekn d x);
+
+// pick a member by key
+pick (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
+pick (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
+pick (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopko  d x end;
+pick (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopko d x end;
+
+// pick a member by "other" key
+pick_other (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
+pick_other (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
+pick_other (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopkn  d x end;
+pick_other (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopkn d x end;
+
 // delete a member by key=>val
 delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv    d el);
 delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv   d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekvo  d el);
-delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekvo d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekvo  d el); // uses old
+delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekvo d el); // uses old
 
 // delete all instances of a given key
 delete_all (Dict   d) x = Dict   (baltree::deletek    d x);
 delete_all (HDict  d) x = HDict  (baltree::hdeletek   d x);
 delete_all (MDict  d) x = MDict  (baltree::mdeleteka  d x);
 delete_all (HMDict d) x = HMDict (baltree::mhdeleteka d x);
+
+// pick all members by key
+pick_all (Dict   d) x = [v], (Dict d)       when v,d = baltree::popk    d x end;
+pick_all (HDict  d) x = [v], (HDict d)      when v,d = baltree::hpopk   d x end;
+pick_all (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopka  d x end;
+pick_all (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopka d x end;
 
 // check for the empty dict
 null (Dict  d) | null (HDict  d) |
@@ -462,11 +524,32 @@ rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
 rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
 rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
 
+// pick the first and last member
+pickfirst (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::popfirst  d end;
+picklast  (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::poplast   d end;
+pickfirst (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpopfirst d end;
+picklast  (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpoplast  d end;
+pickfirst (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpopfirst d end;
+picklast  (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpoplast  d end;
+pickfirst (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpopfirst d end;
+picklast  (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpoplast  d end;
+
 // get a value by key
 (Dict   d)!k = baltree::getk    d k;
 (HDict  d)!k = baltree::hgetk   d k;
 (MDict  d)!k = baltree::mgetka  d k;
 (HMDict d)!k = baltree::mhgetka d k;
+
+// get oldest/newest key from mdicts
+grob (Dict   d) k = baltree::getk    d k;
+grob (HDict  d) k = baltree::hgetk   d k;
+grob (MDict  d) k = baltree::mgetko  d k;
+grob (HMDict d) k = baltree::mhgetko d k;
+
+grob_other (Dict   d) k = baltree::getk    d k;
+grob_other (HDict  d) k = baltree::hgetk   d k;
+grob_other (MDict  d) k = baltree::mgetkn  d k;
+grob_other (HMDict d) k = baltree::mhgetkn d k;
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with

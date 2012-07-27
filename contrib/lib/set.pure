@@ -140,6 +140,12 @@
 
       remove the first and the last member from ``m``, respectively
 
+   .. function:: pickfirst /set m
+                 picklast /set m
+
+      return the pair ``(first member of m, rest of m)`` or ``(last member of m, rest of m)``,
+      respectively; if ``m`` is empty, return ``()`` instead
+
    .. function:: insert /set m x
 
       insert ``x`` into ``m`` (replaces an existing element in the case of a
@@ -344,6 +350,16 @@ rmfirst (Bag  m) = Bag  (baltree::mrmfirst m);
 rmlast  (Bag  m) = Bag  (baltree::mrmlast  m);
 rmfirst (HBag m) = HBag (baltree::hrmfirst m);
 rmlast  (HBag m) = HBag (baltree::hrmlast  m);
+
+// pick the first and last member
+pickfirst (Set  m) = tuple2 v (Set  m) when v,m = baltree::popfirst  m end;
+picklast  (Set  m) = tuple2 v (Set  m) when v,m = baltree::poplast   m end;
+pickfirst (HSet m) = tuple2 v (HSet m) when v,m = baltree::hpopfirst m end;
+picklast  (HSet m) = tuple2 v (HSet m) when v,m = baltree::hpoplast  m end;
+pickfirst (Bag  m) = tuple2 v (Bag  m) when v,m = baltree::mpopfirst m end;
+picklast  (Bag  m) = tuple2 v (Bag  m) when v,m = baltree::mpoplast  m end;
+pickfirst (HBag m) = tuple2 v (HBag m) when v,m = baltree::hpopfirst m end;
+picklast  (HBag m) = tuple2 v (HBag m) when v,m = baltree::hpoplast  m end;
 
 // comparisons
 m1@(Set _)  == m2@(Set _)  |
