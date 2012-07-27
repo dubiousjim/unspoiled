@@ -217,7 +217,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public pickfirst picklast reverse;
+public pickfirst picklast reverse rotate;
 
 namespace array;
 
@@ -421,6 +421,37 @@ end;
     tick t@(tip _) = t;
     tick (bin 0 a1 a2) = bin 0 (tick a2) (tick a1);
     tick (bin 1 a1 a2) = bin 1 (tick a1) (tick a2);
+end;
+
+// efficient rotate
+// to remove an element at an arbitrary index i, you can:
+// `rotate i (rmfirst (rotate (-i) a));`
+::rotate _::int x@(Array nil) = x;
+
+::rotate n::int (Array a) = tick (opt n (#a)) a with
+  // optimize the number and direction of rotation
+  opt i m = ((i+h) mod m) - h when j = m >> 1; h   = if i >= 0 then j else -j; end;
+  tick n::int a = tick (n-1) (insert a y) when y,a = picklast a; end if n > 0;
+  tick n::int a = tick (n+1) (append a y) when y,a = pickfirst a; end if n < 0;
+  tick 0 a      = Array a;
+  picklast (tip y)		= tuple2 y nil;
+  picklast (bin 0 a1 a2)	= rightbin 1 a1 (picklast a2);
+  picklast (bin 1 a1 a2)	= leftbin 0 (picklast a1) a2;
+  insert nil y			= tip y;
+  insert (tip x) y		= bin 0 (tip y) (tip x);
+  insert (bin 0 a1 a2) y	= mkbin 1 (insert a2 y) a1;
+  insert (bin 1 a1 a2) y	= mkbin 0 (insert a2 y) a1;
+  pickfirst (tip y)		= tuple2 y nil;
+  pickfirst (bin 0 a1 a2)       = rightbin 1 a2 (pickfirst a1);
+  pickfirst (bin 1 a1 a2)       = rightbin 0 a2 (pickfirst a1);
+  append nil y			= tip y;
+  append (tip x) y		= bin 0 (tip x) (tip y);
+  append (bin 0 a1 a2) y	= mkbin 1 (append a1 y) a2;
+  append (bin 1 a1 a2) y	= mkbin 0 a1 (append a2 y);
+  #nil				= 0;
+  #(tip _)			= 1;
+  #(bin 0 a1 _)			= #a1 * 2;
+  #(bin 1 a1 _)			= #a1 * 2 - 1;
 end;
 
 /* Private functions. */
