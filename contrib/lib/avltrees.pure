@@ -82,29 +82,29 @@ public foldl foldl1 foldr foldr1;
 public size members keys vals;
 public first last rmfirst rmlast popfirst poplast;
 
+// General folds. These take a w argument to wrap incoming elements
+// before applying f.
 
-// General folds.
-
-foldl f a t = tick a t with
+foldl w f a t = tick a t with
     tick a nil = a;
-    tick a (bin x _ l r) = tick (f (tick a l) x) r;
+    tick a (bin x _ l r) = tick (f (tick a l) (w x)) r;
 end;
 
-foldl1 f t = tick fail t with
-    tick fail (bin x _ nil _) = x;
+foldl1 w f t = tick fail t with
+    tick fail (bin x _ nil _) = w x;
     tick a nil = a;
-    tick a (bin x _ l r) = tick (f (tick a l) x) r;
+    tick a (bin x _ l r) = tick (f (tick a l) (w x)) r;
 end if t~==nil;
 
-foldr f a t = tick t a with
+foldr w f a t = tick t a with
     tick nil a = a;
-    tick (bin x _ l r) a = tick l (f x (tick r a));
+    tick (bin x _ l r) a = tick l (f (w x) (tick r a));
 end;
 
-foldr1 f t = tick t fail with
-    tick (bin x _ _ nil) fail = x;
+foldr1 w f t = tick t fail with
+    tick (bin x _ _ nil) fail = w x;
     tick nil a = a;
-    tick (bin x _ l r) a = tick l (f x (tick r a));
+    tick (bin x _ l r) a = tick l (f (w x) (tick r a));
 end if t~==nil;
 
 // Compute the size of a tree.
@@ -116,14 +116,14 @@ end;
 
 // Get the list of all members.
 
-members t = foldr (:) [] t;
+members t = foldr id (:) [] t;
 
 // Get the list of all keys and values. This requires a dictionary-like
 // structure with separate key values.
 
-keys t = foldr ((:).(::key)) [] t;
+keys t = foldr (::key) (:) [] t;
 
-vals t = foldr ((:).(::val)) [] t;
+vals t = foldr (::val) (:) [] t;
 
 // Get the first and the last member of a tree. Like head/last for [],
 // the following two functions just fail to reduce when applied to nil.
@@ -175,46 +175,26 @@ end;
 
 /* Basic AVL tree operations, multiple values per key. */
 
+public hfoldl hfoldl1 hfoldr hfoldr1;
 public mfoldl mfoldl1 mfoldr mfoldr1;
 public msize mmembers mkeys mvals;
 public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
-mfoldl f a t = tick a t with
-    tick a nil = a;
-    tick a (bin (_=>xs) _ l r) = tick (::foldl f (tick a l) xs) r;
-end;
-
-mfoldl1 f t = tick fail t with
-    tick fail (bin (_=>xs) _ nil _) = ::foldl1 f xs;
-    tick a nil = a;
-    tick a (bin (_=>xs) _ l r) = tick (::foldl f (tick a l) xs) r;
-end if t~==nil;
-
-mfoldr f a t = tick t a with
-    tick nil a = a;
-    tick (bin (_=>xs) _ l r) a = tick l (::foldr f (tick r a) xs);
-end;
-
-mfoldr1 f t = tick t fail with
-    tick (bin (_=>xs) _ _ nil) fail = ::foldr1 f xs;
-    tick nil a = a;
-    tick (bin (_=>xs) _ l r) a = tick l (::foldr f (tick r a) xs);
-end if t~==nil;
+mfoldl  f a t = hfoldl  id f a t;
+mfoldl1 f   t = hfoldl1 id f   t;
+mfoldr  f a t = hfoldr  id f a t;
+mfoldr1 f   t = hfoldr1 id f   t;
 
 msize t = size t with
   size nil = 0;
   size (bin (k=>xs) _ l r) = size l + size r + #xs;
 end;
 
-mmembers t = mfoldr ((:)) [] t;
+mmembers t = mfoldr (:) [] t;
 
-mkeys t = foldr f [] t with
-    f xs a = map_onto ::key a (::val xs);
-end;
+mkeys t = foldr ::val (flip (map_onto ::key)) [] t;
 
-mvals t = foldr f [] t with
-    f xs a = map_onto ::val a (::val xs);
-end;
+mvals t = foldr ::val (flip (map_onto ::val)) [] t;
 
 // Get the first and the last mmember of a tree. Like head/last for [],
 // the following two functions just fail to reduce when applied to nil.
@@ -276,7 +256,34 @@ end with
 end;
 
 
-/* The above also apply to all kinds of hash trees. For convenience and
+hfoldl w f a t = tick a t with
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (::foldl fw (tick a l) xs) r;
+    fw a x = f a (w x);
+end;
+
+hfoldl1 w f t = tick fail t with
+    tick fail (bin (_=>(x:xs)) _ nil _) = ::foldl fw (w x) xs;
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (::foldl fw (tick a l) xs) r;
+    fw a x = f a (w x);
+end if t~==nil;
+
+hfoldr w f a t = tick t a with
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (::foldr fw (tick r a) xs);
+    fw x a = f (w x) a;
+end;
+
+hfoldr1 w f t = tick t fail with
+    tick (bin (_=>xs) _ _ nil) fail = ::foldr1 f (map w xs);
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (::foldr fw (tick r a) xs);
+    fw x a = f (w x) a;
+end if t~==nil;
+
+
+/* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
 public hsize hmembers hkeys hvals;
@@ -292,6 +299,112 @@ hrmfirst t  = mrmfirst t;
 hrmlast t   = mrmlast t;
 hpopfirst t = mpopfirst t;
 hpoplast t  = mpoplast t;
+
+public mhfoldl mhfoldl1 mhfoldr mhfoldr1;
+public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k;
+
+// for mtrees, one can use `all (p.(::val))` to test
+// equal-keyed values all together; for mhtrees, special treatment is needed
+
+mhfoldl f a t = tick a t with
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (aux f (tick a l) xs) r;
+    aux f a [] = a;
+    aux f a (x:xs) = aux f (f a (x:xvs)) xs when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhfoldl1 f t = tick fail t with
+    tick fail (bin (_=>(x:xs)) _ nil r) = tick (aux f (x:xvs) xs) r when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (aux f (tick a l) xs) r;
+    aux f a [] = a;
+    aux f a (x:xs) = aux f (f a (x:xvs)) xs when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end if t~==nil;
+
+mhfoldr f a t = tick t a with
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (aux f (tick r a) xs);
+    aux f a [] = a;
+    aux f a (x:xs) = f (x:xvs) (aux f a xs) when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhfoldr1 f t = tick t fail with
+    tick (bin (_=>xs) _ l nil) fail = tick l (aux1 f xs);
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (aux f (tick r a) xs);
+    aux1 f (x:xs) = case xs of
+        [] = x:xvs;
+        _ = f (x:xvs) (aux1 f xs);
+    end when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+    aux f a [] = a;
+    aux f a (x:xs) = f (x:xvs) (aux f a xs) when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end if t~==nil;
+
+// mhfold*s for dictionaries
+
+mhfoldlk f a t = tick a t with
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (aux f (tick a l) xs) r;
+    aux f a [] = a;
+    aux f a ((xk=>xv):xs) = aux f (f a (xk=>xvs)) xs when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
+mhfoldl1k f t = tick fail t with
+    tick fail (bin (_=>((xk=>xv):xs)) _ nil r) = tick (aux f (xk=>xvs) xs) r when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+    tick a nil = a;
+    tick a (bin (_=>xs) _ l r) = tick (aux f (tick a l) xs) r;
+    aux f a [] = a;
+    aux f a ((xk=>xv):xs) = aux f (f a (xk=>xvs)) xs when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end if t~==nil;
+
+mhfoldrk f a t = tick t a with
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (aux f (tick r a) xs);
+    aux f a [] = a;
+    aux f a ((xk=>xv):xs) = f (xk=>xvs) (aux f a xs) when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
+mhfoldr1k f t = tick t fail with
+    tick (bin (_=>xs) _ l nil) fail = tick l (aux1 f xs);
+    tick nil a = a;
+    tick (bin (_=>xs) _ l r) a = tick l (aux f (tick r a) xs);
+    aux1 f ((xk=>xv):xs) = case xs of
+        [] = xk=>xvs;
+        _ = f (xk=>xvs) (aux1 f xs);
+    end when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+    aux f a [] = a;
+    aux f a ((xk=>xv):xs) = f (xk=>xvs) (aux f a xs) when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end if t~==nil;
 
 /* Membership test for ordered sets and dictionaries. */
 
