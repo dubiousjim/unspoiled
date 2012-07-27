@@ -414,58 +414,58 @@ null (MDict d) | null (HMDict d) = baltree::null d;
 
 // dict size
 #(Dict   d) = baltree::size  d;
-#(MDict  d) = baltree::msize d;
 #(HDict  d) = baltree::hsize d;
+#(MDict  d) = baltree::msize d;
 #(HMDict d) = baltree::hsize d;
 
 // membership test
 member (Dict   d) k = baltree::memberk  d k;
-member (MDict  d) k = baltree::memberk  d k;
 member (HDict  d) k = baltree::hmemberk d k;
+member (MDict  d) k = baltree::memberk  d k;
 member (HMDict d) k = baltree::hmemberk d k;
 
 // get the members, keys and values of a dict as a list
 members (Dict   d) = baltree::members  d;
-members (MDict  d) = baltree::mmembers d;
 members (HDict  d) = baltree::hmembers d;
+members (MDict  d) = baltree::mmembers d;
 members (HMDict d) = baltree::hmembers d;
 
 keys (Dict   d) = baltree::keys  d;
-keys (MDict  d) = baltree::mkeys d;
 keys (HDict  d) = baltree::hkeys d;
+keys (MDict  d) = baltree::mkeys d;
 keys (HMDict d) = baltree::hkeys d;
 
 vals (Dict   d) = baltree::vals  d;
-vals (MDict  d) = baltree::mvals d;
 vals (HDict  d) = baltree::hvals d;
+vals (MDict  d) = baltree::mvals d;
 vals (HMDict d) = baltree::hvals d;
 
 list d::xdict = members d;
 
 // get the first and last member
 first (Dict   d) = baltree::first  d;
-first (MDict  d) = baltree::mfirst d;
 last  (Dict   d) = baltree::last   d;
-last  (MDict  d) = baltree::mlast  d;
 first (HDict  d) = baltree::hfirst d;
-first (HMDict d) = baltree::hfirst d;
 last  (HDict  d) = baltree::hlast  d;
+first (MDict  d) = baltree::mfirst d;
+last  (MDict  d) = baltree::mlast  d;
+first (HMDict d) = baltree::hfirst d;
 last  (HMDict d) = baltree::hlast  d;
 
 // remove the first and last member
 rmfirst (Dict   d) = Dict   (baltree::rmfirst  d);
 rmlast  (Dict   d) = Dict   (baltree::rmlast   d);
-rmfirst (MDict  d) = MDict  (baltree::mrmfirst d);
-rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
 rmfirst (HDict  d) = HDict  (baltree::hrmfirst d);
 rmlast  (HDict  d) = HDict  (baltree::hrmlast  d);
+rmfirst (MDict  d) = MDict  (baltree::mrmfirst d);
+rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
 rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
 rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
 
 // get a value by key
 (Dict   d)!k = baltree::getk    d k;
-(MDict  d)!k = baltree::mgetka  d k;
 (HDict  d)!k = baltree::hgetk   d k;
+(MDict  d)!k = baltree::mgetka  d k;
 (HMDict d)!k = baltree::mhgetka d k;
 
 // comparisons
