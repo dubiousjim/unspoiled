@@ -181,6 +181,16 @@
 
       list the values of ``d``
 
+   .. function:: stream /dict d
+                 mstream /dict d
+                 rev_stream /dict d
+                 rev_mstream /dict d
+
+      return the members of ``d`` as a stream; the ``mstream`` functions group
+      all values associated with a key into a single list; the elements
+      are presented in ascending order for ordered dictionaries (or descending
+      order for ``rev_stream`` and ``rev_mstream``)
+
    .. function:: first /dict d
                  last /dict d
 
@@ -534,6 +544,27 @@ vals (MDict  d) = baltree::mvals d;
 vals (HMDict d) = baltree::hvals d;
 
 list d::xdict = members d;
+
+// get members as a stream
+stream (Dict   d) = baltree::streamleft  d;
+stream (HDict  d) = baltree::hstreamleft d;
+stream (MDict  d) = baltree::mstreamleft d;
+stream (HMDict d) = baltree::hstreamleft d;
+
+rev_stream (Dict   d) = baltree::streamright  d;
+rev_stream (HDict  d) = baltree::hstreamright d;
+rev_stream (MDict  d) = baltree::mstreamright d;
+rev_stream (HMDict d) = baltree::hstreamright d;
+
+mstream (Dict   d) = map __dict::mval   (baltree::streamleft    d);
+mstream (HDict  d) = map __dict::mval   (baltree::hstreamleft   d);
+mstream (MDict  d) = map __dict::mvals  (baltree::streamleft    d);
+mstream (HMDict d) =                     baltree::mhstreamleftk d;
+
+rev_mstream (Dict   d) = map __dict::mval  (baltree::streamright     d);
+rev_mstream (HDict  d) = map __dict::mval  (baltree::hstreamright    d);
+rev_mstream (MDict  d) = map __dict::rev_mvals (baltree::streamright d);
+rev_mstream (HMDict d) =                    baltree::mhstreamrightk  d;
 
 // get the first and last member
 first (Dict   d) = baltree::first  d;
