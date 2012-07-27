@@ -217,7 +217,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public pickfirst picklast reverse rotate;
+public pickfirst picklast reverse rotate map;
 
 namespace array;
 
@@ -452,6 +452,13 @@ end;
   #(tip _)			= 1;
   #(bin 0 a1 _)			= #a1 * 2;
   #(bin 1 a1 _)			= #a1 * 2 - 1;
+end;
+
+::map f x@(Array nil) = x;
+::map f (Array a) = Array (tick a) with
+  tick nil           = nil;
+  tick (tip y)       = tip (f y);
+  tick (bin b a1 a2) = bin b (tick a1) (tick a2);
 end;
 
 /* Private functions. */
