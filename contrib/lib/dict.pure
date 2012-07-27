@@ -277,6 +277,19 @@
 
         mfoldl (\a (k=>vs) ...) a d
 
+   .. function:: filter p /dict d
+                 mfilter p /dict d
+
+      these return a dict that contains all instances of ``x`` from ``d`` that
+      satisfy the predicate ``p``; the first passes values to ``p`` one-at-a-time
+      (like ``foldl``), the second passes them all at once (like ``mfoldl``)
+
+   .. function:: partition p /dict d
+                 mpartition p /dict d
+
+      these are equivalent to ``filter p d, filter ((~).p) d`` and
+      ``mfilter p d, mfilter ((~).p) d``, respectively, but more efficient
+
    .. note::
 
       * The infix operators :func:`+/dict`, :func:`-/dict` and :func:`*\/dict`
@@ -680,6 +693,87 @@ grob_other (Dict   d) k = baltree::getk    d k;
 grob_other (HDict  d) k = baltree::hgetk   d k;
 grob_other (MDict  d) k = baltree::mgetkn  d k;
 grob_other (HMDict d) k = baltree::mhgetkn d k;
+
+filter  p (Dict   d)
+  = Dict (baltree::foldl id add baltree::emptytree d) with
+    add yes x = if p x then baltree::insertk yes x else yes;
+end;
+filter  p (HDict  d)
+  = HDict (baltree::hfoldl id add baltree::emptytree d) with
+    add yes x = if p x then baltree::hinsertk yes x else yes;
+end;
+filter  p (MDict  d)
+  = MDict (baltree::mfoldl add baltree::emptytree d) with
+    add yes x = if p x then baltree::minsertk yes x else yes;
+end;
+filter  p (HMDict d)
+  = HMDict (baltree::hfoldl id add baltree::emptytree d) with
+    add yes x = if p x then baltree::mhinsertk yes x else yes;
+end;
+
+mfilter  p (Dict   d)
+  = Dict (baltree::foldl id add baltree::emptytree d) with
+    add yes x@(xk=>xv) = if p (xk=>[xv]) then baltree::insertk yes x else yes;
+end;
+mfilter  p (HDict  d)
+  = HDict (baltree::hfoldl id add baltree::emptytree d) with
+    add yes x@(xk=>xv) = if p (xk=>[xv]) then baltree::hinsertk yes x else yes;
+end;
+mfilter  p (MDict  d)
+  = MDict (baltree::foldl __dict::mvals add baltree::emptytree d) with
+    add yes xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs else yes;
+    ins xk d xv = baltree::minsertk d (xk=>xv);
+end;
+mfilter  p (HMDict d)
+  = HMDict (baltree::mhfoldlk add baltree::emptytree d) with
+    add yes xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs else yes;
+    ins xk d xv = baltree::mhinsertk d (xk=>xv);
+end;
+
+partition  p (Dict   d) = Dict yes, Dict no when
+    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x = if p x then baltree::insertk yes x, no else yes, baltree::insertk no x;
+end;
+partition  p (HDict  d) = HDict yes, HDict no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x = if p x then baltree::hinsertk yes x, no else yes, baltree::hinsertk no x;
+end;
+partition  p (MDict  d) = MDict yes, MDict no when
+    yes, no = baltree::mfoldl add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x = if p x then baltree::minsertk yes x, no else yes, baltree::minsertk no x;
+end;
+partition  p (HMDict d) = HMDict yes, HMDict no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x = if p x then baltree::mhinsertk yes x, no else yes, baltree::mhinsertk no x;
+end;
+
+mpartition  p (Dict   d) = Dict yes, Dict no when
+    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x@(xk=>xv) = if p (xk=>[xv]) then baltree::insertk yes x, no else yes, baltree::insertk no x;
+end;
+mpartition  p (HDict  d) = HDict yes, HDict no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) x@(xk=>xv) = if p (xk=>[xv]) then baltree::hinsertk yes x, no else yes, baltree::hinsertk no x;
+end;
+mpartition  p (MDict  d) = MDict yes, MDict no when
+    yes, no = baltree::foldl __dict::mvals add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs, no else yes, foldl (ins xk) no xvs;
+    ins xk d xv = baltree::minsertk d (xk=>xv);
+end;
+mpartition  p (HMDict d) = HMDict yes, HMDict no when
+    yes, no = baltree::mhfoldlk add (baltree::emptytree, baltree::emptytree) d;
+end with
+    add (yes, no) xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs, no else yes, foldl (ins xk) no xvs;
+    ins xk d xv = baltree::mhinsertk d (xk=>xv);
+end;
+
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
