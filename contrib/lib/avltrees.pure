@@ -79,6 +79,7 @@ null (bin _ _ _ _) = 0;
 /* Basic AVL tree operations, single value per key. */
 
 public foldl foldl1 foldr foldr1 all any;
+public streamleft streamright;
 public size members keys vals;
 public first last rmfirst rmlast popfirst poplast;
 
@@ -116,6 +117,15 @@ end;
 any p nil = 0;
 any p (bin x _ l r) = p x || any p l || any p r;
 
+streamleft t = tick t with
+    tick nil = []&;
+    tick (bin x _ l r) = catstream [tick l, x:tick r&];
+end;
+
+streamright t = tick t with
+    tick nil = []&;
+    tick (bin x _ l r) = catstream [tick r, x:tick l&];
+end;
 
 // Compute the size of a tree.
 
@@ -187,6 +197,7 @@ end;
 
 public hfoldl hfoldl1 hfoldr hfoldr1;
 public mfoldl mfoldl1 mfoldr mfoldr1 mall many;
+public mstreamleft mstreamright;
 public msize mmembers mkeys mvals;
 public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
@@ -203,6 +214,16 @@ end;
 
 many p nil = 0;
 many p (bin (_=>xs) _ l r) = ::any p xs || many p l || many p r;
+
+mstreamleft t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = catstream [tick l, xs, tick r&];
+end;
+
+mstreamright t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = catstream [tick r, reverse xs&, tick l&];
+end;
 
 msize t = size t with
   size nil = 0;
@@ -305,12 +326,14 @@ end if t~==nil;
 /* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
-public hall hany;
+public hall hany hstreamleft hstreamright;
 public hsize hmembers hkeys hvals;
 public hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
 
 hall p t     = mall p t;
 hany p t     = many p t;
+hstreamleft t  = mstreamleft t;
+hstreamright t = mstreamright t;
 hsize t     = msize t;
 hmembers t  = mmembers t;
 hkeys t     = mkeys t;
@@ -323,7 +346,9 @@ hpopfirst t = mpopfirst t;
 hpoplast t  = mpoplast t;
 
 public mhfoldl mhfoldl1 mhfoldr mhfoldr1 mhall mhany;
+public mhstreamleft mhstreamright;
 public mhfoldlk mhfoldl1k mhfoldrk mhfoldr1k mhallk mhanyk;
+public mhstreamleftk mhstreamrightk;
 
 // for mtrees, one can use `all (p.(::val))` to test
 // equal-keyed values all together; for mhtrees, special treatment is needed
@@ -390,6 +415,24 @@ mhany p t = tick t with
     tick (bin (_=>xs) _ l r) = aux xs || tick l || tick r;
     aux [] = 0;
     aux (x:xs) = p (x:xvs) || aux xs when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhstreamleft t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = cat [tick l, aux xs&, tick r&];
+    aux [] = [];
+    aux (x:xs) = (x:xvs):aux xs& when
+        xvs, xs = ::partition (x==?) xs;
+    end;
+end;
+
+mhstreamright t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = cat [tick r, aux (reverse xs)&, tick l&];
+    aux [] = [];
+    aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
     end;
 end;
@@ -465,6 +508,26 @@ mhanyk p t = tick t with
     tick (bin (_=>xs) _ l r) = aux xs || tick l || tick r;
     aux [] = 0;
     aux ((xk=>xv):xs) = p (xk=>xvs) || aux xs when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
+mhstreamleftk t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = cat [tick l, aux xs&, tick r&];
+    aux [] = [];
+    aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
+        xvs, xs = ::partition (same xk.(::key)) xs;
+        xvs = xv:map ::val xvs;
+    end;
+end;
+
+mhstreamrightk t = tick t with
+    tick nil = []&;
+    tick (bin (_=>xs) _ l r) = cat [tick r, aux (reverse xs)&, tick l&];
+    aux [] = [];
+    aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.(::key)) xs;
         xvs = xv:map ::val xvs;
     end;
