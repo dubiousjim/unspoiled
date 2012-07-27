@@ -335,7 +335,6 @@ end;
 
 #! --else
 // skip-ahead
-// (+) xs::list ys = gfold::right (\x _ ys  -> x:ys) id (+ys) ys xs;
 xs@(_:_)+ys = aux xs with
     aux xs = fold_pre len_pre xs with
         fold_pre 0 _           = folded_tail;
@@ -676,7 +675,6 @@ end;
 
 #! --else
 // skip-ahead
-// filter p xs::list = gfold::right (\x _ a -> if p x then x:a else a) id (filter p) [] xs;
 filter p xs@(_:_) = aux xs with
     add p x hs = if p x then x:hs else hs;
     aux xs = filter_pre len_pre xs with
@@ -694,7 +692,6 @@ end;
 #! --endif
 
 
-// findl p xs::list = gfold::left (\e x _ -> if p x then abort x else e) throw improper out_of_bounds xs;
 findl p [] = throw out_of_bounds; // no match
 findl p (x:xs) = if p x then x else findl p xs;
 
@@ -810,8 +807,6 @@ namespace;
 
 
 // All the left-folding functions are inherently eager.
-// foldl f a xs::list = gfold::left (\a x _ -> f a x) id (foldl f) a xs;
-// foldl2 f a xs::list ys::list = gfold::left2 (\a x _ y _ -> f a x y) id (foldl2 f) a xs ys ();
 
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
@@ -880,7 +875,6 @@ end;
 
 #! --else
 // skip-ahead
-// foldr f a xs::list = gfold::right (\x _ a  -> f x a) id (foldr f a) a xs;
 foldr f a xs@(_:_) = aux xs with
     aux xs = fold_pre len_pre xs with
         fold_pre 0 _           = folded_tail;
@@ -911,7 +905,6 @@ foldr1 f xs@(_:_) = aux xs with
                                   end;
 end;
 
-// foldr2 f a xs::list ys::list = gfold::right2 (\x _ y _ a -> f x y a) id (foldr2 f a) a xs ys ();
 foldr2 f a xs@(_:_) ys@(_:_) = aux xs ys with
     aux xs ys = fold_pre len_pre xs ys with
         fold_pre 0 _ _        = folded_tail;
@@ -1005,7 +998,6 @@ end;
 
 #! --else
 // skip-ahead
-// map_onto f base xs::list = gfold::right (\x _ a -> f x:a) id (map f) base xs;
 map_onto f base xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
         map_pre 0 _            = mapped_tail;
@@ -1581,7 +1573,6 @@ end;
 
 #! --else
 // skip-ahead
-// zip xs::list ys::list = gfold::right2 (\x _ y _ a -> (x,y):a) id zip [] xs ys ();
 zip xs@(_:_) ys@(_:_) = aux xs ys with
     aux xs ys = zip_pre len_pre xs ys with
         zip_pre 0 _ _ = zipped_tail;
