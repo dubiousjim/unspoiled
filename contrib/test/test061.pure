@@ -1,0 +1,171 @@
+// Quoted specials and special patterns (Pure 0.47+).
+
+'(\x->x+1);
+
+foo = '(\x->x+1);
+foo;
+
+let x = '(case 99 of x::int = x+1 if x>0 end);
+x; eval x;
+let x = '(x+1 when x::int = 99 end);
+x; eval x;
+let x = '(f 99 with f x::int = x+1 end);
+x; eval x;
+
+// Manipulate a special with a function.
+
+// swap arguments
+bar (\x y -> z) = ('(\y x -> z));
+let x = bar ('(\a b -> a-b));
+x; eval x 2 3;
+
+// name an argument
+baz x = '(\x->x+1);
+let x = baz y;
+x; eval x 99;
+
+/* Manipulate a special with a macro. These are the same as the bar and baz
+   functions above, but implemented as macros. Note that we use the
+   --quoteargs pragma with these macros so that the macro arguments are quoted
+   automatically. */
+
+#! --quoteargs bar
+#! --quoteargs baz
+def bar (\x y -> z) = __eval__ ('(\y x -> z));
+def baz x = __eval__ ('(\x->x+1));
+
+f = bar (\a b -> a-b); // same as f = \b a -> a-b;
+f 2 3;
+
+g = baz y; // same as g = \y -> y+1;
+
+// Direct invocation of special macros.
+
+f __with__ [f x --> y __when__ [y --> x+1]];
+f __with__ [f x --> y __with__ [y --> x+1]];
+
+// Misplaced __if__ remains unevaluated.
+x __if__ 0 __when__ [x-->1];
+
+// get_fundef and get_macdef
+
+get_macdef (*); get_macdef ($);
+get_fundef bla; get_fundef ($);
+
+fact n = n*fact (n-1) if n>0;
+       = 1 otherwise;
+
+fact __with__ get_fundef fact;
+let x = eval (fact __with__ get_fundef fact);
+map x (0..10);
+
+foldr __with__ get_fundef foldr;
+let x = eval (foldr __with__ get_fundef foldr);
+x (*) 1 (1..10);
+
+// add_fundef and add_macdef
+
+add_fundef $
+'[(fold f a [] --> a),
+  (fold f a (xs __as__ (_:_)) --> tick [] xs __with__
+   [(tick zs (x:xs) --> tack (x:zs) (fold f a xs&) __if__ thunkp xs),
+    (tick zs (x:xs) --> tick (x:zs) xs),
+    (tick zs [] --> tack zs a),
+    (tick zs xs --> tack zs (fold f a xs)),
+    (tack (x:xs) y --> tack xs (f x y)),
+    (tack [] y --> y)])];
+fold (*) 1 (1..10);
+
+add_macdef $ '[app f x --> f x];
+h x y = app (+) x y;
+h 2 3;
+
+// del_fundef and del_macdef
+
+del_fundef $ '(fold f a [] --> a);
+del_macdef $ '(app f x --> f x);
+
+get_fundef fold;
+get_macdef app;
+
+// get_typedef, add_typedef and del_typedef
+
+get_typedef list;
+add_typedef $ '[mylist [],mylist (_:_)];
+map (typep mylist) [99,[],1..3,1:3];
+
+get_typedef rlist;
+add_typedef $
+'[(myrlist []-->1),(myrlist (_:_ __type__ myrlist)-->1)];
+map (typep myrlist) [99,[],1..3,1:3];
+
+do del_typedef $ '[(mylist []-->1),(mylist (_:_)-->1)];
+get_typedef mylist;
+
+// get_vardef, get_constdef et al
+
+add_vardef ['v-->99];
+get_vardef ('v);
+
+add_constdef ['v-->77]; lasterr; // error
+del_vardef ('v);
+add_constdef ['v-->77]; // ok
+get_constdef ('v);
+del_constdef ('v);
+get_constdef ('v);
+
+type eqn (x-->y);
+let syms = '[syms,argc,argv,true,false,inf,nan];
+filter (typep eqn) $ catmap get_vardef syms;
+filter (typep eqn) $ catmap get_constdef syms;
+
+// globsym, clearsym
+
+globsym "*" 1;
+do (flip clearsym 1) (globsym "*" 1);
+globsym "*" 1;
+
+// add_fundef_at et al
+
+add_fundef ('[foo 0-->0]);
+add_fundef_at ('(foo 0-->0)) ('[foo 1-->1]);
+add_fundef ('[foo 99-->99]);
+add_fundef_at ('(foo 0-->0)) ('[foo 2-->2]);
+add_fundef_at ('(foo 0-->0)) ('[(foo 4-->4),(foo 3-->3)]);
+add_fundef_at ('(foo 0-->0)) ('[bar 2-->2]); lasterr; // error
+get_fundef ('foo);
+
+add_typedef ('[foo 0-->0]);
+add_typedef_at ('(foo 0-->0)) ('[foo 1-->1]);
+add_typedef ('[foo 99-->99]);
+add_typedef_at ('(foo 0-->0)) ('[foo 2-->2]);
+add_typedef_at ('(foo 0-->0)) ('[(foo 4-->4),(foo 3-->3)]);
+add_typedef_at ('(foo 0-->0)) ('[bar 2-->2]); lasterr; // error
+get_typedef ('foo);
+
+add_macdef ('[foo 0-->0]);
+add_macdef_at ('(foo 0-->0)) ('[foo 1-->1]);
+add_macdef ('[foo 99-->99]);
+add_macdef_at ('(foo 0-->0)) ('[foo 2-->2]);
+add_macdef_at ('(foo 0-->0)) ('[(foo 4-->4),(foo 3-->3)]);
+add_macdef_at ('(foo 0-->0)) ('[bar 2-->2]); lasterr; // error
+get_macdef ('foo);
+
+// Fixed in rev. 4590063284 (reported by Eddie Rucker).
+case '(\x->x+k) of x = x end;
+y when y = '(\x->x+k) end;
+y with y = '(\x->x+k) end;
+'(\x->x+k) when k = 2+x end;
+'(\x->x+k) with k = 2+x end;
+
+// Fixed in rev. f0b96bef44.
+f __with__ [f x-->a x __with__ [(a x-->b x),(b x-->a x)]];
+'(a with a x = b x; b x = a x end);
+'(a with a x = b x; b x = f x end);
+'(f 99 with g x = x+1; f x = y when y = g x end end);
+
+// Fixed in rev. eedc4f57f4.
+eval ('(foo __with__ [foo x --> () __with__ [(bar x --> baz u __when__ [u-->x]), (baz x--> ())]]));
+eval ('(foo __with__ [foo x --> () __with__ [(bar x --> baz x __when__ [_ --> ()]), (baz x --> ())] __when__ [_ --> ()]]));
+'(foo with foo (x:xs) n = foo xs (n-1) if n>0; end);
+'(foo with foo x@[] = [] end);

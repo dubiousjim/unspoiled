@@ -1,0 +1,1150 @@
+
+/* Basic matrix functions. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+using namespace __C;
+
+// Forward declarations for stuff needed from prelude.pure, to make pure -w
+// happy.
+
+public all any cat cst do list map reverse uncurry uncurry3;
+
+/* .. _Matrix Functions:
+
+   Matrix Functions
+   ----------------
+
+   Matrices are provided as an alternative to the list and tuple aggregates
+   which provide contant time access to their members and are tailored for use
+   in numeric computations.
+
+   .. index:: matrix; size
+   .. index:: matrix; dimensions
+
+   .. function:: prefix # /matrix x
+                 dim x
+
+      Determine the size of a matrix (number of elements) and its dimensions
+      (number of rows and columns). ::
+
+        > let x = {1,2,3;4,5,6}; #x;
+	6
+	> dim x;
+	2,3
+
+   .. function:: null /matrix
+
+      Check for empty matrices. Note that there are various kinds of these, as
+      a matrix may have zero rows or columns, or both.
+
+   .. function:: infix == /matrix x y
+		 infix ~= /matrix x y
+
+      Matrix equality and inequality. These check the dimensions and the
+      matrix elements for equality::
+
+        > x == transpose x;
+	0
+
+   .. function:: infix ! /matrix x i
+		 infix !! /matrix x is
+
+      Indexing and slicing.
+
+   Indexing and slicing employ the standard Pure operators '\ :func:`\!`\ '
+   and '\ :func:`\!\!`\ '. They work pretty much like in MATLAB and Octave,
+   but note that Pure matrices are in row-major order and the indices are
+   zero-based. It is possible to access elements with a one-dimensional index
+   (in row-major oder)::
+
+     > x!3;
+     4
+
+   Or you can specify a pair of row and column index::
+
+     > x!(1,0);
+     4
+
+   Slicing works accordingly. You can either specify a list of (one- or
+   two-dimensional) indices, in which case the result is always a row
+   vector::
+
+     > x!!(2..5);
+     {3,4,5,6}
+
+   Or you can specify a pair of row and column index lists::
+
+     > x!!(0..1,1..2);
+     {2,3;5,6}
+
+   The following abbreviations are provided to grab a slice from a row or
+   column::
+
+     > x!!(1,1..2);
+     {5,6}
+     > x!!(0..1,1);
+     {2;5}
+
+   As in the case of lists, matrix slices are optimized to handle cases
+   with contiguous index ranges in an efficient manner, see Slicing_ for
+   details. To these ends, the helper functions :func:`subseq/matrix` and
+   :func:`subseq2/matrix` are defined to handle the necessary compile time
+   optimizations.
+
+   Most of the generic list operations are implemented on matrices as well,
+   see `Common List Functions`_. Hence operations like :func:`map` and
+   :func:`zipwith` work as expected::
+
+     > map succ {1,2,3;4,5,6};
+     {2,3,4;5,6,7}
+     > zipwith (+) {1,2,3;4,5,6} {1,0,1;0,2,0};
+     {2,2,4;4,7,6}
+
+   The matrix module also provides a bunch of other specialized matrix
+   operations, including all the necessary operations for matrix
+   comprehensions. We briefly summarize the most important operations below;
+   please refer to matrices.pure for all the gory details. Also make sure you
+   check :ref:`Matrix Computations` in the Pure Manual for some more examples,
+   and the `Record Functions`_ section for an implementation of records using
+   symbolic vectors.
+
+   Matrix Construction and Conversions
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   .. function:: matrix xs
+
+      This function converts a list or tuple to a corresponding matrix.
+      :func:`matrix` also turns a list of lists or matrices specifying the
+      rows of the matrix to the corresponding rectangular matrix; otherwise,
+      the result is a row vector. (In the former case, :func:`matrix` may
+      throw a :cons:`bad_matrix_value` exception in case of dimension
+      mismatch, with the offending submatrix as argument.) ::
+
+        > matrix [1,2,3];
+	{1,2,3}
+	> matrix [[1,2,3],[4,5,6]];
+	{1,2,3;4,5,6}
+
+   .. function:: rowvector xs
+                 colvector xs
+                 vector xs
+
+      The :func:`rowvector` and :func:`colvector` functions work in a similar
+      fashion, but expect a list, tuple or matrix of elements and always
+      return a row or column vector, respectively (i.e., a :math:`1\times n`
+      or :math:`n\times 1` matrix, where :math:`n` is the size of the
+      converted aggregate). Also, the :func:`vector` function is a synonym for
+      :func:`rowvector`. These functions can also be used to create recursive
+      (symbolic) matrix structures of arbitrary depth, which provide a nested
+      array data structure with efficient (constant time) element access. ::
+
+        > rowvector [1,2,3];
+	{1,2,3}
+	> colvector [1,2,3];
+	{1;2;3}
+	> vector [rowvector [1,2,3],colvector [4,5,6]];
+	{{1,2,3},{4;5;6}}
+
+      Note that for convenience, there's also an alternative syntax for
+      entering nested vectors more easily, see the description of the
+      :ref:`non-splicing vector brackets<non-splicing>` below for details.
+
+   .. function:: rowvectorseq x y step
+                 colvectorseq x y step
+                 vectorseq x y step
+
+      With these functions you can create a row or column vector from an
+      arithmetic sequence. Again, :func:`vectorseq` is provided as a synonym
+      for :func:`rowvectorseq`. These operations are optimized for the case of
+      int and double ranges. ::
+
+        > rowvectorseq 0 10 1;
+	{0,1,2,3,4,5,6,7,8,9,10}
+	> colvectorseq 0 10 1;
+	{0;1;2;3;4;5;6;7;8;9;10}
+	> vectorseq 0.0 0.9 0.1;
+	{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9}
+
+      The prelude also contains some optimization rules which translate calls
+      to :func:`vector` et al on arithmetic sequences to the corresponding
+      calls to :func:`vectorseq` et al, such as::
+
+        def vector (n1:n2..m) = vectorseq n1 m (n2-n1);
+	def vector (n..m) = vectorseq n m 1;
+
+      Example::
+
+	> foo = vector (1..10);
+	> bar = vector (0.0:0.1..0.9);
+	> show foo bar
+	bar = vectorseq 0.0 0.9 0.1;
+	foo = vectorseq 1 10 1;
+	> foo; bar;
+	{1,2,3,4,5,6,7,8,9,10}
+	{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9}
+
+      Please note that these optimization rules assume that basic arithmetic
+      works with the involved elements, which may give you trouble if you try
+      to use :func:`vector` et al with exotic kinds of user-defined arithmetic
+      sequences. To disable them, simply run the interpreter with the option
+      ``--disable vectorseq-opt``.
+
+   .. function:: dmatrix xs
+                 cmatrix xs
+                 imatrix xs
+                 smatrix xs
+
+      These functions convert a list or matrix to a matrix of the
+      corresponding type (integer, double, complex or symbolic). If the input
+      is a list, the result is always a row vector; this is usually faster
+      than the :func:`matrix` and :func:`vector` operations, but requires that
+      the elements already are of the appropriate type. ::
+
+        > imatrix [1,2,3];
+	{1,2,3}
+	> dmatrix {1,2,3;4,5,6};
+	{1.0,2.0,3.0;4.0,5.0,6.0}
+
+      The :func:`dmatrix`, :func:`cmatrix` and :func:`imatrix` functions can
+      also be invoked with either an int ``n`` or a pair ``(n,m)`` of ints as
+      argument, in which case they construct a zero rowvector or matrix with
+      the corresponding dimensions. ::
+
+        > imatrix 3;
+	{0,0,0}
+	> imatrix (2,3);
+	{0,0,0;0,0,0}
+
+   .. function:: list /matrix x
+                 list2 /matrix x
+                 tuple /matrix x
+
+      These convert a matrix back to a flat list or tuple. The :func:`list2`
+      function converts a matrix to a list of lists (one sublist for each row
+      of the matrix). ::
+
+        > tuple {1,2,3;4,5,6};
+	1,2,3,4,5,6
+	> list {1,2,3;4,5,6};
+	[1,2,3,4,5,6]
+	> list2 {1,2,3;4,5,6};
+	[[1,2,3],[4,5,6]]
+	> list2 {1,2,3};
+	[[1,2,3]]
+
+   .. _non-splicing:
+
+   In addition, the following special syntax is provided as a shorthand
+   notation for nested vector structures:
+
+   .. macro:: outfix {| |} x, y, z, ...
+
+      Non-splicing vector brackets. These work like ``{x,y,z,...}``, but
+      unlike these they will *not* splice submatrices in the arguments
+      ``x,y,z,...`` So they work a bit like quoted vectors ``'{x,y,z,...}``,
+      but the arguments ``x,y,z,...`` will be evaluated as usual.
+
+   The non-splicing vector brackets provide a convenient shorthand to enter
+   symbolic vector values which may contain other vectors or matrices as
+   components. For instance, note how the ordinary matrix brackets combine the
+   column subvectors in the first example below to a 3x2 matrix, while the
+   non-splicing brackets in the second example create a 1x2 row vector with
+   the column vectors as members instead::
+
+     > {{1;2;3},{4;5;6}};
+     {1,4;2,5;3,6}
+     > {|{1;2;3},{4;5;6}|};
+     {{1;2;3},{4;5;6}}
+
+   The second example works like a quoted matrix expression such as
+   ``'{{1;2;3},{4;5;6}}``, but the non-splicing brackets also evaluate
+   their arguments::
+
+     > '{vector (1..3),vector (4..6)};
+     {vector (1..3),vector (4..6)}
+     > {|vector (1..3),vector (4..6)|};
+     {{1,2,3},{4,5,6}}
+
+   The ``{| |}`` brackets can be nested. Examples::
+
+     > {|1,{|vector (1..5),2*3|},{}|};
+     {1,{{1,2,3,4,5},6},{}}
+     > {|{|{1,2}|},{|{3,4}|}|};
+     {{{1,2}},{{3,4}}}
+
+   Also note that the ``{| |}`` brackets only produce row vectors, but you
+   can just transpose the result if you need a column vector instead::
+
+     > transpose {|{1;2;3},{4;5;6}|};
+     {{1;2;3};{4;5;6}}
+
+   Finally, note that the notation ``{| |}`` without any arguments is not
+   supported, simply write ``{}`` for the empty vector instead.
+
+   Matrix Inspection and Manipulation
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   .. type:: dmatrix
+             cmatrix
+             imatrix
+             smatrix
+             nmatrix
+
+      Convenience types for the different subtypes of matrices (double,
+      complex, int, symbolic and numeric, i.e., non-symbolic). These can be
+      used as type tags on the left-hand side of equations to match specific
+      types of matrices.
+
+   .. function:: dmatrixp x
+                 cmatrixp x
+                 imatrixp x
+                 smatrixp x
+                 nmatrixp x
+
+      Corresponding predicates to check for different kinds of matrices.
+
+   .. function:: vectorp x
+                 rowvectorp x
+                 colvectorp x
+
+      Check for different kinds of vectors (these are just matrices with one
+      row or column). */
+
+/* Experimental: non-splicing vector brackets. Thanks to dubiousjim for this
+   implementation (see https://github.com/dubiousjim/unspoiled). */
+
+namespace __C;
+// This is provided by the runtime.
+extern expr* pure_matrix_columnsq (int, ...);
+extern expr* pure_matrix_columnsq (int, expr*) = vector1;
+extern expr* pure_matrix_columnsq (int, expr*, expr*) = vector2;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*) = vector3;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*) = vector4;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*,
+				   expr*) = vector5;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*,
+				   expr*) = vector6;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*,
+				   expr*, expr*) = vector7;
+extern expr* pure_matrix_columnsq (int, expr*, expr*, expr*, expr*, expr*,
+				   expr*, expr*, expr*) = vector8;
+
+namespace __std__;
+// The private __avect__ macro accumulates the vector components.
+private __avect__;
+// Some optimization rules which eliminate empty vectors at the front.
+def __avect__ {} (r:s:t:u:w:x:y:z:zs) = __avect__
+  (vector8 8 r s t u w x y z) zs;
+def __avect__ {} (s:t:u:w:x:y:z:zs) = __avect__ (vector7 7 s t u w x y z) zs;
+def __avect__ {} (t:u:w:x:y:z:zs) = __avect__ (vector6 6 t u w x y z) zs;
+def __avect__ {} (u:w:x:y:z:zs) = __avect__ (vector5 5 u w x y z) zs;
+def __avect__ {} (w:x:y:z:zs) = __avect__ (vector4 4 w x y z) zs;
+def __avect__ {} (x:y:z:zs) = __avect__ (vector3 3 x y z) zs;
+def __avect__ {} (y:z:zs) = __avect__ (vector2 2 y z) zs;
+def __avect__ {} (z:zs) = __avect__ (vector1 1 z) zs;
+// Handle chunks of various sizes, to speed up the operation at runtime.
+def __avect__ v (r:s:t:u:w:x:y:z:zs) = __avect__
+  {v,vector8 8 r s t u w x y z} zs;
+def __avect__ v (s:t:u:w:x:y:z:zs) = __avect__ {v,vector7 7 s t u w x y z} zs;
+def __avect__ v (t:u:w:x:y:z:zs) = __avect__ {v,vector6 6 t u w x y z} zs;
+def __avect__ v (u:w:x:y:z:zs) = __avect__ {v,vector5 5 u w x y z} zs;
+def __avect__ v (w:x:y:z:zs) = __avect__ {v,vector4 4 w x y z} zs;
+def __avect__ v (x:y:z:zs) = __avect__ {v,vector3 3 x y z} zs;
+def __avect__ v (y:z:zs) = __avect__ {v,vector2 2 y z} zs;
+def __avect__ v (z:zs) = __avect__ {v,vector1 1 z} zs;
+def __avect__ v [] = v;
+// This is the public macro to be invoked by {| |}. It parses the argument
+// tuple using __list__, converting it to a list literal so that embedded
+// tuples are handled properly.
+def __vect__ xs = __avect__ {} (__list__ xs);
+namespace;
+
+public outfix {| |};
+def {| xs |} = __std__::__vect__ xs;
+
+extern int matrix_type(expr* x);
+
+dmatrixp x	= case x of _::matrix = matrix_type x==1; _ = 0 end;
+cmatrixp x	= case x of _::matrix = matrix_type x==2; _ = 0 end;
+imatrixp x	= case x of _::matrix = matrix_type x==3; _ = 0 end;
+
+/* The nmatrixp predicate checks for any kind of numeric (double, complex or
+   int) matrix, smatrixp for symbolic matrices. */
+
+nmatrixp x	= case x of _::matrix = matrix_type x>=1; _ = 0 end;
+smatrixp x	= case x of _::matrix = matrix_type x==0; _ = 0 end;
+
+/* Convenience types for the above. */
+
+type dmatrix 	= dmatrixp;
+type imatrix 	= imatrixp;
+type cmatrix 	= cmatrixp;
+type nmatrix 	= nmatrixp;
+type smatrix 	= smatrixp;
+
+/* Pure represents row and column vectors as matrices with 1 row or column,
+   respectively. The following predicates allow you to check for these special
+   kinds of matrices. */
+
+public dim;
+vectorp x	= matrixp x && (n==1 || m==1 when n::int,m::int = dim x end);
+rowvectorp x	= matrixp x && dim x!0==1;
+colvectorp x	= matrixp x && dim x!1==1;
+
+/* Matrix comparisons. */
+
+public imatrix dmatrix cmatrix;
+x::matrix == y::matrix	= x === y
+			    if nmatrixp x && matrix_type x == matrix_type y;
+// mixed numeric cases
+			= cmatrix x === y if nmatrixp x && cmatrixp y;
+			= x === cmatrix y if cmatrixp x && nmatrixp y;
+			= dmatrix x === y if imatrixp x && dmatrixp y;
+			= x === dmatrix y if dmatrixp x && imatrixp y;
+// comparisons with symbolic matrices
+			= 0 if dim x ~= dim y;
+			= compare 0 with
+			    compare i::int = 1 if i>=n;
+					   = 0 if x!i ~= y!i;
+					   = compare (i+1);
+			  end when n::int = #x end;
+
+x::matrix ~= y::matrix	= ~(x == y);
+
+/* Size of a matrix (#x) and its dimensions (dim x=n,m where n is the number
+   of rows, m the number of columns). Note that Pure supports empty matrices,
+   thus the total size may well be zero, meaning that either the number of
+   rows or the number of columns is zero, or both. The null predicate checks
+   for empty matrices. */
+
+namespace __C;
+extern int matrix_size(expr *x), expr* matrix_dim(expr *x);
+namespace;
+
+#x::matrix		= matrix_size x;
+dim x::matrix		= matrix_dim x;
+null x::matrix		= #x==0;
+
+/* .. function:: stride x
+
+      The stride of a matrix denotes the real row size of the underlying C
+      array, see the description of the :func:`pack` function below for
+      further details. There's little use for this value in Pure, but it may
+      be needed when interfacing to C. */
+
+namespace __C;
+extern int matrix_stride(expr *x);
+namespace;
+
+stride x::matrix	= matrix_stride x;
+
+/* Indexing. Note that in difference to Octave and MATLAB, all indices are
+   zero-based, and you *must* use Pure's indexing operator '!' to retrieve an
+   element. You can either get an element by specifying its row-major index in
+   the range 0..#x-1, or with a two-dimensional subscript of the form of a
+   pair (i,j), where i denotes the row and j the column index. Both operations
+   take only constant time, and an 'out_of_bounds' exception is thrown if an
+   index falls outside the valid range. */
+
+namespace __C;
+extern expr* matrix_elem_at(expr* x, int i);
+extern expr* matrix_elem_at2(expr* x, int i, int j);
+namespace;
+
+x::matrix!i::int	= matrix_elem_at x i if i>=0 && i<#x;
+			= throw out_of_bounds otherwise;
+
+x::matrix!(i::int,j::int)
+			= matrix_elem_at2 x i j
+			    if (i>=0 && i<n && j>=0 && j<m
+				when n::int,m::int = dim x end);
+			= throw out_of_bounds otherwise;
+
+/* Matrix slices (x!!ns). As with simple indexing, elements can be addressed
+   using either singleton (row-major) indices or index pairs (row,column). The
+   former is specified as a list of int values, the latter as a pair of lists
+   of int values. As with list slicing, index ranges may be non-contiguous
+   and/or non-monotonous. However, the case of contiguous and monotonous
+   ranges is optimized by making good use of the 'submat' operation below. We
+   also add some convenience rules to handle matrix ranges as well "mixed"
+   ranges (ns,ms) where either ns or ms is a singleton. */
+
+x!!ns::matrix		= x!!list ns;
+x!!(ns::matrix,ms)	= x!!(list ns,ms) if ~tuplep ms;
+x!!(ns,ms::matrix)	= x!!(ns,list ms);
+x!!(ns::int,ms)		= x!!([ns],ms) if ~tuplep ms;
+x!!(ns,ms::int)		= x!!(ns,[ms]);
+
+public col row colcat rowcat colmap rowmap colcatmap rowcatmap rowvector;
+public submat packed;
+
+x::matrix!!(ns,ms)	= case ns,ms of
+			    ns@(n:_),ms@(m:_) = submat x (n,m) (#ns,#ms)
+			      if cont ns && cont ms;
+			    _ = colcatmap (mth (rowcatmap (nth x) ns)) ms;
+			  end with
+			    cont [n::int] = 1;
+			    cont (n::int:ns@(m::int:_)) = cont ns if m==n+1;
+			    cont _ = 0 otherwise;
+			    nth x n = catch (cst {}) (row x n);
+			    mth x m = catch (cst {}) (col x m);
+			  end;
+x::matrix!!ns		= if all intp ns && packed x
+			  then rowvector x!!([0],ns)
+			  else colcatmap (nth x) ns with
+			    nth x n = catch (cst {}) {x!n};
+			  end;
+
+/* Compile time optimization of matrix slices. */
+
+/* .. function:: subseq /matrix x i j
+                 subseq2 /matrix x i j k l
+
+      Helper functions to optimize matrix slices, see Slicing_ for details.
+      :func:`subseq2/matrix` is a special version of :func:`subseq/matrix`
+      which is used to optimize the case of 2-dimensional matrix slices
+      ``xs!!(i..j,k..l)``. */
+
+namespace __C;
+extern expr* matrix_slice(expr* x, int i1, int j1, int i2, int j2);
+namespace;
+
+subseq2 x::matrix a1::int b1::int a2::int b2::int =
+  __C::matrix_slice x a1 a2 b1 b2;
+subseq2 x a1 a1 a2 b2 = slice x (a1,a2..b2);
+subseq2 x a1 b1 a2 a2 = slice x (a1..b1,a2);
+subseq2 x a1 b1 a2 b2 = slice x (a1..b1,a2..b2);
+
+subseq x::matrix a::int b::int =
+  __C::matrix_slice (rowvector x) 0 a 0 b;
+
+#! --if subseq-opt
+def x!!(a1..b1,a2..b2) = subseq2 x a1 b1 a2 b2;
+def x!!(a1,a2..b2) = subseq2 x a1 a1 a2 b2;
+def x!!(a1..b1,a2) = subseq2 x a1 b1 a2 a2;
+#! --endif
+
+/* Extract rows and columns from a matrix. */
+
+/* .. function:: row x i
+                 col x i
+
+      Extract the ``i``\ th row or column of a matrix. */
+
+row x::matrix i::int	= if i>=0 && i<n then matrix_slice x i 0 i (m-1)
+			  else throw out_of_bounds
+			  when n::int,m::int = dim x end;
+
+col x::matrix j::int	= if j>=0 && j<m then matrix_slice x 0 j (n-1) j
+			  else throw out_of_bounds
+			  when n::int,m::int = dim x end;
+
+/* .. function:: rows x
+                 cols x
+
+      Return the list of all rows or columns of a matrix. */
+
+rows x::matrix		= map (row x) (0..n-1) when n::int,_ = dim x end;
+
+cols x::matrix		= map (col x) (0..m-1) when _,m::int = dim x end;
+
+/* Matrix conversions (see description above). */
+
+list x::matrix		= [x!i|i=0..#x-1];
+list2 x::matrix		= [[x!(i,j)|j=0..m-1]|i=0..n-1]
+			    when n::int,m::int = dim x end;
+
+matrix []		= {};
+matrix xs@(_:_)		= throw (bad_list_value xs) if ~rlistp xs;
+			= rowcatmap colcat xs if all rlistp xs;
+			= rowcat xs if any matrixp xs;
+			= colcat xs otherwise;
+
+/* Convert between matrices and tuples. */
+
+tuple x::matrix		= tuple (list x);
+
+matrix ()		= {};
+matrix xs@(_,_)		= matrix (list xs);
+
+/* Identity conversion. */
+
+matrix x::matrix	= x;
+
+/* Create zero matrices of different types. */
+
+public int_matrix double_matrix complex_matrix; // see below
+
+dmatrix (n::int,m::int)	= double_matrix (n,m) NULL;
+cmatrix (n::int,m::int)	= complex_matrix (n,m) NULL;
+imatrix (n::int,m::int)	= int_matrix (n,m) NULL;
+
+dmatrix n::int		= dmatrix (1,n);
+cmatrix n::int		= cmatrix (1,n);
+imatrix n::int		= imatrix (1,n);
+
+/* Convert between different matrix types. */
+
+namespace __C;
+extern expr* matrix_double(expr *x), expr* matrix_complex(expr *x),
+  expr* matrix_int(expr *x), expr* matrix_symbolic(expr *x);
+namespace;
+
+dmatrix x		= y if matrixp y when y = matrix_double x end;
+imatrix x		= y if matrixp y when y = matrix_int x end;
+cmatrix x		= y if matrixp y when y = matrix_complex x end;
+smatrix x		= y if matrixp y when y = matrix_symbolic x end;
+
+/* Conversions to row and column vectors. */
+
+public redim;
+
+rowvector x::matrix	= redim (1,#x) x;
+colvector x::matrix	= redim (#x,1) x;
+
+rowvector ()		= redim (1,0) {};
+rowvector xs@(_,_)	= rowvector (list xs);
+
+colvector ()		= redim (0,1) {};
+colvector xs@(_,_)	= colvector (list xs);
+
+rowvector []		= redim (1,0) {};
+rowvector xs::rlist	= case cmatrix xs of
+			    x::matrix = x;
+			    _ = case dmatrix xs of
+			      x::matrix = x;
+			      _ = case imatrix xs of
+			        x::matrix = x;
+				_ = smatrix xs;
+			      end;
+			    end;
+			  end;
+
+colvector xs		= redim (#x,1) x if matrixp x
+			  when x = rowvector xs end;
+
+vector xs		= x if matrixp x when x = rowvector xs end;
+
+/* Row and column vectors from arithmetic sequences. */
+
+namespace __C;
+extern expr* pure_int_rowvect(int from, int to, int step);
+extern expr* pure_double_rowvect(double from, double to, double step);
+extern expr* pure_int_colvect(int from, int to, int step);
+extern expr* pure_double_colvect(double from, double to, double step);
+namespace;
+
+rowvectorseq n::int m::int s::int = __C::pure_int_rowvect n m s;
+rowvectorseq n::double m::double s::double = __C::pure_double_rowvect n m s;
+rowvectorseq n::int m::double s::double |
+rowvectorseq n::double m::int s::double |
+rowvectorseq n::double m::double s::int |
+rowvectorseq n::int m::int s::double |
+rowvectorseq n::int m::double s::int |
+rowvectorseq n::double m::int s::int =
+  __C::pure_double_rowvect (double n) (double m) (double s);
+
+rowvectorseq n m s = x if matrixp x when x = rowvector (n:n+s..m) end;
+
+colvectorseq n::int m::int s::int = __C::pure_int_colvect n m s;
+colvectorseq n::double m::double s::double = __C::pure_double_colvect n m s;
+colvectorseq n::int m::double s::double |
+colvectorseq n::double m::int s::double |
+colvectorseq n::double m::double s::int |
+colvectorseq n::int m::int s::double |
+colvectorseq n::int m::double s::int |
+colvectorseq n::double m::int s::int =
+  __C::pure_double_colvect (double n) (double m) (double s);
+
+colvectorseq n m s = x if matrixp x when x = colvector (n:n+s..m) end;
+
+vectorseq n m s = x if matrixp x when x = rowvectorseq n m s end;
+
+/* Optimization rules (experimental). FIXME: These rules are somewhat
+   problematic since they assume that certain basic arithmetic calculations
+   involving +, - and 1 work with the elements of the arithmetic sequence,
+   which may not be the case if the elements are not actually numbers. But
+   these optimizations are simply too good to not be enabled by default, just
+   to make some rather esoteric cases work. If they do give you trouble, you
+   can always disable them (--disable vectorseq-opt). */
+
+#! --if vectorseq-opt
+def rowvector (n1:n2..m) = rowvectorseq n1 m (n2-n1);
+def rowvector (n..m) = rowvectorseq n m 1;
+def colvector (n1:n2..m) = colvectorseq n1 m (n2-n1);
+def colvector (n..m) = colvectorseq n m 1;
+def vector (n1:n2..m) = vectorseq n1 m (n2-n1);
+def vector (n..m) = vectorseq n m 1;
+#! --endif
+
+/* .. function:: diag x
+                 subdiag x k
+                 supdiag x k
+
+      Extract (sub-,super-) diagonals from a matrix. Sub- and super-diagonals
+      for ``k=0`` return the main diagonal. Indices for sub- and
+      super-diagonals can also be negative, in which case the corresponding
+      super- or sub-diagonal is returned instead. In each case the result is a
+      row vector. */
+
+extern expr* matrix_diag(expr* x) = diag;
+extern expr* matrix_subdiag(expr* x, int k) = subdiag;
+extern expr* matrix_supdiag(expr* x, int k) = supdiag;
+
+/* .. function:: submat x (i,j) (n,m)
+
+      Extract a submatrix of a given size at a given offset. The result shares
+      the underlying storage with the input matrix (i.e., matrix elements are
+      *not* copied) and so this is a comparatively cheap operation. */
+
+submat x::matrix (i::int,j::int) (n::int,m::int)
+			= matrix_slice x i j (i+n-1) (j+m-1);
+
+/* .. function:: rowcat xs
+                 colcat xs
+
+      Construct matrices from lists of rows and columns. These take either
+      scalars or submatrices as inputs; corresponding dimensions must match.
+      :func:`rowcat` combines submatrices vertically, like ``{x;y}``;
+      :func:`colcat` combines them horizontally, like ``{x,y}``. Note: Like
+      the built-in matrix constructs, these operations may throw a
+      :func:`bad_matrix_value` exception in case of dimension mismatch. */
+
+extern expr* matrix_rows(expr *x) = rowcat;
+extern expr* matrix_columns(expr *x) = colcat;
+
+/* .. function:: matcat xs
+
+      Construct a matrix from a (symbolic) matrix of other matrices and/or
+      scalars. This works like a combination of :func:`rowcat` and
+      :func:`colcat`, but draws its input from a matrix instead of a list of
+      matrices, and preserves the overall layout of the "host" matrix. The net
+      effect is that the host matrix is flattened out. If all elements of the
+      input matrix are scalars already, the input matrix is returned
+      unchanged. */
+
+extern expr* matrix_matcat(expr *x) = matcat;
+
+/* .. function:: rowcatmap f xs
+                 colcatmap f xs
+		 rowmap f xs
+		 colmap f xs
+
+      Various combinations of :func:`rowcat`, :func:`colcat` and :func:`map`.
+      These are used, in particular, for implementing matrix comprehensions. */
+
+rowcatmap f []		= {};
+rowcatmap f xs@(_:_)	= rowcat (map f xs);
+
+colcatmap f []		= {};
+colcatmap f xs@(_:_)	= colcat (map f xs);
+
+rowmap f []		= {};
+rowmap f xs@(_:_)	= rowcat (map f xs);
+
+colmap f []		= {};
+colmap f xs@(_:_)	= colcat (map f xs);
+
+/* .. function:: diagmat x
+                 subdiagmat x k
+                 supdiagmat x k
+
+      Create a (sub-,super-) diagonal matrix from a row vector ``x`` of size
+      ``n``. The result is always a square matrix with dimension ``(n+k,n+k)``,
+      which is of the same matrix type (double, complex, int, symbolic) as the
+      input and has the elements of the vector on its ``k``\ th sub- or
+      super-diagonal, with all other elements zero. A negative value for ``k``
+      turns a sub- into a super-diagonal matrix and vice versa. */
+
+extern expr* matrix_diagm(expr* x) = diagmat;
+extern expr* matrix_subdiagm(expr* x, int k) = subdiagmat;
+extern expr* matrix_supdiagm(expr* x, int k) = supdiagmat;
+
+/* .. function:: re /matrix x
+                 im /matrix x
+                 conj /matrix x
+
+      Extract the real and imaginary parts and compute the conjugate of a
+      numeric matrix. */
+
+namespace __C;
+extern expr* matrix_re(expr *x), expr* matrix_im(expr *x);
+extern expr* matrix_conj(expr *x);
+namespace;
+
+re x::matrix		= matrix_re x if nmatrixp x;
+im x::matrix		= matrix_im x if nmatrixp x;
+conj x::matrix		= matrix_conj x if nmatrixp x;
+
+/* .. function:: pack x
+                 packed x
+
+      Pack a matrix. This creates a copy of the matrix which has the data in
+      contiguous storage. It also frees up extra memory if the matrix was
+      created as a slice from a bigger matrix (see :func:`submat` above) which
+      has since gone the way of the dodo. The :func:`packed` predicate can be
+      used to verify whether a matrix is already packed. Note that even if a
+      matrix is already packed, :func:`pack` will make a copy of it anyway, so
+      :func:`pack` also provides a quick way to copy a matrix, e.g., if you
+      want to pass it as an input/output parameter to a GSL routine. */
+
+pack x::matrix		= colcat [x,{}];
+packed x::matrix	= stride x==dim x!1;
+
+/* .. function:: redim (n,m) x
+		 redim n x
+
+      Change the dimensions of a matrix without changing its size. The total
+      number of elements must match that of the input matrix. Reuses the
+      underlying storage of the input matrix if possible (i.e., if the matrix
+      is :func:`packed`). You can also redim a matrix to a given row size
+      ``n``. In this case the row size must divide the total size of the
+      matrix. */
+
+namespace __C;
+extern expr* matrix_redim(expr* x, int n, int m);
+namespace;
+
+redim (n::int,m::int) x::matrix
+			= matrix_redim x n m if n>=0 && m>=0 && n*m==#x;
+
+redim m::int x::matrix	= redim (#x div m,m) x if m>0 && #x mod m==0;
+			= x if m==0 && #x==0;
+
+/* .. function:: sort /matrix p x
+
+      Sorts the elements of a matrix (non-destructively, i.e., without
+      changing the original matrix) according to the given predicate, using
+      the C ``qsort`` function. This works exactly the same as with lists (see
+      `Common List Functions`_), except that it takes and returns a matrix
+      instead of a list. Note that the function sorts *all* elements of the
+      matrix in one go (regardless of the dimensions), as if the matrix was a
+      single big vector. The result matrix has the same dimensions as the
+      input matrix. Example::
+
+        > sort (<) {10,9;8,7;6,5};
+        {5,6;7,8;9,10}
+
+      If you'd like to sort the individual rows instead, you can do that as
+      follows::
+
+        > sort_rows p = rowcat . map (sort p) . rows;
+        > sort_rows (<) {10,9;8,7;6,5};
+        {9,10;7,8;5,6}
+
+      Likewise, to sort the columns of a matrix::
+
+        > sort_cols p = colcat . map (sort p) . cols;
+        > sort_cols (<) {10,9;8,7;6,5};
+        {6,5;8,7;10,9}
+
+      Also note that the pure-gsl module provides an interface to the GSL
+      routines for sorting numeric (int and double) vectors using the standard
+      order. These will usually be much faster than :func:`sort/matrix`,
+      whereas :func:`sort/matrix` is more flexible in that it also allows you
+      to sort symbolic matrices and to choose the order predicate. */
+
+/* The 'sort' primitive from the runtime already handles symbolic matrices,
+   so we only define the numeric matrix cases here. */
+
+sort p x::matrix	= case sort p (smatrix x) of
+			    y::matrix = imatrix y if imatrixp x;
+				      = dmatrix y if dmatrixp x;
+				      = cmatrix y if cmatrixp x;
+			    y = y otherwise;
+			  end;
+
+/* .. function:: transpose /matrix x
+
+      Transpose a matrix. Example::
+
+        > transpose {1,2,3;4,5,6};
+        {1,4;2,5;3,6} */
+
+namespace __C;
+extern expr* matrix_transpose(expr *x);
+namespace;
+
+transpose x::matrix	= matrix_transpose x;
+
+/* .. function:: rowrev x
+                 colrev x
+                 reverse /matrix x
+
+      Reverse a matrix. :func:`rowrev` reverses the rows, :func:`colrev` the
+      columns, :func:`reverse` both dimensions. */
+
+rowrev x::matrix	= rowcat (reverse (rows x));
+colrev x::matrix	= colcat (reverse (cols x));
+reverse x::matrix	= rowrev (colrev x);
+
+/* catmap et al on matrices. This allows list and matrix comprehensions to
+   draw values from matrices as well as from lists, and to preserve the block
+   layout of component matrices in matrix comprehensions. Also, these
+   operations are optimized to take advantage of the specialized
+   implementation of map on matrices. */
+
+catmap f x::matrix	= cat (list (map f x));
+rowcatmap f x::matrix	= matcat (map f x);
+colcatmap f x::matrix	= matcat (map f x);
+
+listmap f x::matrix	= list (map f x);
+rowmap f x::matrix	= map f x;
+colmap f x::matrix	= map f x;
+
+/* Implementations of the other customary list operations, so that these can
+   be used on matrices, too. Most of these operations treat the matrix
+   essentially as if it was a flat list of its elements, but return a matrix
+   result instead of a list. The dimension of the result matrix depends on the
+   particular operation; functions like map and zip keep the dimensions of the
+   input matrices intact, while other functions like filter, take or scanl
+   always return a flat row vector. Also note that the zip-style operations
+   truncate the dimensions of the result to the minimum numbers of rows and
+   columns of the input matrices (this is analogous to the truncation that
+   happens when zip is applied to lists of different lengths). */
+
+namespace __C;
+/* Optimized matrix functions, by Scott E. Dillard. These are *much* faster
+   (usually 10 times or more) than doing conversions from/to lists and using
+   the corresponding list functions. */
+extern expr* matrix_all(expr*,expr*);
+extern expr* matrix_any(expr*,expr*);
+extern void  matrix_do(expr*,expr*);
+extern expr* matrix_map(expr*,expr*);
+extern expr* matrix_zipwith(expr*,expr*,expr*);
+extern expr* matrix_zipwith3(expr*,expr*,expr*,expr*);
+extern expr* matrix_filter(expr*,expr*);
+extern expr* matrix_dropwhile(expr*,expr*);
+extern expr* matrix_takewhile(expr*,expr*);
+extern expr* matrix_foldl(expr*,expr*,expr*);
+extern expr* matrix_foldl1(expr*,expr*);
+extern expr* matrix_foldr(expr*,expr*,expr*);
+extern expr* matrix_foldr1(expr*,expr*);
+extern expr* matrix_scanl(expr*,expr*,expr*);
+extern expr* matrix_scanl1(expr*,expr*);
+extern expr* matrix_scanr(expr*,expr*,expr*);
+extern expr* matrix_scanr1(expr*,expr*);
+namespace;
+
+cycle x::matrix		= cycle (list x);
+cyclen n::int x::matrix	= cyclen n (list x) if ~null x;
+
+all p x::matrix		= matrix_all p x;
+any p x::matrix		= matrix_any p x;
+do f x::matrix		= matrix_do f x;
+drop k::int x::matrix	= x!!(k..#x-1);
+dropwhile p x::matrix	= matrix_dropwhile p x;
+filter p x::matrix      = matrix_filter p x;
+foldl f a x::matrix     = matrix_foldl f a x;
+foldl1 f x::matrix      = matrix_foldl1 f x if ~null x;
+foldr f a x::matrix     = matrix_foldr f a x;
+foldr1 f x::matrix	= matrix_foldr1 f x if ~null x;
+head x::matrix		= x!0 if ~null x;
+init x::matrix		= x!!(0..#x-2) if ~null x;
+last x::matrix		= x!(#x-1) if ~null x;
+map f x::matrix	        = matrix_map f x;
+scanl f a x::matrix	= matrix_scanl f a x;
+scanl1 f x::matrix	= matrix_scanl1 f x;
+scanr f a x::matrix	= matrix_scanr f a x;
+scanr1 f x::matrix	= matrix_scanr1 f x;
+take k::int x::matrix	= x!!(0..k-1);
+takewhile p x::matrix	= matrix_takewhile p x;
+tail x::matrix		= x!!(1..#x-1) if ~null x;
+
+zipwith f x::matrix y::matrix
+			= matrix_zipwith f x y;
+
+zipwith3 f x::matrix y::matrix z::matrix
+			= matrix_zipwith3 f x y z;
+
+zip x::matrix y::matrix	= zipwith (,) x y;
+
+zip3 x::matrix y::matrix z::matrix
+			= zipwith3 (\x y z->x,y,z) x y z;
+
+dowith f x::matrix y::matrix
+			= do (uncurry f) (zip x y);
+dowith3 f x::matrix y::matrix z::matrix
+			= do (uncurry3 f) (zip3 x y z);
+
+unzip x::matrix		= {u | u,_ = x},{v | _,v = x}
+			    if all check x
+			    with
+			      check (_,_) = true;
+			      check x = throw (bad_tuple_value x) otherwise;
+			    end;
+unzip3 x::matrix	= {u | u,_ = x},{v | _,v,_ = x},{w | _,_,w = x}
+			    if all check x
+			    with
+			      check (_,_,_) = true;
+			      check x = throw (bad_tuple_value x) otherwise;
+			    end;
+
+/* ..
+
+   Pointers and Matrices
+   ~~~~~~~~~~~~~~~~~~~~~
+
+   Last but not least, the matrix module also offers a bunch of low-level
+   operations for converting between matrices and raw pointers. These are
+   typically used to shovel around massive amounts of numeric data between
+   Pure and external C routines, when performance and throughput is an
+   important consideration (e.g., graphics, video and audio applications). The
+   usual caveats concerning direct pointer manipulations apply.
+
+   .. function:: pointer /matrix x
+
+      Get a pointer to the underlying C array of a matrix. The data is *not*
+      copied. Hence you have to be careful when passing such a pointer to C
+      functions if the underlying data is non-contiguous; when in doubt, first
+      use the :func:`pack` function to place the data in contiguous storage,
+      or use one of the matrix-pointer conversion routines below. */
+
+namespace __C;
+extern expr* pure_pointerval(expr*);
+namespace;
+
+pointer x::matrix	= pure_pointerval x;
+
+/* .. function:: double_pointer p x
+                 float_pointer p x
+                 complex_pointer p x
+                 complex_float_pointer p x
+                 int_pointer p x
+                 short_pointer p x
+                 byte_pointer p x
+
+      These operations copy the contents of a matrix to a given pointer and
+      return that pointer, converting to the target data type on the fly if
+      necessary. The given pointer may also be :const:`NULL`, in which case
+      suitable memory is malloced and returned; otherwise the caller must
+      ensure that the memory pointed to by ``p`` is big enough for the
+      contents of the given matrix. */
+
+namespace __C;
+extern void* matrix_to_double_array(void* p, expr* x);
+extern void* matrix_to_float_array(void* p, expr* x);
+extern void* matrix_to_complex_array(void* p, expr* x);
+extern void* matrix_to_complex_float_array(void* p, expr* x);
+extern void* matrix_to_int_array(void* p, expr* x);
+extern void* matrix_to_short_array(void* p, expr* x);
+extern void* matrix_to_byte_array(void* p, expr* x);
+namespace;
+
+double_pointer p::pointer x::matrix
+			= matrix_to_double_array p x if nmatrixp x;
+float_pointer p::pointer x::matrix
+			= matrix_to_float_array p x if nmatrixp x;
+complex_pointer p::pointer x::matrix
+			= matrix_to_complex_array p x if nmatrixp x;
+complex_float_pointer p::pointer x::matrix
+			= matrix_to_complex_float_array p x if nmatrixp x;
+int_pointer p::pointer x::matrix
+			= matrix_to_int_array p x if nmatrixp x;
+short_pointer p::pointer x::matrix
+			= matrix_to_short_array p x if nmatrixp x;
+byte_pointer p::pointer x::matrix
+			= matrix_to_byte_array p x if nmatrixp x;
+
+/* .. function:: double_matrix (n,m) p
+                 float_matrix (n,m) p
+                 complex_matrix (n,m) p
+                 complex_float_matrix (n,m) p
+                 int_matrix (n,m) p
+                 short_matrix (n,m) p
+                 byte_matrix (n,m) p
+
+      These functions allow you to create a numeric matrix from a pointer,
+      copying the data and converting it from the source type on the fly if
+      necessary. The source pointer ``p`` may also be :const:`NULL`, in which
+      case the new matrix is filled with zeros instead.  Otherwise the caller
+      must ensure that the pointer points to properly initialized memory big
+      enough for the requested dimensions. The given dimension may also be
+      just an integer ``n`` if a row vector is to be created. */
+
+namespace __C;
+extern expr* matrix_from_double_array(int n, int m, void* p);
+extern expr* matrix_from_float_array(int n, int m, void* p);
+extern expr* matrix_from_complex_array(int n, int m, void* p);
+extern expr* matrix_from_complex_float_array(int n, int m, void* p);
+extern expr* matrix_from_int_array(int n, int m, void* p);
+extern expr* matrix_from_short_array(int n, int m, void* p);
+extern expr* matrix_from_byte_array(int n, int m, void* p);
+namespace;
+
+double_matrix (n::int,m::int) p::pointer
+			= matrix_from_double_array n m p;
+float_matrix (n::int,m::int) p::pointer
+			= matrix_from_float_array n m p;
+complex_matrix (n::int,m::int) p::pointer
+			= matrix_from_complex_array n m p;
+complex_float_matrix (n::int,m::int) p::pointer
+			= matrix_from_complex_float_array n m p;
+int_matrix (n::int,m::int) p::pointer
+			= matrix_from_int_array n m p;
+short_matrix (n::int,m::int) p::pointer
+			= matrix_from_short_array n m p;
+byte_matrix (n::int,m::int) p::pointer
+			= matrix_from_byte_array n m p;
+
+double_matrix n::int p::pointer
+			= double_matrix (1,n) p;
+float_matrix n::int p::pointer
+			= float_matrix (1,n) p;
+complex_matrix n::int p::pointer
+			= complex_matrix (1,n) p;
+complex_float_matrix n::int p::pointer
+			= complex_float_matrix (1,n) p;
+int_matrix n::int p::pointer
+			= int_matrix (1,n) p;
+short_matrix n::int p::pointer
+			= short_matrix (1,n) p;
+byte_matrix n::int p::pointer
+			= byte_matrix (1,n) p;
+
+/* .. function:: double_matrix_view (n,m) p
+                 complex_matrix_view (n,m) p
+                 int_matrix_view (n,m) p
+
+      These operations can be used to create a numeric matrix view of existing
+      data, without copying the data. The data must be double, complex or int,
+      the pointer must not be :const:`NULL` and the caller must also ensure
+      that the memory persists for the entire lifetime of the matrix object.
+      The given dimension may also be just an integer ``n`` if a row vector
+      view is to be created. */
+
+namespace __C;
+extern expr* matrix_from_double_array_nodup(int n, int m, void* p);
+extern expr* matrix_from_complex_array_nodup(int n, int m, void* p);
+extern expr* matrix_from_int_array_nodup(int n, int m, void* p);
+namespace;
+
+double_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_double_array_nodup n m p;
+complex_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_complex_array_nodup n m p;
+int_matrix_view (n::int,m::int) p::pointer
+			= matrix_from_int_array_nodup n m p;
+
+double_matrix_view n::int p::pointer
+			= double_matrix_view (1,n) p;
+complex_matrix_view n::int p::pointer
+			= complex_matrix_view (1,n) p;
+int_matrix_view n::int p::pointer
+			= int_matrix_view (1,n) p;
