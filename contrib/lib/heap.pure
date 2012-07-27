@@ -195,8 +195,8 @@ end with
   update (bin 1 x         (bin b1::int x1         h1 h2) nil)
 				= bin 1 x (bin b1 x1 h1 h2) nil
 				      if x <= x1;
-				= bin 1 x1 (update (bin b1 x h1 h2))
-				  nil otherwise;
+				= bin 1 x1 (update (bin b1 x h1 h2)) nil
+				      otherwise;
   update (bin b::int x::int    (bin b1::int x1::int    h1 h2)
 					(bin b2::int x2::int    h3 h4)) |
   update (bin b::int x::string (bin b1::int x1::string h1 h2)
