@@ -110,7 +110,7 @@ type heap (Heap _);
    below. */
 
 public heapp emptyheap heap null members list first rmfirst insert;
-public pickfirst;
+public pickfirst stream;
 
 namespace heap;
 
@@ -167,6 +167,12 @@ end if h ~== nil;
 end with
     rmfirst (bin 0 x nil nil)	= tuple2 x nil;
     rmfirst (bin i x h1  h2 )	= tuple2 x (update i h1 h2);
+end;
+
+::stream (Heap nil)             = [];
+::stream (Heap h)               = rmfirst h with
+    rmfirst (bin 0 x nil nil)	= x:[]&;
+    rmfirst (bin i x h1  h2 )	= x:rmfirst (update i h1 h2)&;
 end;
 
 update i::int h1 h2 = case i of
