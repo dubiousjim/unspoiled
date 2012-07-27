@@ -188,7 +188,7 @@ examples/*.c examples/*.f90 examples/libor/COPYING examples/libor/*.pure \
 examples/bitcode/Makefile examples/bitcode/*.c examples/bitcode/*.f90 \
 examples/bitcode/*.dsp examples/bitcode/*.pure \
 examples/hellomod/Makefile examples/hellomod/*.c examples/hellomod/*.pure \
-lib/*.pure test/*.pure test/*.log test/*.blob
+lib/*.pure test/*.pure test/*.log test/*.blob test/*.aux
 # These need special editing (see dist target, datesubst below).
 SEDFILES = INSTALL
 
@@ -451,21 +451,23 @@ $(debsrc):
 # test logs, make check
 
 tests = $(wildcard $(srcdir)/test/test*.pure)
-logs  = $(srcdir)/test/prelude.log $(srcdir)/test/special.log $(tests:.pure=.log)
+logs  = $(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log $(srcdir)/test/special.log $(tests:.pure=.log)
 
 logs: $(logs)
 
 cleanlogs:
 	rm -f $(srcdir)/test/*.log
 
-$(srcdir)/test/prelude.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure
-	./run-test -n < $< > $@ 2>&1
+$(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure lib/lists.pure
+	./run-test -n $$(awk -F: -vbase=$(lastword $(subst /, ,$(basename $@))) '$$1==base {print $$2}' $(srcdir)/test/index.aux) < $< > $@ 2>&1
 
 $(srcdir)/test/special.log: test/special.pure lib/*.pure
 	./run-test  < $< > $@ 2>&1
 
-%.log: %.pure
-	./run-test  < $< > $@ 2>&1
+%.aux: ;
+
+%.log: %.pure %.aux
+	./run-test $$(awk -F: -vbase=$(lastword $(subst /, ,$(basename $@))) '$$1==base {print $$2}' $(srcdir)/test/index.aux) < $< > $@ 2>&1
 
 check: pure
 	./run-tests
