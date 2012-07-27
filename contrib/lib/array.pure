@@ -217,7 +217,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public pickfirst picklast reverse rotate map;
+public pickfirst picklast reverse rotate map all any;
 
 namespace array;
 
@@ -459,6 +459,19 @@ end;
   tick nil           = nil;
   tick (tip y)       = tip (f y);
   tick (bin b a1 a2) = bin b (tick a1) (tick a2);
+end;
+
+::all p (Array a) = tick a 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (tip y) a = a && p y;
+    tick (bin _ a1 a2) a = tick a2 (tick a1 a);
+end;
+
+::any p (Array a) = tick a with
+    tick nil = 0;
+    tick (tip y) = p y;
+    tick (bin _ a1 a2) = tick a1 || tick a2;
 end;
 
 /* Private functions. */
