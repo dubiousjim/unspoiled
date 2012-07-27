@@ -259,13 +259,9 @@ end;
 
 mmembers t = mfoldr ((:)) [] t;
 
-mkeys t = foldr f [] t with
-    f xs a = reverse_onto a (map key (val xs));
-end;
+mkeys t = foldr (\x xs -> revmap_onto key xs (val x)) [] t;
 
-mvals t = foldr f [] t with
-    f xs a = reverse_onto a (map val (val xs));
-end;
+mvals t = foldr (\x xs -> revmap_onto val xs (val x)) [] t;
 
 // Get the first and the last mmember of a tree. See comments for first/rmfirst
 // about behavior when applied to nil.
@@ -473,28 +469,26 @@ mgetka t k = get k fail [] t with
     get k w ws nil = if ::null ws then []
     else case cmp1 w k of
       res::int
-        = match ws if res == GE || res == EQ;
+        = revmap val ws if res == GE || res == EQ;
         = [];
     end;
     get k w ws (bin l (x=>xs) r) = case cmp1 k x of
       res::int
         = get k w ws l if res == LT;
-        = match xs if res == EQ;
+        = revmap val xs if res == EQ;
         = get k fail [] r if res == GT;
         = get k x xs r if res == GE; // x may be a match
     end;
     get k w ws (tri l (y=>ys) c (z=>zs) r) = case cmp3 k y z of
       res::int
         = get k w ws l if res == LT;
-        = match ys if res == EQ;
+        = revmap val ys if res == EQ;
         = get k y ys c if res == MID; // y may be a match
         = get k fail [] c if res == LT2;
-        = match zs if res == EQ2;
+        = revmap val zs if res == EQ2;
         = get k fail [] r if res == GT2;
         = get k z zs r if res == GE2; // z may be a match
     end;
-    // extract values and reverse
-    match us = ::foldl (flip((:).val)) [] us;
 end;
 
 private base_mgetk;
@@ -1047,8 +1041,7 @@ mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t);
 // See comments to popkv on why this is needed.
 mpopkva t (k=>v) = catch (whenfail ()) (tuple2 vs child when
     child@_ _ vs = base_mpopkva k v t;
-    // extract values and reverse
-    vs = ::foldl (flip((:).val)) [] vs;
+    vs = revmap val vs;
 end);
 
 
@@ -1544,8 +1537,7 @@ mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t);
 // See comments to popkv on why this is needed.
 mhpopkva t old@(k=>_) = catch (whenfail ()) (tuple2 vs child when
     child@_ _ vs = base_mhpopkva k old t;
-    // extract values and reverse
-    vs = ::foldl (flip((:).val)) [] vs;
+    vs = revmap val vs;
 end);
 
 

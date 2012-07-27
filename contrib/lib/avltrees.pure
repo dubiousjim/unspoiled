@@ -744,8 +744,7 @@ end;
 
 mpopkva t y@(key=>val) = tuple2 vs t when
   [vs, t, _] = pop t y;
-  // extract values and reverse
-  vs = ::foldl (flip((:).(::val))) [] vs;
+  vs = revmap ::val vs;
 end with
   pop nil _ = [[], nil, 0];
   pop (bin x@(k=>xs) b l r) y@(key=>val)
@@ -1008,8 +1007,7 @@ end;
 
 mhpopkva t y@(rawkey=>val) = tuple2 vs t when
   [vs, t, _] = pop t (hash rawkey) y;
-  // extract values and reverse
-  vs = ::foldl (flip((:).(::val))) [] vs;
+  vs = revmap ::val vs;
 end with
   pop nil _ _ = [[], nil, 0];
   pop (bin x@(k::int=>xs) b l r) key::int y

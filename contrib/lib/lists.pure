@@ -104,8 +104,9 @@ end;
    eager: '\ :func:`do`\ ', '\ :func:`dowith`\ ', '\ :func:`dowith3`\ ',
    '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
    '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`lastby`\ ',
-   '\ :func:`picklastby`\ ', and '\ :func:`rmlastby`\ ', '\ :func:`rotate`\ '.
-   The other list functions will force stream arguments only as far as necessary.
+   '\ :func:`picklastby`\ ', '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ',
+   '\ :func:`rmlastby`\ ', and '\ :func:`rotate`\ '. The other list functions
+   will force stream arguments only as far as necessary.
 
    Note that '\ :func:`subseq`\ ' in the prelude is also eager, as are
    the indexing function '\ :func:`!`\ ' and the slicing function
@@ -119,9 +120,10 @@ end;
    ``bad_list_value`` when given an improper list:
    '\ :func:`reverse`\ ', '\ :func:`reverse_onto`\ ',
    '\ :func:`lastby`\ ', '\ :func:`pickfirstby`\ ', '\ :func:`picklastby`\ ',
-   '\ :func:`rmlastby`\ ', '\ :func:`scanr`\ ', '\ :func:`scanr1`\ ',
-   '\ :func:`unzip`\ ', '\ :func:`unzip3`\ '. The other list functions will
-   simply return a not-further-reduced expression.
+   '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ', '\ :func:`rmlastby`\ ',
+   '\ :func:`scanr`\ ', '\ :func:`scanr1`\ ', '\ :func:`unzip`\ ',
+   '\ :func:`unzip3`\ '. The other list functions will simply return a
+   not-further-reduced expression.
 
    '\ :func:`unzip`\ ' and '\ :func:`unzip3`\ ' will also throw the
    exception ``bad_tuple_value`` if their argument isn't a list whose
@@ -288,6 +290,14 @@ end;
 
       equivalent to ``lastby p _ xs, rmlastby p xs``, but more efficient;
       if no member of ``xs`` satisfies predicate ``p``, returns ``()``
+
+   .. function:: revmap f xs
+
+      equivalent to ``reverse (map f xs)``, but more efficient than even plain :func:`map`
+
+   .. function:: revmap_onto f base xs
+
+      equivalent to ``reverse (map f xs) + base``, but more efficient
 
    .. function:: rmfirstby p xs
 
@@ -810,6 +820,16 @@ partition p xs@(_:_) = aux xs with
 end;
 #! --endif
 
+// inherently eager
+revmap_onto f base [] = base;
+revmap_onto f base xs@(_:_) = tick base xs with
+    tick a [] = a;
+    tick a (x:xs) = tick (f x:a) xs;
+    tick _ xs = throw (bad_list_value xs);
+end;
+
+revmap f [] = [];
+revmap f xs@(_:_) = revmap_onto f [] xs;
 
 // inherently eager
 #! --ifnot list-opt
