@@ -244,6 +244,29 @@
       remove all instances of ``x`` from ``d``, and return the pair ``(list of xs, rest of d)``;
       if ``x`` is not present in ``d``, return ``()`` instead
 
+   .. function:: foldl f a /dict d
+                 foldl1 f /dict d
+                 foldr f a /dict d
+                 foldr1 f /dict d
+                 any p /dict d
+                 all p /dict d
+
+      these are equivalent to calling the corresponding list methods on ``members d``, but more
+      efficient (no intermediate list is built)
+
+   .. function:: mfoldl f a /dict d
+                 mfoldl1 f /dict d
+                 mfoldr f a /dict d
+                 mfoldr1 f /dict d
+                 many p /dict d
+                 mall p /dict d
+
+      these are like the functions ``foldl`` and so on, except that ``f`` receives all the values
+      associated with a given key bundled together in a single list; so the signature of
+      ``mfoldl`` is::
+
+        mfoldl (\a (k=>vs) ...) a d
+
    .. note::
 
       * The infix operators :func:`+/dict`, :func:`-/dict` and :func:`*\/dict`
@@ -372,11 +395,19 @@
 
 */
 
+namespace __dict;
+    mval   (k=>v)      = k=>[v];
 #! --if trees23
-using trees23;
+    using trees23;
+    mvals     (k=>kvs) = k=>revmap val kvs;
+    rev_mvals (k=>kvs) = k=>map val kvs;
 #! --else
-using avltrees;
+    using avltrees;
+    mvals     (k=>kvs) = k=>map val kvs;
+    rev_mvals (k=>kvs) = k=>revmap val kvs;
 #! --endif
+namespace;
+
 
 // These should be considered private.
 public Dict HDict MDict HMDict;
@@ -533,6 +564,74 @@ pickfirst (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpopfirst d end
 picklast  (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpoplast  d end;
 pickfirst (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpopfirst d end;
 picklast  (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpoplast  d end;
+
+// folds
+// takes k=>v one at a time
+foldl  f a (Dict   d) = baltree::foldl  id f a d;
+foldl  f a (HDict  d) = baltree::hfoldl id f a d;
+foldl  f a (MDict  d) = baltree::mfoldl    f a d;
+foldl  f a (HMDict d) = baltree::hfoldl id f a d;
+
+// takes k=>vs
+mfoldl f a (Dict   d) = baltree::foldl  __dict::mval    f a d;
+mfoldl f a (HDict  d) = baltree::hfoldl __dict::mval    f a d;
+mfoldl f a (MDict  d) = baltree::foldl  __dict::mvals   f a d;
+mfoldl f a (HMDict d) = baltree::mhfoldlk               f a d;
+
+// takes k=>v one at a time
+foldl1  f (Dict   d) = baltree::foldl1  id f d;
+foldl1  f (HDict  d) = baltree::hfoldl1 id f d;
+foldl1  f (MDict  d) = baltree::mfoldl1    f d;
+foldl1  f (HMDict d) = baltree::hfoldl1 id f d;
+// takes k=>vs
+mfoldl1 f (Dict   d) = baltree::foldl1  __dict::mval    f d;
+mfoldl1 f (HDict  d) = baltree::hfoldl1 __dict::mval    f d;
+mfoldl1 f (MDict  d) = baltree::foldl1  __dict::mvals   f d;
+mfoldl1 f (HMDict d) = baltree::mhfoldl1k               f d;
+
+// takes k=>v one at a time
+foldr  f a (Dict   d) = baltree::foldr  id f a d;
+foldr  f a (HDict  d) = baltree::hfoldr id f a d;
+foldr  f a (MDict  d) = baltree::mfoldr    f a d;
+foldr  f a (HMDict d) = baltree::hfoldr id f a d;
+// takes k=>vs
+mfoldr f a (Dict   d) = baltree::foldr  __dict::mval    f a d;
+mfoldr f a (HDict  d) = baltree::hfoldr __dict::mval    f a d;
+mfoldr f a (MDict  d) = baltree::foldr  __dict::mvals   f a d;
+mfoldr f a (HMDict d) = baltree::mhfoldrk               f a d;
+
+// takes k=>v one at a time
+foldr1  f (Dict   d) = baltree::foldr1  id f d;
+foldr1  f (HDict  d) = baltree::hfoldr1 id f d;
+foldr1  f (MDict  d) = baltree::mfoldr1    f d;
+foldr1  f (HMDict d) = baltree::hfoldr1 id f d;
+// takes k=>vs
+mfoldr1 f (Dict   d) = baltree::foldr1  __dict::mval    f d;
+mfoldr1 f (HDict  d) = baltree::hfoldr1 __dict::mval    f d;
+mfoldr1 f (MDict  d) = baltree::foldr1  __dict::mvals   f d;
+mfoldr1 f (HMDict d) = baltree::mhfoldr1k               f d;
+
+// takes k=>v one at a time
+all  p (Dict   d) = baltree::all  p d;
+all  p (HDict  d) = baltree::hall p d;
+all  p (MDict  d) = baltree::mall p d;
+all  p (HMDict d) = baltree::hall p d;
+// takes k=>vs
+mall p (Dict   d) = baltree::all  (p.__dict::mval )  d;
+mall p (HDict  d) = baltree::hall (p.__dict::mval )  d;
+mall p (MDict  d) = baltree::all  (p.__dict::mvals ) d;
+mall p (HMDict d) = baltree::mhallk                p d;
+
+// takes k=>v one at a time
+any  p (Dict   d) = baltree::any  p d;
+any  p (HDict  d) = baltree::hany p d;
+any  p (MDict  d) = baltree::many p d;
+any  p (HMDict d) = baltree::hany p d;
+// takes k=>vs
+many p (Dict   d) = baltree::any  (p.__dict::mval )  d;
+many p (HDict  d) = baltree::hany (p.__dict::mval )  d;
+many p (MDict  d) = baltree::any  (p.__dict::mvals ) d;
+many p (HMDict d) = baltree::mhanyk                p d;
 
 // get a value by key
 (Dict   d)!k = baltree::getk    d k;
