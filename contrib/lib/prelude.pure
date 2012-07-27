@@ -1015,6 +1015,9 @@ end;
 (x:xs)!n::int	= xs!(n-1) if n>0;
 		= throw out_of_bounds otherwise;
 
+// Curried constructor, currently undocumented.
+list1 x         = [x];
+
 using lists;
 
 
