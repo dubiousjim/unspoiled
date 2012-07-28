@@ -1142,6 +1142,7 @@ catstream [] = [];
 // so we don't reduce `catstream (xs:[]) = xs` either.
 catstream ((x:xs):yss) = x:catstream (xs:yss)&;
 catstream ([]:yss) = catstream yss;
+catstream (xs::string:yss) = catstream (chars xs:yss);
 catstream (xs:yss) = xs + catstream yss;
 
 
