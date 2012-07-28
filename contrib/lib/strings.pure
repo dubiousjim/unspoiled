@@ -1,0 +1,594 @@
+
+/* Basic string functions. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+using namespace __C;
+
+/* .. _String Functions:
+
+   String Functions
+   ----------------
+
+   .. index:: strings
+
+   Pure strings are null-terminated character strings encoded in UTF-8, see
+   the Pure Manual for details. The prelude provides various operations on
+   strings, including a complete set of list-like operations, so that strings
+   can be used mostly as if they were lists, although they are really
+   implemented as C character arrays for reasons of efficiency. Pure also has
+   some powerful operations to convert between Pure expressions and their
+   string representation, see `Eval and Friends`_ for those.
+
+   Basic String Functions
+   ~~~~~~~~~~~~~~~~~~~~~~
+
+   .. index:: string; concatenation
+   .. index:: string; indexing
+   .. index:: string; slicing
+
+   .. function:: infix + /string s t
+      		 infix ! /string s i
+   		 infix !! /string s is
+
+      String concatenation, indexing and slicing works just like with lists::
+
+        > "abc"+"xyz";
+     	"abcxyz"
+     	> let s = "The quick brown fox jumps over the lazy dog.";
+     	> s!5;
+     	"u"
+     	> s!!(20..24);
+     	"jumps"
+
+   .. index:: string; size
+
+   .. function:: null /string s
+      		 prefix # /string s
+
+      Checking for empty strings and determining the size of a string also
+      works as expected::
+
+        > null "";
+     	1
+     	> null s;
+     	0
+     	> #s;
+     	44
+
+   .. index:: string; comparisons
+
+   .. function:: infix == /string s t
+      		 infix ~= /string s t
+		 infix <= /string s t
+		 infix >= /string s t
+		 infix < /string s t
+		 infix > /string s t
+
+      String equality and comparisons. This employs the usual lexicographic
+      order based on the (UTF-8) character codes. ::
+
+        > "awe">"awesome";
+     	0
+     	> "foo">="bar";
+     	1
+     	> "foo"=="bar";
+     	0
+
+   You can search for the location of a substring in a string, and extract a
+   substring of a given length:
+
+   .. function:: index /string s u
+
+      Returns the (zero-based) index of the first occurrence of the substring
+      ``u`` in ``s``, or -1 if ``u`` is not found in ``s``.
+
+   .. function:: substr s i n
+
+      Extracts a substring of (at most) ``n`` characters at position ``i`` in
+      ``s``. This takes care of all corner cases, adjusting index and number
+      of characters so that the index range stays confined to the source
+      string.
+
+   Example::
+
+     > index s "jumps";
+     20
+     > substr s 20 10;
+     "jumps over"
+
+   Note that Pure doesn't have a separate type for individual characters.
+   Instead, these are represented as strings ``c`` containing exactly one
+   (UTF-8) character (i.e., ``#c==1``). It is possible to convert such single
+   character strings to the corresponding integer character codes, and vice
+   versa:
+
+   .. function:: ord c
+
+      Ordinal number of a single character string ``c``. This is the
+      character's code point in the Unicode character set.
+
+   .. function:: chr n
+
+      Converts an integer back to the character with the corresponding code
+      point.
+
+   .. index:: character arithmetic
+
+   In addition, the usual character arithmetic works, including arithmetic
+   sequences of characters, so that you can write stuff like the following::
+
+     > "a"-"A";
+     32
+     > "u"-32;
+     "U"
+     > "a".."k";
+     ["a","b","c","d","e","f","g","h","i","j","k"]
+
+   For convenience, the prelude provides the following functions to convert
+   between strings and lists (or other aggregates) of characters.
+
+   .. function:: chars s
+      		 list /string s
+
+      Convert a string ``s`` to a list of characters.
+
+   .. function:: tuple /string s
+      		 matrix /string s
+
+      Convert a string ``s`` to a tuple or (symbolic) matrix of characters,
+      respectively.
+
+   .. function:: strcat xs
+
+      Concatenate a list ``xs`` of strings (in particular, this converts a
+      list of characters back to a string).
+
+   .. function:: string xs
+
+      Convert a list, tuple or (symbolic) matrix of strings to a string. In
+      the case of a list, this is synonymous with :func:`strcat`, but it also
+      works with the other types of aggregates.
+
+   For instance::
+
+     > list "abc";
+     ["a","b","c"]
+     > string ("a".."z");
+     "abcdefghijklmnopqrstuvwxyz"
+
+   The following functions are provided to deal with strings of "tokens"
+   separated by a given delimiter string.
+
+   .. function:: split delim s
+
+      Splits ``s`` into a list of substrings delimited by ``delim``.
+
+   .. function:: join delim xs
+
+      Joins the list of strings ``xs`` to a single string, interpolating the
+      given ``delim`` string.
+
+   Example::
+
+     > let xs = split " " s; xs;
+     ["The","quick","brown","fox","jumps","over","the","lazy","dog."]
+     > join ":" xs;
+     "The:quick:brown:fox:jumps:over:the:lazy:dog."
+
+   We mention in passing here that more elaborate string matching, splitting
+   and replacement operations based on regular expressions are provided by the
+   system module, see `Regex Matching`_.
+
+   If that isn't enough already, most generic list operations carry over to
+   strings in the obvious way, treating the string like a list of characters.
+   (Polymorphic operations such as :func:`map`, which aren't guaranteed to
+   yield string results under all circumstances, will actually return lists in
+   that case, so you might have to apply :func:`string` explicitly to convert
+   these back to a string.) For instance::
+
+     > filter (>="k") s;
+     "qukrownoxumpsovrtlzyo"
+     > string $ map pred "ibm";
+     "hal"
+
+   List comprehensions can draw values from strings, too::
+
+     > string [x+1 | x="HAL"];
+     "IBM"
+
+*/
+
+/* Convert between Unicode character codes and single character strings. */
+
+namespace __C;
+extern expr* string_chr(int);
+extern expr* string_ord(void*);
+namespace;
+
+chr n::int		= c if stringp c when c = string_chr n end;
+ord s::string		= n if intp n when n = string_ord s end;
+
+/* Special case rules for sequences of characters. */
+
+a::string..b::string	= map chr (ord a..ord b) if charp a && charp b;
+a::string:b::string..c::string
+			= map chr (ord a:ord b..ord c)
+			    if charp a && charp b && charp c;
+
+/* ..
+
+   Low-Level Operations
+   ~~~~~~~~~~~~~~~~~~~~
+
+   The following routines are provided by the runtime to turn raw C ``char*``
+   pointers (also called `byte strings` in Pure parlance, to distinguish them
+   from Pure's "cooked" UTF-8 string values) into corresponding Pure
+   strings. Normally you don't have to worry about this, because the C
+   interface already takes care of the necessary marshalling, but in some
+   low-level code these operations are useful. Also note that here and in the
+   following, the :func:`cstring` routines also convert the string between the
+   system encoding and Pure's internal UTF-8 representation.
+
+   .. function:: string /pointer s
+      		 cstring s
+
+      Convert a pointer ``s`` to a Pure string. ``s`` must point to a
+      null-terminated C string. These routines take ownership of the original
+      string value, assuming it to be malloced, so you should only use these
+      for C strings which are specifically intended to be freed by the user.
+
+   .. function:: string_dup s
+      		 cstring_dup s
+
+      Convert a pointer ``s`` to a Pure string. Like above, but these
+      functions take a copy of the string, leaving the original C string
+      untouched. */
+
+namespace __C;
+extern expr* pure_string(void* s);
+extern expr* pure_cstring(void* s);
+extern expr* pure_string_dup(void* s);
+extern expr* pure_cstring_dup(void* s);
+namespace;
+
+string s::pointer	= pure_string s;
+cstring s::pointer	= pure_cstring s;
+string_dup s::pointer	= pure_string_dup s;
+cstring_dup s::pointer	= pure_cstring_dup s;
+
+/* ..
+
+   The reverse transformations are also provided. These take a Pure string to
+   a byte string (raw ``char*``).
+
+   .. function:: byte_string s
+      		 byte_cstring s
+
+      Construct a byte string from a Pure string ``s``. The result is a raw
+      pointer object pointing to the converted string. The original Pure
+      string is always copied (and, in the case of :func:`byte_cstring`,
+      converted to the system encoding). The resulting byte string is a
+      malloced pointer which can be used like a C ``char*``, and has to be
+      freed explicitly by the caller when no longer needed. */
+
+namespace __C;
+extern expr* pure_byte_string(void *s);
+extern expr* pure_byte_cstring(void *s);
+namespace;
+
+byte_string s::string	= ptrtag charp_t $ pure_byte_string s;
+byte_cstring s::string	= ptrtag charp_t $ pure_byte_cstring s;
+
+/* ..
+
+   It is also possible to convert Pure string lists or symbolic vectors of
+   strings to byte string vectors and vice versa. These are useful if you need
+   to pass an ``argv``-like string vector (i.e., a ``char**`` or ``char*[]``)
+   to C routines. The computed C vectors are malloced pointers which have an
+   extra :const:`NULL` pointer as the last entry, and should thus be usable
+   for almost any purpose which requires such a string vector in C. They also
+   take care of garbage-collecting themselves. The original string data is
+   always copied. As usual, the :func:`cstring` variants do automatic
+   conversions to the system encoding.
+
+   .. function:: byte_string_pointer xs
+      		 byte_cstring_pointer xs
+
+      Convert a list or vector of Pure strings to a C ``char**``. */
+
+byte_string_pointer xs	= if null p then throw malloc_error
+			  else make_pointer (map byte_string xs)
+with
+  make_pointer xs = ptrtag charpp_t $ sentry free_pointer p when
+    dowith (\i x -> put_pointer (shift_pointer p i) x) (0..n-1) xs;
+  end;
+  free_pointer p = free p when
+    do (\i -> free (get_pointer (shift_pointer p i))) (0..n-1);
+  end;
+  shift_pointer p i = pointer (pure_bigintval p+i*SIZEOF_POINTER);
+end
+when
+  n = #xs; p = calloc (n+1) SIZEOF_POINTER;
+  xs = if smatrixp xs then list xs else xs;
+end if (rlistp xs || smatrixp xs) && all stringp xs;
+
+byte_cstring_pointer xs	= if null p then throw malloc_error
+			  else make_pointer (map byte_cstring xs)
+with
+  make_pointer xs = ptrtag charpp_t $ sentry free_pointer p when
+    dowith (\i x -> put_pointer (shift_pointer p i) x) (0..n-1) xs;
+  end;
+  free_pointer p = free p when
+    do (\i -> free (get_pointer (shift_pointer p i))) (0..n-1);
+  end;
+  shift_pointer p i = pointer (pure_bigintval p+i*SIZEOF_POINTER);
+end
+when
+  n = #xs; p = calloc (n+1) SIZEOF_POINTER;
+  xs = if smatrixp xs then list xs else xs;
+end if (rlistp xs || smatrixp xs) && all stringp xs;
+
+/* .. function:: string_list n p
+                 cstring_list n p
+
+      Convert a C ``char**`` to a list of Pure strings.
+
+   .. function:: string_vector n p
+                 cstring_vector n p
+
+      Convert a C ``char**`` to a symbolic vector of Pure strings.
+
+   Note that the back conversions take an additional first argument which
+   denotes the number of strings to retrieve. If you know that the vector is
+   :const:`NULL`-terminated then this can also be an infinite value (``inf``)
+   in which case the number of elements will be figured out automatically.
+   Processing always stops at the first :const:`NULL` pointer encountered.
+
+   Also note that, as of version 0.45, Pure has built-in support for passing
+   ``argv``-style vectors as arguments by means of the ``char**`` and
+   ``void**`` pointer types. However, the operations provided here are more
+   general in that they allow you to both encode and decode such values in an
+   explicit fashion. This is useful, e.g., for operations like ``getopt``
+   which may mutate the given ``char**`` vector.
+
+   If you have ``getopt`` in your C library, you can try the following
+   example. First enter these definitions::
+
+     extern int getopt(int argc, char **argv, char *optstring);
+     optind = get_int $ addr "optind";
+     optarg = cstring_dup $ get_pointer $ addr "optarg";
+
+   Now let's run ``getopt`` on a byte string vector constructed from an
+   argument vector (which includes the "program name" in the first element)::
+
+     > let args = byte_cstring_pointer {"progname","boo","-n","-tfoo","bar"};
+     > getopt 5 args "nt:", optarg;
+     110,#<pointer 0>
+     > getopt 5 args "nt:", optarg;
+     116,"foo"
+     > getopt 5 args "nt:", optarg;
+     -1,#<pointer 0>
+
+   Note that 110 and 116 are the character codes of the option characters
+   ``n`` and ``t``, where the latter option takes an argument, as returned by
+   ``optarg``. Finally, ``getopt`` returns -1 to indicate that there are
+   no more options, and we can retrieve the current ``optindex`` value and the
+   mutated argument vector to see which non-option arguments remain to be
+   processed, as follows::
+
+     > optind, cstring_vector 5 args;
+     3,{"progname","-n","-tfoo","boo","bar"}
+
+   It is now an easy exercise to design your own high-level wrapper around
+   ``getopt`` to process command line arguments in Pure. However, this isn't
+   really necessary since the Pure library already offers such an operation
+   which doesn't rely on any special system functions, see `Option Parsing`_
+   in the `System Interface`_ section. */
+
+string_list n p::pointer = list $ takewhile stringp [p!i | i = 0..n-1]
+with
+  p!i = if null q then q else string_dup q
+	when q = get_pointer (shift_pointer p i) end;
+  shift_pointer p i = pointer (pure_bigintval p+i*SIZEOF_POINTER);
+end if ~null p && (intp n || infp n);
+
+string_vector n p::pointer = vector xs if listp xs when
+  xs = string_list n p;
+end;
+
+cstring_list n p::pointer = list $ takewhile stringp [p!i | i = 0..n-1]
+with
+  p!i = if null q then q else cstring_dup q
+	when q = get_pointer (shift_pointer p i) end;
+  shift_pointer p i = pointer (pure_bigintval p+i*SIZEOF_POINTER);
+end if ~null p && (intp n || infp n);
+
+cstring_vector n p::pointer = vector xs if listp xs when
+  xs = cstring_list n p;
+end;
+
+/* Character arithmetic. This allows single-character strings to be used,
+   e.g., in arithmetic sequences like "a".."z". */
+
+s::string+n::int	= chr (ord s+n) if #s==1;
+s::string-n::int	= chr (ord s-n) if #s==1 && ord s>=n;
+s::string-t::string	= ord s-ord t if #s==1 && #t==1;
+
+/* Basic string operations: size, indexing, and concatenation. These properly
+   deal with multibyte characters. Therefore indexing every character in a
+   string takes quadratic time; as a remedy, we also offer a linear-time
+   operation to determine the list of all characters of a string in one go. */
+
+namespace __C;
+extern bool string_null(void*);
+extern int string_size(void*);
+extern expr* string_concat(void*, void*);
+extern expr* string_char_at(void*, int);
+extern expr* string_chars(void*);
+namespace;
+
+null s::string		= string_null s;
+#s::string		= string_size s;
+s::string!n::int	= string_char_at s n if n>=0 && n<#s;
+			= throw out_of_bounds otherwise;
+s::string+t::string	= string_concat s t;
+chars s::string		= string_chars s if ~funp (:);
+/* For the sake of efficiency, string_chars takes some shortcuts when creating
+   the output list. This is ok as long as (:) doesn't have any constructor
+   equations, but in the (unlikely) case that there are, we need to force
+   these to be applied now. */
+			= list (string_chars s);
+
+/* Lexicographic string comparison. */
+
+namespace __C;
+extern int strcmp(void*, void*);
+namespace;
+
+x::string<y::string	= strcmp x y < 0;
+x::string>y::string	= strcmp x y > 0;
+x::string<=y::string	= strcmp x y <= 0;
+x::string>=y::string	= strcmp x y >= 0;
+x::string==y::string	= strcmp x y == 0;
+x::string~=y::string	= strcmp x y ~= 0;
+
+/* Compute and find substrings of a string. */
+
+namespace __C;
+extern expr* string_substr(void*, int, int);
+extern int string_index(void*, void*);
+namespace;
+
+substr s::string pos::int size::int
+			= string_substr s (max 0 pos) (max 0 size)
+			  with max x y = if x>=y then x else y end;
+index s::string u::string
+			= string_index s u;
+
+/* String slices. The case of contiguous and monotonous ranges is optimized by
+   making good use of the 'substr' operation above. */
+
+s::string!!ns		= case ns of
+			    ns@(n:_) = substr s n (count ns) if cont ns;
+			    _ = string (chars s!!ns);
+			  end with
+			    cont [n::int] = 1;
+			    cont (n::int:ns@(m::int:_)) = cont ns if m==n+1;
+			    cont _ = 0 otherwise;
+			    count ns = #dropwhile (\n::int->n<0) ns;
+			  end;
+
+/* Compile time optimization of string slices. */
+
+subseq s::string a::int b::int = substr s a (b-a+1);
+
+/* Concatenate a list of strings. */
+
+namespace __C;
+extern expr* string_concat_list(expr*);
+namespace;
+strcat xs		= s if stringp s when s = string_concat_list xs end;
+
+/* Concatenate a list of strings, interpolating a given delimiter. */
+
+namespace __C;
+extern expr* string_join(void* delim, expr*);
+namespace;
+join delim::string xs	= s if stringp s when s = string_join delim xs end;
+
+/* Split a string into parts delimited by the given (nonempty) string. */
+
+namespace __C;
+extern expr* string_split(void* delim, void* s);
+namespace;
+split delim::string s::string
+			= string_split delim s if ~funp (:);
+/* Handle the case that (:) has constructor equations, cf. chars above. */
+			= list (string_split delim s);
+
+/* Conversions between between strings and lists, streams and tuples. */
+
+list s::string		= chars s;
+stream s::string	= stream (chars s);
+tuple s::string		= tuple (chars s);
+
+string []		= "";
+string xs@(_::string:_)	= strcat xs if all stringp xs;
+
+string ()		= "";
+string xs@(_::string,_)	= strcat xs if all stringp xs when xs = list xs end;
+
+string s::string	= s;
+
+/* Conversions between strings and matrices. */
+
+matrix s::string	= matrix (chars s);
+string x::matrix	= string (list x) if all stringp x;
+
+/* Define the customary list operations on strings, so that these can mostly
+   be used as if they were lists. */
+
+s::string+[]		= chars s;
+s::string+xs@(_:_)	= chars s+xs;
+[]+s::string		= chars s;
+xs@(_:_)+s::string	= xs+chars s;
+
+reverse s::string	= strcat (reverse (chars s));
+catmap f s::string	= catmap f (chars s);
+rowcatmap f s::string	= rowcatmap f (chars s);
+colcatmap f s::string	= colcatmap f (chars s);
+listmap f s::string	= map f (chars s);
+rowmap f s::string	= rowmap f (chars s);
+colmap f s::string	= colmap f (chars s);
+
+cycle s::string		= cycle (chars s);
+cyclen n::int s::string	= cyclen n (chars s) if ~null s;
+
+all p s::string		= all p (chars s);
+any p s::string		= any p (chars s);
+do f s::string		= do f (chars s);
+drop n::int s::string	= substr s n (#s-n);
+dropwhile p s::string	= strcat (dropwhile p (chars s));
+filter p s::string	= strcat (filter p (chars s));
+foldl f a s::string	= foldl f a (chars s);
+foldl1 f s::string	= foldl1 f (chars s);
+foldr f a s::string	= foldr f a (chars s);
+foldr1 f s::string	= foldr1 f (chars s);
+head s::string		= s!0 if ~null s;
+init s::string		= substr s 0 (#s-1) if ~null s;
+last s::string		= s!(#s-1) if ~null s;
+map f s::string		= map f (chars s);
+scanl f a s::string	= scanl f a (chars s);
+scanl1 f s::string	= scanl1 f (chars s);
+scanr f a s::string	= scanr f a (chars s);
+scanr1 f s::string	= scanr1 f (chars s);
+take n::int s::string	= substr s 0 n;
+takewhile p s::string	= strcat (takewhile p (chars s));
+tail s::string		= substr s 1 (#s-1) if ~null s;
+zip s::string t::string	= zip (chars s) (chars t);
+zip3 s::string t::string u::string
+			= zip3 (chars s) (chars t) (chars u);
+zipwith f s::string t::string
+			= zipwith f (chars s) (chars t);
+zipwith3 f s::string t::string u::string
+			= zipwith3 f (chars s) (chars t) (chars u);
+dowith f s::string t::string
+			= dowith f (chars s) (chars t);
+dowith3 f s::string t::string u::string
+			= dowith3 f (chars s) (chars t) (chars u);

@@ -1,0 +1,401 @@
+
+/* array.pure: integer-indexed arrays implemented as size-balanced
+   binary trees. */
+
+/* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* ..
+
+   Container Types
+   ===============
+
+   The standard library provides a variety of efficient container data
+   structures for different purposes. These are all purely functional, i.e.,
+   immutable data structures implemented using different flavours of binary
+   trees. This means that instead of modifying a data structure in-place,
+   operations like insertion and deletion return a new instance of the
+   container, keeping the previous instance intact. Nevertheless, all
+   operations are performed efficiently, in logarithmic time where possible.
+
+   The container types are all implemented as abstract data structures, so
+   client modules shouldn't rely on the internal representation. Each type
+   provides a corresponding type tag (cf. :ref:`Type Tags` in the Pure
+   Manual), as given in the description of each type, which can be used to
+   match values of the type, e.g.::
+
+     shift a::array = rmfirst a;
+
+   All container types implement the equality predicates :func:`==` and
+   :func:`~=` by recursively comparing their members. In addition, the
+   dictionary, set and bag data structures also provide the other comparison
+   predicates (:func:`<`, :func:`<=` etc.) which check whether one dictionary,
+   set or bag is contained in another.
+
+   .. module:: array
+
+   Arrays
+   ------
+
+   The array.pure module implements an efficient functional array data
+   structure which allows to access and update individual array members, as
+   well as to add and remove elements at the beginning and end of an
+   array. All these operations are carried out in logarithmic time.
+
+   .. type:: array /type
+
+      The array data type.
+
+   Imports
+   ~~~~~~~
+
+   To use the operations of this module, add the following import declaration
+   to your program::
+
+     using array;
+
+   Operations
+   ~~~~~~~~~~
+
+   .. function:: emptyarray
+
+      return the empty array
+
+   .. function:: array xs
+
+      create an array from a list ``xs``
+
+   .. function:: array2 xs
+
+      create a two-dimensional array from a list of lists
+
+   .. function:: mkarray x n
+
+      create an array consisting of ``n`` ``x``'s
+
+   .. function:: mkarray2 x (n,m)
+
+      create a two-dimensional array of ``n*m`` ``x``'s
+
+   .. function:: arrayp x
+
+      check whether ``x`` is an array
+
+   .. function:: prefix # /array a
+
+      size of ``a``
+
+   .. function:: infix ! /array a i
+
+      return the ``i``\ th member of ``a``
+
+   .. function:: infix ! /array a (i,j)
+
+      two-dimensional subscript
+
+   .. function:: null /array a
+
+      test whether ``a`` is the empty array
+
+   .. function:: members /array a
+      		 list /array a
+
+      list of values stored in ``a``
+
+   .. function:: members2 /array a
+      		 list2 /array a
+
+      list of members in a two-dimensional array
+
+   .. function:: first /array a
+      		 last /array a
+
+      first and last member of ``a``
+
+   .. function:: rmfirst /array a
+      		 rmlast /array a
+
+      remove first and last member from ``a``
+
+   .. function:: insert /array a x
+
+      insert ``x`` at the beginning of ``a``
+
+   .. function:: append /array a x
+
+      append ``x`` to the end of ``a``
+
+   .. function:: update /array a i x
+
+      replace the ``i``\ th member of ``a`` by ``x``
+
+   .. function:: update2 /array a (i,j) x
+
+      update two-dimensional array
+
+   Examples
+   ~~~~~~~~
+
+   Import the module::
+
+     > using array;
+
+   A one-dimensional array::
+
+     > let a::array = array (0.0:0.1..1.0);
+     > #a; members a;
+     11
+     [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+
+   Indexing an array works in the usual way, using Pure's :func:`\!`
+   operator. By virtue of the prelude, slicing an array with :func:`\!\!` also
+   works as expected::
+
+     > a!5;
+     0.5
+     > a!!(3..7);
+     [0.3,0.4,0.5,0.6,0.7]
+
+   Updating a member of an array produces a new array::
+
+     > let b::array = update a 1 2.0;
+     > members b;
+     [0.0,2.0,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+
+   Two-dimensional arrays can be created with :func:`array2` from a list of
+   lists::
+
+     > let a2::array = array2 [[i,x | x = [u,v,w]] | i = 1..2];
+     > members2 a2;
+     [[(1,u),(1,v),(1,w)],[(2,u),(2,v),(2,w)]]
+     > a2!(1,2);
+     2,w
+     > a2!![(0,1),(1,2)];
+     [(1,v),(2,w)]
+     > a2!!(0..1,1..2);
+     [[(1,v),(1,w)],[(2,v),(2,w)]]
+
+   Here's how to convert an array to a Pure matrix::
+
+     > matrix $ members a;
+     {0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0}
+     > matrix $ members2 a2;
+     {(1,u),(1,v),(1,w);(2,u),(2,v),(2,w)}
+
+   Converting back from a matrix to an array::
+
+     > let b2::array = array2 $ list2 {(1,u),(1,v),(1,w);(2,u),(2,v),(2,w)};
+     > members2 b2;
+     [[(1,u),(1,v),(1,w)],[(2,u),(2,v),(2,w)]]
+
+*/
+
+// This should be considered private.
+public Array;
+
+type array (Array _);
+
+/* Note that these are declared in the global namespace. The 'array' namespace
+   is only used for the array constructors and our private functions, see
+   below. */
+
+public arrayp emptyarray array array2 mkarray mkarray2 null
+  members members2 list list2 first rmfirst last rmlast insert append
+  update update2;
+
+namespace array;
+
+/* Tree constructors. */
+private nonfix nil;
+private tip bin;
+
+private mkbin;
+
+// array type check
+::arrayp x			= typep ::array x;
+
+// create an empty array
+::emptyarray			= Array nil;
+
+// create an array from a list
+::array xs::rlist		= foldl append emptyarray xs;
+
+// create a two-dimensional array from a two-dimensional list
+::array2 xs			= array (map array xs);
+
+// create an array of a given size filled with a constant value
+::mkarray x n::int		= Array (mkarray x n)
+with
+  mkarray x n::int		= nil if n <= 0;
+				= tip x if n == 1;
+				= mkbin (n mod 2)
+				  (mkarray x (n - n div 2))
+				  (mkarray x (n div 2));
+end;
+
+// create a 2D array of given dimensions filled with a constant value
+::mkarray2 x (n::int, m::int)	= mkarray (mkarray x m) n;
+
+// get array size
+::#(Array a)			= #a
+with
+  #nil				= 0;
+  #(tip _)			= 1;
+  #(bin 0 a1 _)			= #a1 * 2;
+  #(bin 1 a1 _)			= #a1 * 2 - 1;
+end;
+
+// get value by index
+(Array a)::!i::int		= a!i
+with
+  (tip x)!0			= x;
+  (bin _ a1 a2)!i::int		= a1!(i div 2) if i mod 2 == 0;
+				= a2!(i div 2) if i mod 2 == 1;
+  _ ! _				= throw out_of_bounds;
+end;
+
+// get value by indices from two-dimensional array
+x@(Array _)::!(i::int, j::int)	= x!i!j;
+
+// 2D slicing support
+// NOTE: the (is::int,_) and (_,js::int) cases are handled in matrices.pure
+//x@(Array _)::!!(is::int,js)	= x!!([is],js) if ~tuplep js;
+//x@(Array _)::!!(is,js::int)	= x!!(is,[js]);
+x@(Array _)::!!(is, js)		= [cat [catch (cst []) [x!i!j] | j=js] | i=is];
+
+// check for an empty array
+::null (Array nil)		= 1;
+::null (Array _)		= 0;
+
+// get all array members in list form
+::members (Array a)		= members a
+with
+  members nil			= [];
+  members (tip x)		= [x];
+  members (bin _ a1 a2)		= merge (members a1) (members a2);
+  // merge lists xs (even elements) and ys (odd elements)
+  merge [] ys			= ys;
+  merge (x:xs) ys		= x:merge ys xs;
+end;
+
+::list x@(Array _)		= members x;
+
+// get all members of an two-dimensional array in list form
+::members2 x@(Array _)		= map members (members x);
+
+::list2 x@(Array _)		= members2 x;
+
+// get the first array member
+::first (Array a)		= first a
+with
+  first (tip x)			= x;
+  first (bin _ a1 _)		= first a1;
+end;
+
+// get the last array member
+::last (Array a)		= last a
+with
+  last (tip x)			= x;
+  last (bin 0 _ a2)		= last a2;
+  last (bin 1 a1 _)		= last a1;
+end;
+
+// remove the first member from an array
+::rmfirst (Array a)		= Array (rmfirst a)
+with
+  rmfirst (tip _)		= nil;
+  rmfirst (bin 0 a1 a2)		= mkbin 1 a2 (rmfirst a1);
+  rmfirst (bin 1 a1 a2)		= mkbin 0 a2 (rmfirst a1);
+end;
+
+// remove the last member from an array
+::rmlast (Array a)		= Array (rmlast a)
+with
+  rmlast (tip _)		= nil;
+  rmlast (bin 0 a1 a2)		= mkbin 1 a1 (rmlast a2);
+  rmlast (bin 1 a1 a2)		= mkbin 0 (rmlast a1) a2;
+end;
+
+// insert a new member at the beginning of an array
+::insert (Array a) y		= Array (insert a y)
+with
+  insert nil y			= tip y;
+  insert (tip x) y		= bin 0 (tip y) (tip x);
+  insert (bin 0 a1 a2) y	= mkbin 1 (insert a2 y) a1;
+  insert (bin 1 a1 a2) y	= mkbin 0 (insert a2 y) a1;
+end;
+
+// append a new member at the end of an array
+::append (Array a) y		= Array (append a y)
+with
+  append nil y			= tip y;
+  append (tip x) y		= bin 0 (tip x) (tip y);
+  append (bin 0 a1 a2) y	= mkbin 1 (append a1 y) a2;
+  append (bin 1 a1 a2) y	= mkbin 0 a1 (append a2 y);
+end;
+
+// update a given array position with a new value
+::update (Array a) i::int y	= Array (update a i y)
+with
+  update (tip _) 0 y		= tip y;
+  update (bin b::int a1 a2) i::int y
+				= bin b (update a1 (i div 2) y) a2
+				    if i mod 2 == 0;
+				= bin b a1 (update a2 (i div 2) y)
+				    if i mod 2 == 1;
+end;
+
+// update a given position of a two-dimensional array with a new value
+::update2 x@(Array a) (i::int, j::int) y
+				= update x i (update (x!i) j y);
+
+// compare two arrays for equality
+Array a ::== Array b		= eq a b
+with
+  eq nil nil			= 1;
+  eq nil (tip _)		= 0;
+  eq nil (bin _ _ _)		= 0;
+  eq (tip _) nil		= 0;
+  eq (tip x) (tip y)		= x == y;
+  eq (tip _) (bin _ _ _)	= 0;
+  eq (bin _ _ _) nil		= 0;
+  eq (bin _ _ _) (tip _)	= 0;
+  eq (bin b1::int a1 a2) (bin b2::int a3 a4)
+				= b1 == b2 && eq a1 a3 && eq a2 a4;
+end;
+
+// compare two arrays for inequality
+Array a ::~= Array b		= neq a b
+with
+  neq nil nil			= 0;
+  neq nil (tip _)		= 1;
+  neq nil (bin _ _ _)		= 1;
+  neq (tip _) nil		= 1;
+  neq (tip x) (tip y)		= x ~= y;
+  neq (tip _) (bin _ _ _)	= 1;
+  neq (bin _ _ _) nil		= 1;
+  neq (bin _ _ _) (tip _)	= 1;
+  neq (bin b1::int a1 a2) (bin b2::int a3 a4)
+				= b1 ~= b2 || neq a1 a3 || neq a2 a4;
+end;
+
+/* Private functions. */
+
+// construct a binary array node
+mkbin _ nil a2			= a2;
+mkbin _ a1 nil			= a1;
+mkbin b::int a1 a2		= bin b a1 a2;
