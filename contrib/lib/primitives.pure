@@ -2165,13 +2165,16 @@ public ref unref refp;
 type ref x::pointer = refp x;
 
 ref x = pointer_put_expr r (pure_new x) $$
-	sentry unref r when r::pointer = pure_expr_pointer end;
+	sentry (unref clear_sentry) r when r::pointer = pure_expr_pointer end;
 
-unref r::ref = pure_free (pointer_get_expr r) $$ clear_sentry r;
+unref next r::ref = pure_free (pointer_get_expr r) $$ next r;
 
 put r::ref x = pure_free (pointer_get_expr r) $$
 	       pointer_put_expr r (pure_new x) $$ x;
 
 get r::ref = pointer_get_expr r;
 
-refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end;
+refp r = case r of
+    _::pointer = case get_sentry r of unref _ = 1; _ = 0; end;
+    _ = 0;
+end;
