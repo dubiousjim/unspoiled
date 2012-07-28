@@ -42,6 +42,15 @@ namespace __std__ with const SKIPSIZE = 4096; end;
    which throw an exception when that argument is an improper list, since in
    that case there really isn't any meaningful value to return. */
 
+// The stdlib needs a version that doesn't typecheck its base, so that the
+// toplevel API can present a (base::string)-friendly version that doesn't
+// mess up stdlib's handling of thunks. Functions should only
+// use this when they know that the second argument is a proper list.
+namespace __std__;
+reverse_onto base [] = base;
+reverse_onto base (x:xs) = reverse_onto (x:base) xs;
+namespace;
+
 reverse_onto base []     = base;
 reverse_onto base (x:xs) = accum (x:base) xs with
   accum ys (x:xs)	 = accum (x:ys) xs;
@@ -63,11 +72,11 @@ reverse xs@(_:_)	 = reverse_onto [] xs;
    again, pushing elements in front of the result list ('reverse_onto'). */
 xs@(_:_)+ys	= tick [] xs ys
 with
-  tick zs (x:xs) ys	= reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
+  tick zs (x:xs) ys	= __std__::reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
 			= tick (x:zs) xs ys;
-  tick zs [] ys		= reverse_onto ys zs;
+  tick zs [] ys		= __std__::reverse_onto ys zs;
   /* Handle an improper list tail (xs+ys is in normal form here). */
-  tick zs xs ys		= reverse_onto (xs+ys) zs;
+  tick zs xs ys		= __std__::reverse_onto (xs+ys) zs;
 end;
 
 #! --else
@@ -396,8 +405,8 @@ any p (x:xs)		= p x || any p xs;
 delete [] y = [];
 delete xs@(_:_) y = tick xs [] with
     tick [] _ = xs; // no match
-    tick (x:xs) ws = if y ==? x then reverse_onto xs ws else tick xs (x:ws);
-    tick xs ws = reverse_onto (delete xs y) ws;
+    tick (x:xs) ws = if y ==? x then __std__::reverse_onto xs ws else tick xs (x:ws);
+    tick xs ws = __std__::reverse_onto (delete xs y) ws;
 end;
 
 // inherently eager
@@ -419,10 +428,10 @@ filter p []		= [];
 filter p xs@(_:_)	= tick [] xs
 with
   add p x xs		= if p x then x:xs else xs;
-  tick zs (x:xs)	= reverse_onto (tick [] xs&) (add p x zs) if thunkp xs;
+  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (add p x zs) if thunkp xs;
 			= tick (add p x zs) xs;
-  tick zs []		= reverse_onto [] zs;
-  tick zs xs		= reverse_onto (filter p xs) zs;
+  tick zs []		= __std__::reverse_onto [] zs;
+  tick zs xs		= __std__::reverse_onto (filter p xs) zs;
 end;
 
 #! --else
@@ -451,7 +460,7 @@ firstby p none (x:xs) = if p x then x else firstby p none xs;
 pickfirstby p [] = ();
 pickfirstby p xs@(_:_) = tick xs [] with
     tick [] _ = (); // no match
-    tick (x:xs) ws = if p x then tuple2 x (reverse_onto xs ws)
+    tick (x:xs) ws = if p x then tuple2 x (__std__::reverse_onto xs ws)
                      else tick xs (x:ws);
     tick xs ws     = throw (bad_list_value xs);
     // doesn't handle case where no match is found:
@@ -462,8 +471,8 @@ end;
 rmfirstby p [] = [];
 rmfirstby p ys@(_:_) = tick ys [] with
     tick [] _ = ys; // no match
-    tick (x:xs) ws = if p x then reverse_onto xs ws else tick xs (x:ws);
-    tick xs ws = reverse_onto (rmfirstby p xs) ws;
+    tick (x:xs) ws = if p x then __std__::reverse_onto xs ws else tick xs (x:ws);
+    tick xs ws = __std__::reverse_onto (rmfirstby p xs) ws;
 end;
 
 /* We have to juggle a bit to keep `notfound` private but let these methods access
@@ -485,7 +494,7 @@ end;
 ::picklastby p [] = ();
 ::picklastby p xs@(_:_) = tick xs [] [] [] with
     tick []     _  []     _   = (); // no match
-    tick []     ms (h:hs) hss = tuple2 h (tack (reverse_onto [] ms) hs hss);
+    tick []     ms (h:hs) hss = tuple2 h (tack (__std__::reverse_onto [] ms) hs hss);
     tick (x:xs) ms hs     hss = if p x
                                 then tick xs [] (x:ms) (hs:hss)
                                 else tick xs (x:ms) hs hss;
@@ -498,7 +507,7 @@ end;
 ::rmlastby p [] = [];
 ::rmlastby p ys@(_:_) = tick ys [] [] [] with
     tick []     _  []     _   = ys; // no match
-    tick []     ms (_:hs) hss = tack (reverse_onto [] ms) hs hss;
+    tick []     ms (_:hs) hss = tack (__std__::reverse_onto [] ms) hs hss;
     tick (x:xs) ms hs     hss = if p x
                                 then tick xs [] (x:ms) (hs:hss)
                                 else tick xs (x:ms) hs hss;
@@ -700,11 +709,11 @@ init [_]		= [];
 // reverse-based
 init xs@(_:_)		= tick [] xs
 with
-  tick zs ys@(_:xs)	= reverse_onto (init ys&) zs if thunkp xs;
+  tick zs ys@(_:xs)	= __std__::reverse_onto (init ys&) zs if thunkp xs;
   tick zs xs		= case xs of
-			    [_]  = reverse_onto [] zs;
+			    [_]  = __std__::reverse_onto [] zs;
 			    x:xs = tick (x:zs) xs;
-			    _    = reverse_onto (init xs) zs;
+			    _    = __std__::reverse_onto (init xs) zs;
 			  end;
 end;
 
@@ -738,18 +747,18 @@ map f []		= [];
 // reverse-based
 map_onto f base xs@(_:_) = tick [] xs
 with
-  tick zs (x:xs)	= reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
-  tick zs []		= reverse_onto base zs;
-  tick zs xs		= reverse_onto (map_onto f base xs) zs;
+  tick zs []		= __std__::reverse_onto base zs;
+  tick zs xs		= __std__::reverse_onto (map_onto f base xs) zs;
 end;
 
 map f xs@(_:_) = tick [] xs
 with
-  tick zs (x:xs)	= reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
-  tick zs []		= reverse_onto [] zs;
-  tick zs xs		= reverse_onto (map f xs) zs;
+  tick zs []		= __std__::reverse_onto [] zs;
+  tick zs xs		= __std__::reverse_onto (map f xs) zs;
 end;
 
 #! --else
@@ -790,15 +799,15 @@ partition p [] = [], [];
 partition p xs@(_:_) = aux xs [] [] with
     aux []     [] _  = xs, []; // no misses, use original
     aux []     _  [] = [], xs; // no hits, use original
-    aux []     ms hs = reverse_onto [] hs, reverse_onto [] ms;
+    aux []     ms hs = __std__::reverse_onto [] hs, __std__::reverse_onto [] ms;
     aux (x:xs) ms hs
         = if p x
-          then reverse_onto (filter p xs&) (x:hs), reverse_onto (filter ((~).p) xs&) ms
-          else reverse_onto (filter p xs&) hs, reverse_onto (filter ((~).p) xs&) (x:ms) if thunkp xs;
+          then __std__::reverse_onto (filter p xs&) (x:hs), __std__::reverse_onto (filter ((~).p) xs&) ms
+          else __std__::reverse_onto (filter p xs&) hs, __std__::reverse_onto (filter ((~).p) xs&) (x:ms) if thunkp xs;
         = if p x
           then aux xs ms (x:hs)
           else aux xs (x:ms) hs;
-    aux xs ms hs     = reverse_onto (filter p xs) hs, reverse_onto (filter ((~).p) xs) ms;
+    aux xs ms hs     = __std__::reverse_onto (filter p xs) hs, __std__::reverse_onto (filter ((~).p) xs) ms;
 end;
 
 #! --else
@@ -836,7 +845,7 @@ revmap f xs@(_:_) = revmap_onto f [] xs;
 #! --ifnot list-opt
 // reverse-based
 rotate 1 xs@(_:_) = rot xs [] with
-    rot [x] ys = x:reverse_onto [] ys;
+    rot [x] ys = x:__std__::reverse_onto [] ys;
     rot (x:xs) ys = rot xs (x:ys);
 end;
 
@@ -870,10 +879,10 @@ end;
 scanl f a []		= [a];
 scanl f a xs@(_:_)	= tick a [] xs
 with
-  tick a zs (x:xs)	= reverse_onto (tick (f a x) xs&) (a:zs) if thunkp xs;
+  tick a zs (x:xs)	= __std__::reverse_onto (tick (f a x) xs&) (a:zs) if thunkp xs;
 			= tick (f a x) (a:zs) xs;
-  tick a zs []		= reverse_onto [a] zs;
-  tick a zs xs		= reverse_onto (scanl f a xs) zs;
+  tick a zs []		= __std__::reverse_onto [a] zs;
+  tick a zs xs		= __std__::reverse_onto (scanl f a xs) zs;
 end;
 
 scanl1 f []		= [];
@@ -929,12 +938,12 @@ span p []	= [], [];
 // reverse-based
 span p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= reverse_onto (takewhile p xs&) zs, dropwhile p xs& if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+  tick zs xs		= __std__::reverse_onto (takewhile p xs&) zs, dropwhile p xs& if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
-			    []   = reverse_onto [] zs, [];
+			    []   = __std__::reverse_onto [] zs, [];
 			    x:xs = tick (x:zs) xs if p x;
-			    xs@(_:_)  = reverse_onto [] zs, xs;
-			    xs   = reverse_onto (takewhile p xs) zs, dropwhile p xs;
+			    xs@(_:_)  = __std__::reverse_onto [] zs, xs;
+			    xs   = __std__::reverse_onto (takewhile p xs) zs, dropwhile p xs;
 			  end;
 end;
 
@@ -965,11 +974,11 @@ split m::int [] = [], [];
 // reverse-based
 split m::int xs@(_:_) = aux m [] xs with
     aux _::int ws []     = xs, []; // use original
-    aux 0 ws xs          = reverse_onto [] ws, xs;
-    aux m::int ws (x:xs) = reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs&
+    aux 0 ws xs          = __std__::reverse_onto [] ws, xs;
+    aux m::int ws (x:xs) = __std__::reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs&
                            if thunkp xs;
                          = aux (m-1) (x:ws) xs;
-    aux m::int ws xs     = reverse_onto (take m xs) ws, drop m xs;
+    aux m::int ws xs     = __std__::reverse_onto (take m xs) ws, drop m xs;
 end;
 
 #! --else
@@ -1003,23 +1012,23 @@ takewhile p []	= [];
 // reverse-based
 take m::int xs@(_:_)	= tick m [] xs
 with
-  tick m::int zs xs	= reverse_onto (take m xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
-  tick m::int zs xs	= reverse_onto [] zs if m<=0;
+  tick m::int zs xs	= __std__::reverse_onto (take m xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+  tick m::int zs xs	= __std__::reverse_onto [] zs if m<=0;
 			= case xs of
-			    []   = reverse_onto [] zs;
+			    []   = __std__::reverse_onto [] zs;
 			    x:xs = tick (m-1) (x:zs) xs;
-			    _    = reverse_onto (take m xs) zs;
+			    _    = __std__::reverse_onto (take m xs) zs;
 			  end;
 end;
 
 takewhile p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= reverse_onto (takewhile p xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+  tick zs xs		= __std__::reverse_onto (takewhile p xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
-			    []   = reverse_onto [] zs;
+			    []   = __std__::reverse_onto [] zs;
 			    x:xs = tick (x:zs) xs if p x;
-			         = reverse_onto [] zs;
-			    _    = reverse_onto (takewhile p xs) zs;
+			         = __std__::reverse_onto [] zs;
+			    _    = __std__::reverse_onto (takewhile p xs) zs;
 			  end;
 end;
 
@@ -1070,10 +1079,10 @@ with
      here would make foldr (and hence cat) eager. Therefore we use our own
      concatenation operation here, which properly deals with the case that ys
      is an infinite stream when applied recursively. */
-  tick zs (x:xs) ys	= reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
+  tick zs (x:xs) ys	= __std__::reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
 			= tick (x:zs) xs ys;
-  tick zs [] ys		= reverse_onto ys zs;
-  tick zs xs ys		= reverse_onto (xs+ys) zs;
+  tick zs [] ys		= __std__::reverse_onto ys zs;
+  tick zs xs ys		= __std__::reverse_onto (xs+ys) zs;
   /* We also use a slightly modified foldr function here, so that we can
      handle the case that xs is an improper list more gracefully. */
   foldr f a []		= a;
@@ -1275,13 +1284,13 @@ cycle ys@(x:xs)		= x : (xs+cycle ys)&;
 // no skip-ahead implentations yet, I'm lazy
 iterwhile p f x		= accum [] p f x with
 			    accum xs p f x = accum (x:xs) p f (f x) if p x;
-				           = reverse_onto [] xs otherwise;
+				           = __std__::reverse_onto [] xs otherwise;
 			  end;
 
 iteraten n::int f x	= [] if n<=0;
 			= accum [] n f x
 with
-  accum xs n::int f x	= reverse_onto [] (x:xs) if n==1;
+  accum xs n::int f x	= __std__::reverse_onto [] (x:xs) if n==1;
 			= accum (x:xs) (n-1) f (f x);
 end;
 
@@ -1394,25 +1403,25 @@ namespace __std__ with
 zip f base improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= reverse_onto (tick [] xs ys&) (f x y:us)
+  tick us (x:xs) (y:ys)	= __std__::reverse_onto (tick [] xs ys&) (f x y:us)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
-  tick us _ []		= reverse_onto base us;
-  tick us xs ys		= reverse_onto (improper xs ys) us;
+  tick us _ []		= __std__::reverse_onto base us;
+  tick us xs ys		= __std__::reverse_onto (improper xs ys) us;
 end;
 
 zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= reverse_onto (tick [] xs ys zs&) (f x y z:us)
+			= __std__::reverse_onto (tick [] xs ys zs&) (f x y z:us)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
   tick us _ [] _	|
-  tick us _ _ []	= reverse_onto base us;
-  tick us xs ys zs	= reverse_onto (improper xs ys zs) us;
+  tick us _ _ []	= __std__::reverse_onto base us;
+  tick us xs ys zs	= __std__::reverse_onto (improper xs ys zs) us;
 end;
 
 #! --else

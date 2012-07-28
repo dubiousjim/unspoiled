@@ -550,6 +550,11 @@ s::string+xs@(_:_)	= chars s+xs;
 xs@(_:_)+s::string	= xs+chars s;
 
 reverse s::string	= strcat (reverse (chars s));
+reverse_onto b::string s::string = strcat (reverse_onto [b] (chars s));
+reverse_onto b::string s = reverse_onto (chars b) s;
+reverse_onto b s::string
+                = strcat (reverse_onto [b] (chars s)) if stringp b when b = string_concat_list b end;
+                = reverse_onto b (chars s) otherwise;
 catmap f s::string	= catmap f (chars s);
 rowcatmap f s::string	= rowcatmap f (chars s);
 colcatmap f s::string	= colcatmap f (chars s);

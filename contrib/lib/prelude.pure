@@ -1071,11 +1071,11 @@ subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
   // same basic logic to make it tail-recursive.
   take n::int []	= [];
   take n::int xs@(_:_)	= tick n [] xs;
-  tick n::int zs xs	= reverse_onto [] zs if n<=0;
+  tick n::int zs xs	= __std__::reverse_onto [] zs if n<=0;
 			= case xs of
-			    []   = reverse_onto [] zs;
+			    []   = __std__::reverse_onto [] zs;
 			    x:xs = tick (n-1) (x:zs) xs;
-			    _    = reverse_onto (take n xs) zs;
+			    _    = __std__::reverse_onto (take n xs) zs;
 			  end;
 end;
 
@@ -1107,7 +1107,7 @@ def x!!(a..b) = subseq x a b;
 list ()		= [];
 list (x,xs)	= accum [x] xs with
   accum ys (x,xs)	= accum (x:ys) xs;
-  accum ys x		= reverse (x:ys);
+  accum ys x		= __std__::reverse_onto [] (x:ys);
 end;
 
 tuple []	= ();
@@ -1124,7 +1124,7 @@ tuple x@() | tuple x@(_,_) = x;
 list []		= [];
 list (x:xs)	= accum [x] xs with
   accum ys (x:xs)	= accum (x:ys) xs;
-  accum ys []		= reverse ys;
+  accum ys []		= __std__::reverse_onto [] ys;
   accum	ys xs		= throw (bad_list_value xs);
 end;
 

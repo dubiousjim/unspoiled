@@ -253,9 +253,9 @@ many p (tri l (_=>ys) c (_=>zs) r) = ::any p ys || ::any p zs || many p l || man
 
 mstreamleft t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = catstream [tick l, reverse xs&, tick r&];
+    tick (bin l (_=>xs) r) = catstream [tick l, __std__::reverse_onto [] xs&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = catstream [tick l, reverse ys&, tick c&, reverse zs&, tick r&];
+        = catstream [tick l, __std__::reverse_onto [] ys&, tick c&, __std__::reverse_onto [] zs&, tick r&];
 end;
 
 mstreamright t = tick t with
@@ -474,9 +474,9 @@ end;
 
 mhstreamleft t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick l, aux (reverse xs)&, tick r&];
+    tick (bin l (_=>xs) r) = cat [tick l, aux (__std__::reverse_onto [] xs)&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick l, aux (reverse ys)&, tick c&, aux (reverse zs)&, tick r&];
+        = cat [tick l, aux (__std__::reverse_onto [] ys)&, tick c&, aux (__std__::reverse_onto [] zs)&, tick r&];
     aux [] = [];
     aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
@@ -592,9 +592,9 @@ end;
 
 mhstreamleftk t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick l, aux (reverse xs)&, tick r&];
+    tick (bin l (_=>xs) r) = cat [tick l, aux (__std__::reverse_onto [] xs)&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick l, aux (reverse ys)&, tick c&, aux (reverse zs)&, tick r&];
+        = cat [tick l, aux (__std__::reverse_onto [] ys)&, tick c&, aux (__std__::reverse_onto [] zs)&, tick r&];
     aux [] = [];
     aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.key) xs;
@@ -1396,7 +1396,7 @@ hinsertk t new@(k=>_) = catch (whenfail t) (head2 $ ins (hash k) new t) with
     // adding new to front of list is less pressure on GC
     add new ws [] = new:ws;
     add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing
-                                     else new:reverse_onto us ws; // update
+                                     else new:__std__::reverse_onto us ws; // update
     add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
@@ -1439,7 +1439,7 @@ public hdeletekv hpopkv;
 hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     // custom version of rmfirstby, that doesn't tolerate failure
     del _ _ [] = throw fail;
-    del old ws (old:us) = reverse_onto us ws;
+    del old ws (old:us) = __std__::reverse_onto us ws;
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1529,7 +1529,7 @@ private base_hpopkv;
 base_hpopkv k old t = pop (hash k) old t with
     // custom version of pickfirstby
     del _ _ [] = throw fail;
-    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse_onto us ws
+    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:__std__::reverse_onto us ws
                                    else throw fail; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw fail;
@@ -2074,7 +2074,7 @@ end;
 // throws fail when no hits, else leftmost p is rotated to head
 pickfirstby p xs = pop p xs [] with
     pop p [] _ = throw fail;
-    pop p (x:xs) ws = if p x then x:reverse_onto xs ws
+    pop p (x:xs) ws = if p x then x:__std__::reverse_onto xs ws
                          else pop p xs (x:ws);
 end;
 
@@ -2082,7 +2082,7 @@ end;
 // throws fail when no hits, else rightmost p is rotated to head
 picklastby p xs = pop p xs [] [] [] with
     pop p []     _  []     _   = throw fail;
-    pop p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
+    pop p []     ms (h:hs) hss = h:aux (__std__::reverse_onto [] ms) hs hss;
     pop p (x:xs) ms hs     hss = pop p xs [] (x:ms) (hs:hss) if p x;
                                = pop p xs (x:ms) hs hss otherwise;
     aux zs []     []       = zs;
@@ -2093,7 +2093,7 @@ end;
 // custom version of partition
 partition p ys = spl p ys [] [] with
     spl p []     _  [] = []:ys; // no hits, use original
-    spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
+    spl p []     ms hs = hs:__std__::reverse_onto [] ms; // push reversed list of hits to front
     spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
                        = spl p xs (x:ms) hs otherwise;
 end;
