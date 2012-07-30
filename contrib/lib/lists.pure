@@ -156,6 +156,14 @@ end;
 
       return the list of all members of ``xs`` satisfying the predicate ``p``
 
+   .. function:: firstby p none xs
+
+      return the first member of ``xs`` satisfying the predicate ``p``; else
+      return the supplied ``none`` value
+
+      See also '\ :func:`pickfirstby`\ ' and '\ :func:`lastby`\ ';
+      '\ :func:`filter`\ ' can be thought of as an "allby".
+
    .. function:: foldl f a xs
 
       accumulate the binary function ``f`` over all members of ``xs``,
@@ -221,6 +229,11 @@ end;
 
       return the last element of ``xs``; ``xs`` must be nonempty
 
+   .. function:: lastby p none xs
+
+      return the last member of ``xs`` satisfying the predicate ``p``; else
+      return the supplied ``none`` value
+
    .. function:: listmap f xs
 
       convenience function which works like :func:`map`, but also deals with
@@ -246,6 +259,18 @@ end;
 
       equivalent to ``filter p xs, filter ((~).p) xs``, but more efficient
 
+   .. function:: pickfirstby p xs
+
+      equivalent to ``firstby p _ xs, rmfirstby p xs``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``()``
+
+      Note: ``partition`` can be thought of as a `popall`.
+
+   .. function:: picklastby p xs
+
+      equivalent to ``lastby p _ xs, rmlastby p xs``, but more efficient;
+      if no member of ``xs`` satisfies predicate ``p``, returns ``()``
+
    .. function:: revmap f xs
 
       equivalent to ``reverse (map f xs)``, but more efficient than even plain :func:`map`
@@ -253,6 +278,18 @@ end;
    .. function:: revmap_onto f base xs
 
       equivalent to ``reverse (map f xs) + base``, but more efficient
+
+   .. function:: rmfirstby p xs
+
+      return ``xs`` without the first member satisfying the predicate ``p``;
+      if no member satisfies ``p`` will just return ``xs``
+
+      Note: ``filter ((~).p)` can be thought of as a `deleteall`.
+
+   .. function:: rmlastby p xs
+
+      return ``xs`` without the last member satisfying the predicate ``p``;
+      if no member satisfies ``p`` will just return ``xs``
 
    .. function:: scanl f a xs
 
@@ -376,6 +413,117 @@ filter p xs@(_:_) = aux xs with
     skip_ahead n::int xs       = n (filter p xs);
 end;
 #! --endif
+
+firstby p none [] = none; // no match
+firstby p none (x:xs) = if p x then x else firstby p none xs;
+
+// we don't provide skip-ahead version
+pickfirstby p [] = ();
+pickfirstby p xs@(_:_) = tick xs [] with
+    tick [] _ = (); // no match
+    tick (x:xs) ws = if p x then tuple2 x (__std__::reverse_onto xs ws)
+                     else tick xs (x:ws);
+    tick xs ws     = throw (bad_list_value xs);
+    // doesn't handle case where no match is found:
+    // tick xs ws     = tuple2 (firstby p _ xs) (reverse_onto (rmfirstby p xs) ws);
+end;
+
+// we don't provide skip-ahead version
+rmfirstby p [] = [];
+rmfirstby p ys@(_:_) = tick ys [] with
+    tick [] _ = ys; // no match
+    tick (x:xs) ws = if p x then __std__::reverse_onto xs ws else tick xs (x:ws);
+    tick xs ws = __std__::reverse_onto (rmfirstby p xs) ws;
+end;
+
+/* We have to juggle a bit to keep `notfound` private but let these methods access
+   it. All of `lastby`, `rmlastby`, and `picklastby` are inherently eager. */
+
+public lastby picklastby rmlastby;
+namespace __std__;
+private nonfix notfound;
+
+::lastby p none [] = none;
+::lastby p none xs@(_:_) = tick xs notfound with
+    tick [] w = if w===notfound then none else w;
+    tick (x:xs) w = tick xs (if p x then x else w);
+    tick xs w = throw (bad_list_value xs);
+end;
+
+#! --ifnot list-opt
+// reverse-based
+::picklastby p [] = ();
+::picklastby p xs@(_:_) = tick xs [] [] [] with
+    tick []     _  []     _   = (); // no match
+    tick []     ms (h:hs) hss = tuple2 h (tack (__std__::reverse_onto [] ms) hs hss);
+    tick (x:xs) ms hs     hss = if p x
+                                then tick xs [] (x:ms) (hs:hss)
+                                else tick xs (x:ms) hs hss;
+    tick xs     _  _      _   = throw (bad_list_value xs);
+    tack zs []     []         = zs;
+    tack zs []     (xs:xss)   = tack zs xs xss;
+    tack zs (y:ys) xss        = tack (y:zs) ys xss;
+end;
+
+::rmlastby p [] = [];
+::rmlastby p ys@(_:_) = tick ys [] [] [] with
+    tick []     _  []     _   = ys; // no match
+    tick []     ms (_:hs) hss = tack (__std__::reverse_onto [] ms) hs hss;
+    tick (x:xs) ms hs     hss = if p x
+                                then tick xs [] (x:ms) (hs:hss)
+                                else tick xs (x:ms) hs hss;
+    tick xs     _  _      _   = throw (bad_list_value xs);
+    tack zs []     []         = zs;
+    tack zs []     (xs:xss)   = tack zs xs xss;
+    tack zs (y:ys) xss        = tack (y:zs) ys xss;
+end;
+
+#! --else
+// skip-ahead
+::picklastby p [] = ();
+::picklastby p xs@(_:_) = aux xs with
+    aux xs = case skip_ahead 0 xs of
+        len_pre@_ () = pop_pre len_pre xs with
+            pop_pre 0 _ = ();
+            pop_pre n::int xx@(x:xs) = case pop_pre (n-1) xs of
+                                          () = if p x then xx else ();
+                                          y,ys = tuple2 y (x:ys);
+                                       end;
+        end;
+        len_pre@_ (y:ys) = tuple2 y (append len_pre xs ys);
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead n::int [] = n ();
+    skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
+    skip_ahead n::int xs = throw (bad_list_value xs);
+end;
+
+::rmlastby p [] = [];
+::rmlastby p ys@(_:_) = case aux ys of
+    notfound = ys; // no match
+    ys = ys;
+end with
+    aux xs = case skip_ahead 0 xs of
+        len_pre@_ notfound = pop_pre len_pre xs with
+            pop_pre 0 _ = notfound;
+            pop_pre n::int (x:xs) = case pop_pre (n-1) xs of
+                                       notfound = if p x then xs else notfound;
+                                       ys = x:ys;
+                                    end;
+        end;
+        len_pre@_ ys = append len_pre xs ys;
+    end;
+    append n::int [] ys | append 0 _ ys = ys;
+    append n::int (x:xs) ys = x:append (n-1) xs ys;
+    skip_ahead n::int [] = n notfound;
+    skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
+    skip_ahead n::int xs = throw (bad_list_value xs);
+end;
+#! --endif
+namespace;
 
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
