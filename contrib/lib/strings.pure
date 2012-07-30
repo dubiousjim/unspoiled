@@ -572,7 +572,8 @@ cyclen n::int s::string	= cyclen n (chars s) if ~null s;
 all p s::string		= all p (chars s);
 any p s::string		= any p (chars s);
 do f s::string		= do f (chars s);
-drop n::int s::string	= substr s n (#s-n);
+// #s-n is the exact size, but can't we let C figure that out?
+drop n::int s::string	= substr s n (2147483647);
 dropwhile p s::string	= strcat (dropwhile p (chars s));
 filter p s::string	= strcat (filter p (chars s));
 firstby p none s::string = firstby p none (chars s);
@@ -634,8 +635,8 @@ scanr1 f s::string	= scanr1 f (chars s);
 span p s::string        = strcat pre, strcat post when
     pre,post = span p (chars s);
 end;
-
-split n::int s::string  = substr s 0 n, substr s n (#s-n);
+// #s-n is the exact size, but can't we let C figure that out?
+split n::int s::string  = substr s 0 n, substr s n (2147483647);
 take n::int s::string	= substr s 0 n;
 takewhile p s::string	= strcat (takewhile p (chars s));
 tail s::string		= substr s 1 (#s-1) if ~null s;
