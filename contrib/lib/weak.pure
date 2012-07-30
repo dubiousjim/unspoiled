@@ -1,0 +1,269 @@
+/* Weak References (experimental). These were added in Pure 0.5xxx. */
+
+/* Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
+
+   This file is part of the Pure standard library.
+
+   The Pure standard library is free software: you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   Pure is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+   more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+/* .. module:: weak
+
+   Weak References
+   ---------------
+
+   Weak references are references that don't count towards keeping an
+   object non-garbage-collectable. Since Pure's garbage collection
+   works by reference counting, and so occurs as soon as an object becomes
+   unreachable, our weak references aren't suited for some purposes that
+   they're (mis)used for elsewhere, like caching.
+
+   What they are suited for are:
+
+   * Weak sets allow you to implement procedures that iterate over all
+     existing objects of a given type, without affecting their lifetime,
+     as a maintaining a regular set of them would.
+
+   * Weak-keyed dicts allow you to associate additional data with an object
+     without affecting its lifetime, as a conventional dict or wrapper would,
+     and without needing to redesign the internal structure of the object,
+     which may not be an option if it's, say, a C pointer supplied
+     by an external library.
+
+   * Weak-valued dicts allow you to emulate circular references without
+     rendering the whole cycle uncollectable.
+
+   Imports
+   ~~~~~~~
+
+   To use the operations of this module, add the following import declaration
+   to your program::
+
+     using weak;
+
+   Low-level API
+   ~~~~~~~~~~~~~
+
+   .. function:: weakref orig ws
+
+      Returns a pair ``wr, ws_expirer``, where ``wr`` is a new or updated
+      weakref for ``orig``, with the function ``ws`` installed in the chain
+      of "weak sentries" to be run when ``orig`` is collected; and
+      ``ws_expirer`` is a function that when called with ``()`` will unregister
+      ``ws``.
+
+      A single object only has at most one weakref; it will automatically be
+      updated by ``weakref`` if it already exists. The weak sentry functions
+      registered by ``weakref`` are called when ``orig`` dies, not when the
+      weakref does; but they are called with the weakref as an argument,
+      not ``orig``. These weak sentry functions are called in the reverse order
+      of being registered.
+
+      If you don't need to register a weak sentry function, just specify
+      ``void`` (that case is optimized). If you don't need the ``ws_expirer``
+      function, just ignore it.
+
+   .. function:: getweakref none orig
+
+      Fetches an existing weakref for ``orig``, if one already exists; else
+      returns the value supplied as ``none``.
+
+   .. function:: weakget wr
+
+      Attempts to retrieve the original of weakref ``wr``; if it succeeds,
+      the result will be of the form ``{| original |}``, and that expression
+      will count towards keeping `original` non-collectable.
+
+      Weakrefs always outlive their originals. If the original has already been
+      collected, the result of ``weakget wr`` will be ``{}``.
+
+      Weak sentry functions are invoked with the weakref as their single
+      argument; at that point, the original will no longer be retrievable.
+
+      TODO: Shall we make this use the same none/unboxed_value return
+      signature as `getweakref`, `firstby`, and so on?
+
+   Example::
+
+     > using weak, system;
+     > let __count = ref 0;
+     > counter = current when current = get __count; put __count (succ current) end;
+     > let orig, wr = orig, wr when
+     >   orig = [counter];
+     >   origname = str orig;
+     >   // we make sure not to include a reference to orig, but only its name, in the weak sentry
+     >   wr, _ = weakref orig (\wr->printf "weak sentry associated with weakref %s called because %s is dying.\n" (str wr, origname));
+     > end;
+     > orig, wr;
+     [0], #<pointer 0x804d04b20>
+     > weakget wr; // weakref is still "live"
+     {[0]}
+     > let orig = 1;
+     > 42; // sometimes you need to nudge the interpreter
+     weak sentry associated with weakref #<pointer 0x804d04b20> called because [0] is dying.
+     42
+     > weakget wr; // weakref is "dead"
+     {}
+
+   Here's an example of using these low-level facilities to implement a
+   collectable circular reference::
+
+     > using weak, system;
+     > let cell1 = ref 0;
+     > let object2 = [cell1];
+     > // if we now just make cell1 point to object2, that pair will form a
+     > // reference cycle and never be collectable; but we can do this instead:
+     > put cell1 wr when
+     >   origname = str object2;
+     >   wr,_ = weakref object2 (\_->printf "%s is dying\n" origname);
+     > end;
+     > #<pointer 0x804c0d8e0>
+     > cell1 === head object2;
+     1
+     > {object2} === weakget (get cell1);
+     1
+     > let cell1, object2 = 0, 0;
+     > [#<pointer 0x804c0d188>] is dying.
+*/
+
+/*
+   The low-level conventions used are:
+
+    * a `private_ref` functions just like a regular Pure ref, but is
+      opaque to the public `get` and `put` functions
+
+    * an "unsafe pointer" to an object functions similarly to a Pure
+      ref, but doesn't increase its target's reference count
+
+    * when `orig` has a weakref, `orig`'s sentry is of the form
+      `weak::sentrybox1 wr` or `weak::sentrybox2 wr regularsentry`,
+      where `wr` is a `private_ref` to a list whose tail is a list
+      of 0 or more (plain) references to weak sentry functions.
+      The head of `wr` is either an unsafe pointer to `orig`, or after
+      `orig` has started to be collected, the private nonfix `notfound`.
+
+    * Expiring a weak sentry function is accomplished by updating
+      its reference in the just-mentioned list to `void`.
+*/
+
+public weakget getweakref weakref;
+
+using namespace __C;
+namespace weak;
+private nonfix notfound;
+private private_ref private_put private_get private_unref private_refp;
+
+private_ref x = pointer_put_expr r (pure_new x) $$
+                sentry private_unref r when r::pointer = pure_expr_pointer end;
+
+private_put r::pointer x = pure_free (pointer_get_expr r) $$
+                           pointer_put_expr r (pure_new x) $$ x
+                           if private_refp r;
+
+private_get r::pointer = pointer_get_expr r if private_refp r;
+
+private_unref r::pointer = pure_free (pointer_get_expr r) $$
+                           clear_sentry r if private_refp r;
+
+private_refp r = case r of _::pointer = get_sentry r===private_unref; _ = 0 end;
+
+private sentrybox1 sentrybox2;
+// these were already declared in primitives.pure
+// these definitions are for when they're invoked as sentries
+sentrybox1 wr orig   = () when
+                          unsafe:ss = private_get wr;
+                          // now that orig is dying, no one can retrieve it via wr anymore
+                          private_put wr [notfound];
+                          // run the weak sentries; we give them the weakref
+                          // as an argument instead of orig, so there's no danger
+                          // of them reviving orig
+                          do (($wr).get) ss;
+                       end;
+
+sentrybox2 wr s orig = s orig when
+                          unsafe:ss = private_get wr;
+                          // now that orig is dying, no one can retrieve it via wr anymore
+                          private_put wr [notfound];
+                          // run the weak sentries; we give them the weakref
+                          // as an argument instead of orig, so there's no danger
+                          // of them reviving orig
+                          do (($wr).get) ss;
+                       end;
+
+// retrieve {orig} from a weakref, else {}
+::weakget wr = case private_get wr of
+    notfound:_ = {};
+    // in this case the result contributes again to orig's reference count
+    unsafe:_ = ::vector1 (pointer_get_expr unsafe);
+end if private_refp wr;
+
+// fetch existing weakref from orig, else none
+::getweakref none orig = if pure_has_sentry orig
+                       then case pure_get_sentry orig of
+                          sentrybox1 wr   |
+                          sentrybox2 wr _ = wr;
+                          _ = none;
+                       end else none;
+
+
+// make new weakref for orig, and install weak sentry function ws
+// returns pair of weakref, and a ()-function that expires ws
+::weakref orig ws::function
+
+    = wr, void when
+        wr = case getweakref notfound orig of
+            notfound = wr when
+                           // unsafe ptr to orig (orig's refcount not increased)
+                           unsafe::pointer = pure_expr_pointer;
+                           pointer_put_expr unsafe orig;
+                           // refcell containing the unsafe ptr and no weak sentries
+                           wr = private_ref (unsafe:[]);
+                           // setup sentrybox on orig
+                           pure_sentry box orig when
+                              box = if pure_has_sentry orig
+                                    then sentrybox2 wr (pure_get_sentry orig)
+                                    else sentrybox1 wr
+                           end;
+                       end;
+                   wr = wr; // TODO prune expired ss?
+            end;
+        orig; // keep orig from being collected until everything is set up
+    end if ws === void;
+
+    = wr, expire_ws when
+        wr, expire_ws = case getweakref notfound orig of
+            notfound = wr, expire_ws when
+                           // unsafe ptr to orig (orig's refcount not increased)
+                           unsafe::pointer = pure_expr_pointer;
+                           pointer_put_expr unsafe orig;
+                           wsptr = ref ws;
+                           expire_ws = \() -> put wsptr void;
+                           // refcell containing the unsafe ptr and a list of refs to weak sentries
+                           wr = private_ref (unsafe:[wsptr]);
+                           // setup sentrybox on orig
+                           pure_sentry box orig when
+                              box = if pure_has_sentry orig
+                                    then sentrybox2 wr (pure_get_sentry orig)
+                                    else sentrybox1 wr
+                           end;
+                       end;
+                   wr = wr, expire_ws when
+                           wsptr = ref ws;
+                           expire_ws = \() -> put wsptr void;
+                           unsafe:ss = private_get wr;
+                           // TODO prune expired ss?
+                           private_put wr (unsafe:wsptr:ss);
+                       end;
+            end;
+        orig; // keep orig from being collected until everything is set up
+    end otherwise;

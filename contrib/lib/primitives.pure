@@ -1856,10 +1856,49 @@ put_pointer x::pointer y::pointer = pointer_put_pointer x y;
 
 */
 
-extern expr* pure_sentry(expr*,expr*) = sentry; // IMPURE!
-extern expr* pure_clear_sentry(expr*) = clear_sentry; // IMPURE!
-extern expr* pure_get_sentry(expr*) = get_sentry;
-extern bool  pure_has_sentry(expr*) = cookedp;
+namespace __C;
+extern expr* pure_sentry(expr*,expr*); // IMPURE!
+extern expr* pure_clear_sentry(expr*); // IMPURE!
+extern expr* pure_get_sentry(expr*);
+extern bool  pure_has_sentry(expr*);
+namespace;
+
+public sentry clear_sentry get_sentry cookedp;
+namespace weak;
+/* To cooperate with regular sentries, weakrefs are installed in boxes
+   that optionally chain a regular sentry; these boxes are ignored by `sentry`,
+   `clear_sentry`, `get_sentry`, and `cookedp`. */
+private sentrybox1 sentrybox2;
+
+::sentry f x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        sentrybox1 wr   = pure_sentry (sentrybox2 wr f) x;
+        sentrybox2 wr _ = pure_sentry (sentrybox2 wr f) x;
+        _ = pure_sentry f x;
+    end else pure_sentry f x;
+
+::clear_sentry x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        sentrybox1 _   = x;
+        sentrybox2 wr _ = pure_sentry (sentrybox1 wr) x;
+        _ = pure_clear_sentry x;
+    end else x;
+
+::get_sentry x = s if ok when
+    ok@_ s = if pure_has_sentry x then
+            case pure_get_sentry x of
+                sentrybox1 _   = 0 _;
+                sentrybox2 _ s = 1 s;
+                s = 1 s;
+            end else 0 _;
+end;
+
+::cookedp x = if pure_has_sentry x then
+    case pure_get_sentry x of
+        sentrybox1 _   = false;
+        _ = true;
+    end else false;
+namespace;
 
 cooked p::pointer = sentry free p;
 
