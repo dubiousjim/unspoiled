@@ -38,17 +38,20 @@ namespace __std__ with const SKIPSIZE = 4096; end;
 #! --endif
 
 
-/* List reversal. This is a strict operation, of course, so it will loop on
-   infinite lists. Also, this is one of the few list operations which throws
-   an exception for improper lists, since in that case there really isn't any
-   meaningful value to return. */
+/* List reversal. These are inherently eager operations, so they will loop on
+   an infinite final argument. Also, these are some of the few list operations
+   which throw an exception when that argument is an improper list, since in
+   that case there really isn't any meaningful value to return. */
 
-reverse []	= [];
-reverse (x:xs)	= accum [x] xs with
-  accum ys (x:xs)	= accum (x:ys) xs;
-  accum ys []		= ys;
-  accum	ys xs		= throw (bad_list_value xs);
+reverse_onto base []     = base;
+reverse_onto base (x:xs) = accum (x:base) xs with
+  accum ys (x:xs)	 = accum (x:ys) xs;
+  accum ys []		 = ys;
+  accum	ys xs		 = throw (bad_list_value xs);
 end;
+
+reverse []	         = [];
+reverse xs@(_:_)	 = reverse_onto [] xs;
 
 
 /* List concatenation. For a robust implementation which works with both

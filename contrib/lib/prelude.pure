@@ -751,6 +751,14 @@ def void [x] | void {x} = void x;
 	> reverse (a,b,c);
 	(c,b,a)
 
+   .. function:: reverse_onto base x
+
+      Reverse a list onto a specified base. ::
+
+        > reverse_onto [20,10] (3..5);
+        [5, 4, 3, 20, 10]
+
+
    In addition, the prelude provides the following conversion operations.
 
    .. function:: list x
