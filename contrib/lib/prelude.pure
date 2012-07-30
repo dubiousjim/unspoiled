@@ -139,7 +139,7 @@ infixr  1500   || ;                // logical or (short-circuit)
 infixr  1600   && ;                // logical and (short-circuit)
 prefix  1700   ~ ;                 // logical negation
 infix   1800   < > <= >= == ~= ;   // relations
-infix   1800   === ~== ;           // syntactic equality
+infix   1800   === ~== ==? ~=? ;   // fine- and coarse-grained equality
 infixr  1900   : ;                 // list cons
 infix   2000   +: <: ;             // complex numbers (cf. math.pure)
 infixl  2100   << >> ;             // bit shifts
@@ -621,14 +621,19 @@ def void [x] | void {x} = void x;
       Equality and inequality of lists and tuples. These compare two lists or
       tuples by recursively comparing their members, so '\ :func:`==`\ ' must
       be defined on the list or tuple members if you want to use these
-      operations. Also note that these operations are inherently eager, so
-      applying them to two infinite lists may take an infinite amount of
-      time. ::
+      operations. ::
 
         > reverse [a,b,c] == [c,b,a];
 	1
 	> (a,b,c) == ();
 	0
+
+      '\ :func: `==?`\ ' is another alternative, that checks whether the
+      members of the tuples are '\ :func:`==`\ ', or when that's not
+      defined, whether they are '\ :func:`===`\ '.
+
+      Note that applying these operations to two infinite lists
+      may take an infinite amount of time.
 
    .. index:: list; size
    .. index:: tuple; size
@@ -1072,6 +1077,50 @@ stream (x:xs)	= x:xs if thunkp xs;
 
 stream ()	= [];
 stream xs@(_,_)	= stream (list xs);
+
+/* Coarse-grained equality. We optimize the definitions for native aggregates
+   so as not to have to traverse them twice, when `==` isn't defined for all
+   members. */
+
+x::smatrix ==? y::matrix |
+x::matrix ==? y::smatrix = 0 if dim x ~= dim y;
+			 = compare 0 with
+			   compare i::int = 1 if i>=n;
+			     = 0 if x!i ~=? y!i;
+			     = compare (i+1);
+			   end when n::int = #x end;
+
+x::smatrix ~=? y::matrix |
+x::matrix ~=? y::smatrix = ~(x ==? y);
+
+(x=>v)==?(y=>w)	= x==?y && v==?w;
+(x=>v)~=?(y=>w)	= x~=?y || v~=?w;
+
+(x,xs)==?(y,ys)	= x==?y && xs==?ys;
+(x,xs)~=?(y,ys)	= x~=?y || xs~=?ys;
+
+(x:xs)==?(y:ys)	= x==?y && xs==?ys;
+(x:xs)~=?(y:ys)	= x~=?y || xs~=?ys;
+
+// the general cases
+
+x ==? y = case x == y of
+            res::int = res;
+            _ = case x:y of
+                    (xh@_ xv):(yh@_ yv) = xh ==? yh && xv ==? yv;
+                    x:x = true; // same x y
+                    _ = false;
+                end;
+          end;
+
+x ~=? y = case x == y of
+            res::int = res == 0;
+            _ = case x:y of
+                    (xh@_ xv):(yh@_ yv) = xh ~=? yh || xv ~=? yv;
+                    x:x = false; // ~same x y
+                    _ = true;
+                end;
+          end;
 
 
 /* Add below any extra stuff which doesn't belong elsewhere, or needs to be

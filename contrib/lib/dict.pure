@@ -69,8 +69,7 @@
    dictionaries compare keys using equality (assuming two keys ``a`` and ``b``
    to be equal if neither ``a<b`` nor ``b<a`` holds), while hashed
    dictionaries check for syntactical equality (using :func:`===`). The
-   associated values are compared using the :func:`==` predicate if it is
-   defined, falling back to syntactic equality otherwise.
+   associated values are compared using the :func:`==?` predicate.
 
    The underlying AVL tree data structure can be found in the avltrees.pure
    module which is included in the library, but not to be invoked directly.
@@ -216,12 +215,12 @@
       	less general dictionary types (ordered, single-valued) to more general
       	types (hashed, multi-valued) are handled automatically.
 
-      * The :func:`delete_val/dict` function compares values using equality
-        (:func:`==`) if it is defined, falling back to syntactic equality
-        (:func:`===`) otherwise. If there is more than one instance of the
-        given value under the given key, the first such instance will be
-        removed (which, if :func:`==` is defined on the values, may be any
-        instance that compares equal, not necessarily an exact match).
+      * The :func:`delete_val/dict` function compares values using
+        coarse-grained equality (:func:`==?`). If there is more than one
+        instance of the given value under the given key, the first such
+        instance will be removed (which, if :func:`==` is defined on the
+        values, may be any instance that compares equal, not necessarily an
+        exact match).
 
       * In the multidict case, :func:`delete_val/dict` may require linear time
         with respect to the number of different values stored under the given
@@ -469,8 +468,7 @@ d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
   /* This case is optimized so that we only need a single traversal of the
      member lists which can be done in linear time. Also note that keys are
      compared for equality in the sense that two keys are equal if neither is
-     less than the other, whereas values are compared for proper equality (==)
-     if it is defined, falling back to (===) otherwise. */
+     less than the other, whereas values are compared for (==?). */
   cmp [] [] = 1;
   cmp (x:xs) [] = 0;
   cmp [] (x:xs) = 0;
