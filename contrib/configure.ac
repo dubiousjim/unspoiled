@@ -338,6 +338,7 @@ dnl Output files.
 AC_CONFIG_FILES([Makefile examples/Makefile pure.pc])
 AC_CONFIG_FILES([run-test], [chmod +x run-test])
 AC_CONFIG_FILES([run-tests], [chmod +x run-tests])
+AC_CONFIG_FILES([expand-prelude.sed])
 AC_OUTPUT
 
 AC_MSG_RESULT([

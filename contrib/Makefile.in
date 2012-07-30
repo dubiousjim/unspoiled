@@ -182,13 +182,13 @@ config/config.guess config/config.sub config/install-sh \
 $(SOURCE) $(EXTRA_SOURCE) w3centities.c strptime.c pure.cc pure_norl.cc \
 pure_main.c pure.1 pure.txt puretut.txt install-docs.sh run-tests.in \
 run-test.in pure.pc.in etc/pure-mode.el.in etc/pure.* etc/pure-highlight.lang \
-debian/* \
+debian/* expand-prelude.sed.in \
 examples/COPYING examples/Makefile.in examples/*.pure examples/*.purerc \
 examples/*.c examples/*.f90 examples/libor/COPYING examples/libor/*.pure \
 examples/bitcode/Makefile examples/bitcode/*.c examples/bitcode/*.f90 \
 examples/bitcode/*.dsp examples/bitcode/*.pure \
 examples/hellomod/Makefile examples/hellomod/*.c examples/hellomod/*.pure \
-lib/*.pure test/*.pure test/*.log test/*.blob
+lib/*.pure test/*.pure test/*.log test/*.blob test/*.aux
 # These need special editing (see dist target, datesubst below).
 SEDFILES = INSTALL
 
@@ -451,21 +451,23 @@ $(debsrc):
 # test logs, make check
 
 tests = $(wildcard $(srcdir)/test/test*.pure)
-logs  = $(srcdir)/test/prelude.log $(srcdir)/test/special.log $(tests:.pure=.log)
+logs  = $(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log $(srcdir)/test/special.log $(tests:.pure=.log)
 
 logs: $(logs)
 
 cleanlogs:
 	rm -f $(srcdir)/test/*.log
 
-$(srcdir)/test/prelude.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure
-	./run-test -n < $< > $@ 2>&1
+$(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure
+	sed -f ./expand-prelude.sed $< | ./run-test -n $$(awk -F: -vbase=$(lastword $(subst /, ,$(basename $@))) '$$1==base {print $$2}' $(srcdir)/test/index.aux) > $@ 2>&1
 
 $(srcdir)/test/special.log: test/special.pure lib/*.pure
 	./run-test  < $< > $@ 2>&1
 
-%.log: %.pure
-	./run-test  < $< > $@ 2>&1
+%.aux: ;
+
+%.log: %.pure %.aux
+	./run-test $$(awk -F: -vbase=$(lastword $(subst /, ,$(basename $@))) '$$1==base {print $$2}' $(srcdir)/test/index.aux) < $< > $@ 2>&1
 
 check: pure
 	./run-tests

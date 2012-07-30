@@ -52,22 +52,47 @@ pathops()
   local _diff="$outdir/$_bname.diff"
   local _tmp="$_diff.$$"
   local _log="$testdir/$_bname.log"
+  local _aux="$testdir/$_bname.aux"
 
   case "$mode" in
   -A) fname="$_fname" \
       bname="$_bname" \
       diff="$_diff" \
       tmp="$_tmp" \
-      log="$_log"
+      log="$_log" \
+      aux="$_aux"
     ;;
   -d) echo $_diff
     ;;
   esac
 }
 
+run1()
+{
+    trap 'x=$?; rm -f '$tmp'; exit $x;' ALRM HUP INT TERM
+    if ./run-test ${pufs} 2>&1 | ${DIFF} -u "$log" - > "$tmp"; then
+      rm -f "$tmp" "$diff"
+      echo "${ECHO_T}passed"
+    else
+      rc=1
+      mv "$tmp" "$diff"
+      echo "${ECHO_T}FAILED"
+    fi
+}
+
+autoprelude=0
+
+# if running all tests, or -f
 if test 0 -eq $#; then
-  tests=
-  for s in "$srcdir/lib/prelude.pure" $(find "$testdir" -name test\*.pure | sort); do
+  # if running all tests, or prelude has a *.diff
+  if test 0 -eq $failed || test -f "$outdir/prelude"*.diff; then
+    tests="$srcdir/lib/prelude.pure"
+    autoprelude=1
+  else
+    tests=
+  fi
+  for s in $(find "$testdir" -name test\*.pure | sort); do
+    # if running all tests, or this has a *.diff
     if test 0 -eq $failed || test -e $(pathops -d "$s"); then
       tests="$tests $s"
     fi
@@ -81,20 +106,46 @@ echo Running tests.
 
 test -d "$outdir" || mkdir -p "$outdir"
 
+# * The prelude.aux script should test compiler settings and print to stdout
+#   a string like "prelude-foo". In that case, requesting a test of
+#   lib/prelude.pure will compare against the logfile test/prelude-foo.log.
+#
+# * The index.aux file specifies what compiler settings each test script should
+#   be run with by default; this is overridden by any settings in PURE_FLAGS.
+#
+# * Scripts like test015.aux should test compiler settings and exit with a nonzero
+# status to skip running the related test. For example:
+#  ### test015.aux ###
+#  #! --if trees23
+#  exit 1;
+#  #! --endif
+# All of the *.aux scripts can rely on the prelude already being loaded.
+
 for t in "$@"; do
   pathops -A "$t"
-  pufs="$PURE_FLAGS"
-  test "x$bname" = "xprelude" && pufs="$pufs -n"
-  echo ${ECHO_N} "$fname: ${ECHO_C}"
-  trap 'x=$?; rm -f '$tmp'; exit $x;' ALRM HUP INT TERM
-  if ./run-test ${pufs} < "$t" 2>&1 | ${DIFF} -u "$log" - > "$tmp"
-  then
-    rm -f "$tmp" "$diff"
-    echo "${ECHO_T}passed"
+  if test prelude = "$bname" && test 1 -eq $autoprelude; then
+    for log in $(find "$testdir" -name prelude\*.log | sort); do
+      fname="${log##*/}"
+      bname="${fname%.*}"
+      diff="$outdir/$bname.diff"
+      tmp="$diff.$$"
+      pufs=$(awk -F: -v"base=$bname" '$1==base {print $2}' "$testdir/index.aux")
+      echo ${ECHO_N} "$(echo prelude.pure $pufs $PURE_FLAGS): ${ECHO_C}"
+      pufs="$pufs $PURE_FLAGS -n"
+      sed -f ./expand-prelude.sed "$srcdir/lib/prelude.pure" | run1
+    done
   else
-    rc=1
-    mv "$tmp" "$diff"
-    echo "${ECHO_T}FAILED"
+    echo ${ECHO_N} "$fname: ${ECHO_C}"
+    pufs="$(awk -F: -v"base=$bname" '$1==base {print $2}' "$testdir/index.aux") $PURE_FLAGS"
+    if test prelude = "$bname"; then
+      log="$testdir/$(level=0 ./run-test ${pufs} "$testdir/prelude.aux").log"
+      pufs="$pufs -n"
+      sed -f ./expand-prelude.sed "$srcdir/lib/prelude.pure" | run1
+    elif test -e "$aux" && ! level=0 ./run-test ${pufs} "$aux" >/dev/null; then
+      echo "${ECHO_T}skipped"
+    else
+      run1 < "$t"
+    fi
   fi
 done
 

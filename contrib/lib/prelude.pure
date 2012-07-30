@@ -179,9 +179,14 @@ slice x y = x!!y;
 /* Pull in the primitives (arithmetic etc.) and the standard string, matrix
    and record functions. Note that the math, pointers and system modules are
    *not* included here, so you have to do that yourself if your program
-   requires any of those operations. */
+   requires any of those operations.
 
-using primitives, matrices, records, strings;
+   We list these separately to cooperate with the run-tests script. */
+
+using primitives;
+using matrices;
+using records;
+using strings;
 
 /* .. _Prelude Types:
 

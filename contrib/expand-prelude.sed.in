@@ -1,0 +1,26 @@
+/^using namespace/n
+/^using primitives;/{
+r @srcdir@/lib/primitives.pure
+bu
+}
+/^using matrices;/{
+r @srcdir@/lib/matrices.pure
+bu
+}
+/^using records;/{
+r @srcdir@/lib/records.pure
+bu
+}
+/^using strings;/{
+r @srcdir@/lib/strings.pure
+bu
+}
+/^using lists;/{
+r @srcdir@/lib/lists.pure
+bu
+}
+b
+:u
+a \
+using namespace;
+d
