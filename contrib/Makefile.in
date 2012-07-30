@@ -257,7 +257,7 @@ elc: etc/pure-mode.elc
 # generate the library documentation (this requires pure-doc)
 
 # make sure to get these into the right order
-libsources = prelude.pure strings.pure matrices.pure records.pure \
+libsources = prelude.pure lists.pure strings.pure matrices.pure records.pure \
 primitives.pure pointers.pure math.pure array.pure heap.pure \
 dict.pure set.pure system.pure regex.pure posix.pure getopt.pure
 libfiles = $(addprefix $(srcdir)/lib/, $(libsources))
@@ -458,7 +458,7 @@ logs: $(logs)
 cleanlogs:
 	rm -f $(srcdir)/test/*.log
 
-$(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure
+$(srcdir)/test/prelude.log $(srcdir)/test/prelude-list-opt.log: lib/prelude.pure lib/primitives.pure lib/matrices.pure lib/records.pure lib/strings.pure lib/lists.pure
 	sed -f ./expand-prelude.sed $< | ./run-test -n $$(awk -F: -vbase=$(lastword $(subst /, ,$(basename $@))) '$$1==base {print $$2}' $(srcdir)/test/index.aux) > $@ 2>&1
 
 $(srcdir)/test/special.log: test/special.pure lib/*.pure
