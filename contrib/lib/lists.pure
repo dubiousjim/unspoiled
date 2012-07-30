@@ -242,6 +242,10 @@ end;
       Note: This uses :func:`==?` to decide whether a member of ``xs``
       is an occurrence of ``x``.
 
+   .. function:: partition p xs
+
+      equivalent to ``filter p xs, filter ((~).p) xs``, but more efficient
+
    .. function:: revmap f xs
 
       equivalent to ``reverse (map f xs)``, but more efficient than even plain :func:`map`
@@ -283,6 +287,14 @@ end;
 	[10,9,8,7,6,5,4,3,2,1]
 	> sort (<) ans;
 	[1,2,3,4,5,6,7,8,9,10]
+
+   .. function:: span p xs
+
+      equivalent to ``takewhile p xs, dropwhile p xs``, but more efficient
+
+   .. function:: split n xs
+
+      equivalent to ``take n xs, drop n xs``, but more efficient
 
    .. function:: tail xs
 
@@ -588,6 +600,43 @@ map f xs@(_:_) = aux xs with
 end;
 #! --endif
 
+partition p [] = [], [];
+#! --ifnot list-opt
+// reverse-based
+partition p xs@(_:_) = aux xs [] [] with
+    aux []     [] _  = xs, []; // no misses, use original
+    aux []     _  [] = [], xs; // no hits, use original
+    aux []     ms hs = __std__::reverse_onto [] hs, __std__::reverse_onto [] ms;
+    aux (x:xs) ms hs
+        = if p x
+          then __std__::reverse_onto (filter p xs&) (x:hs), __std__::reverse_onto (filter ((~).p) xs&) ms
+          else __std__::reverse_onto (filter p xs&) hs, __std__::reverse_onto (filter ((~).p) xs&) (x:ms) if thunkp xs;
+        = if p x
+          then aux xs ms (x:hs)
+          else aux xs (x:ms) hs;
+    aux xs ms hs     = __std__::reverse_onto (filter p xs) hs, __std__::reverse_onto (filter ((~).p) xs) ms;
+end;
+
+#! --else
+// skip-ahead
+partition p xs@(_:_) = aux xs with
+    add p x (yes, no) = if p x then x:yes, no else yes, x:no;
+    aux xs = split_pre len_pre xs with
+        split_pre 0 _           = split_tails;
+        split_pre n::int (x:xs) = add p x (split_pre (n-1) xs);
+    end when
+        len_pre@_ split_tails   = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []        = n ([],[]);
+    skip_ahead n::int xs@(_:_)  = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)
+                         = n (add p x (filter p xs&, filter ((~).p) xs&))
+                           if thunkp xs;
+                         = skip_ahead (n+1) xs;
+    skip_ahead n::int xs = n (filter p xs, filter ((~).p) xs);
+end;
+#! --endif
+
 revmap_onto f base [] = base;
 revmap_onto f base xs@(_:_) = tick base xs with
     tick a [] = a;
@@ -654,6 +703,74 @@ with
   tack (x:xs) ys	= tack xs (f x y:ys) when y:_ = ys end;
   tack [] ys		= ys;
 end;
+
+span p []	= [], [];
+#! --ifnot list-opt
+// reverse-based
+span p xs@(_:_)	= tick [] xs
+with
+  tick zs xs		= __std__::reverse_onto (takewhile p xs&) zs, dropwhile p xs& if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+			= case xs of
+			    []   = __std__::reverse_onto [] zs, [];
+			    x:xs = tick (x:zs) xs if p x;
+			    xs@(_:_)  = __std__::reverse_onto [] zs, xs;
+			    xs   = __std__::reverse_onto (takewhile p xs) zs, dropwhile p xs;
+			  end;
+end;
+
+#! --else
+// skip-ahead
+span p xs@(_:_) = aux xs with
+    aux xs = split_pre len_pre xs with
+        add x (pre, post)        = x:pre, post;
+        split_pre 0      _      = split_tails;
+        split_pre n::int (x:xs) = add x (split_pre (n-1) xs);
+    end when
+        len_pre@_ split_tails   = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n ([],[]);
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int xx@(x:xs)
+            = n ([],xx) if ~p x;
+            = n (x:takewhile p xs&, dropwhile p xs&) if thunkp xs;
+            = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (takewhile p xs, dropwhile p xs);
+end;
+#! --endif
+
+// split m xs = subseq xs 0 (m-1), subseq xs m (#xs-1);
+split m::int [] = [], [];
+#! --ifnot list-opt
+// reverse-based
+split m::int xs@(_:_) = aux m [] xs with
+    aux _::int ws []     = xs, []; // use original
+    aux 0 ws xs          = __std__::reverse_onto [] ws, xs;
+    aux m::int ws (x:xs) = __std__::reverse_onto (x:take (m-1) xs&) ws, drop (m-1) xs&
+                           if thunkp xs;
+                         = aux (m-1) (x:ws) xs;
+    aux m::int ws xs     = __std__::reverse_onto (take m xs) ws, drop m xs;
+end;
+
+#! --else
+// skip-ahead
+split m::int xs@(_:_) = aux m xs with
+    add x (front, back) = x:front, back;
+    aux m::int xs = split_pre len_pre xs with
+        split_pre 0      _            = split_tails;
+        split_pre n::int (x:xs)       = add x (split_pre (n-1) xs);
+    end when
+        len_pre@_ split_tails         = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int []       = n ([],[]);
+    skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
+    skip_ahead m::int n::int xs       = n ([],xs) if m <= 0;
+    skip_ahead m::int n::int (x:xs)
+                           = n (x:take (m-1) xs&, drop (m-1) xs&)
+                             if thunkp xs;
+                           = skip_ahead (m-1) (n+1) xs;
+    skip_ahead m::int n::int xs       = n (take m xs, drop m xs);
+end;
+#! --endif
 
 tail (x:xs)		= xs;
 
