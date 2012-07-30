@@ -202,6 +202,10 @@ end;
       Note: This uses :func:`==?` to decide whether a member of ``xs``
       is an occurrence of ``x``.
 
+   .. function:: revmap f xs
+
+      equivalent to ``reverse (map f xs)``, but more efficient than even plain :func:`map`
+
    .. function:: scanl f a xs
 
       accumulate the binary function ``f`` over all members of ``xs``, as with
@@ -450,6 +454,13 @@ map f xs@(_:_) = aux xs with
     skip_ahead n::int xs       = n (map f xs);
 end;
 #! --endif
+
+revmap f [] = [];
+revmap f xs@(_:_) = tick [] xs with
+    tick a [] = a;
+    tick a (x:xs) = tick (f x:a) xs;
+    tick _ xs = throw (bad_list_value xs);
+end;
 
 // no skip-ahead implementations yet, I'm lazy
 scanl f a []		= [a];
