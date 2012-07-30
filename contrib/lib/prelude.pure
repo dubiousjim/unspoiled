@@ -553,8 +553,28 @@ def void [x] | void {x} = void x;
      a,b,c
 
    This also implies that tuples are always flat in Pure and can't be
-   nested; if you need this, you should use lists instead. Also, tuples
-   are always eager in Pure.
+   nested; if you need this, you should use lists instead.
+
+   Also, tuples are always `eager` in Pure. Adding a thunk to a tuple will
+   force it.
+
+   If you need to avoid the automatic forcing, flattening, and swallowing
+   of '\ :cons:`()`\ ' with tuples, you can use the following curried
+   constructors:
+
+   .. function:: tuple2 x y
+                 tuple3 x y z
+
+      Return tuples of two or three elements. The arguments are evaluated,
+      but the application of '\ :cons:`,`\ ' is :func:`quote`\d, so that
+      the normal reductions on tuples are not performed. However, if the
+      result is joined together with another value in a larger tuple,
+      using '\ :cons:`,`\ ' rather than '\ :func:`tuple2`\ ', then
+      reductions will be applied throughout.
+
+      There are parallel curried constructors for matrices (see
+      '\ :func:`vector1`\ ', below). These curried constructors are often
+      useful when working with higher-order functions, like '\ :func:`map`\ '.
 
    Some important basic operations on lists and tuples are listed below.
 
@@ -874,9 +894,19 @@ val (x=>v)	= v;
    inequality and emptiness, to determine the size of a tuple, for zero-based
    indexing and slicing, and to reverse a tuple. */
 
-x,()		= x;
-(),y		= y;
-(x,y),z		= x,(y,z);
+// Curried nonsplicing constructors.
+tuple2 x y      = 'comma x y when comma = (,) end;
+tuple3 x y z    = 'comma x (comma y z) when comma = (,) end;
+
+x,y                 = flatten x y with
+    flatten () (x,y) |
+    flatten (x,y) () = flatten x y;
+    flatten ()    x  |
+    flatten x     () = x;
+    flatten (x,y) z  = flatten x (flatten y z);
+    flatten x  (y,z) = tuple2 x (flatten y z);
+    flatten x     z  = tuple2 x z;
+end;
 
 ()==()		= 1;
 (x,xs)==(y,ys)	= x==y && xs==ys;

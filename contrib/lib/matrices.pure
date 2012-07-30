@@ -297,6 +297,18 @@ public all any cat cst do list map reverse uncurry uncurry3;
    Finally, note that the notation ``{| |}`` without any arguments is not
    supported, simply write ``{}`` for the empty vector instead.
 
+   Several curried non-splicing vector constructors are also provided, for
+   use when programming with higher-order functions like '\ :func:`map`\ '
+   or '\ :func:`zipwith`\ '.
+
+   .. function:: vector1 x
+                 vector2 x y
+                 vector3 x y z
+
+      equivalent to ``{| x |}``, ``{| x, y |}``, and ``{| x, y, z |}``,
+      respectively
+
+
    Matrix Inspection and Manipulation
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -355,9 +367,9 @@ def __avect__ {} (s:t:u:w:x:y:z:zs) = __avect__ (vector7 7 s t u w x y z) zs;
 def __avect__ {} (t:u:w:x:y:z:zs) = __avect__ (vector6 6 t u w x y z) zs;
 def __avect__ {} (u:w:x:y:z:zs) = __avect__ (vector5 5 u w x y z) zs;
 def __avect__ {} (w:x:y:z:zs) = __avect__ (vector4 4 w x y z) zs;
-def __avect__ {} (x:y:z:zs) = __avect__ (vector3 3 x y z) zs;
-def __avect__ {} (y:z:zs) = __avect__ (vector2 2 y z) zs;
-def __avect__ {} (z:zs) = __avect__ (vector1 1 z) zs;
+def __avect__ {} (x:y:z:zs) = __avect__ (__C::vector3 3 x y z) zs;
+def __avect__ {} (y:z:zs) = __avect__ (__C::vector2 2 y z) zs;
+def __avect__ {} (z:zs) = __avect__ (__C::vector1 1 z) zs;
 // Handle chunks of various sizes, to speed up the operation at runtime.
 def __avect__ v (r:s:t:u:w:x:y:z:zs) = __avect__
   {v,vector8 8 r s t u w x y z} zs;
@@ -365,9 +377,9 @@ def __avect__ v (s:t:u:w:x:y:z:zs) = __avect__ {v,vector7 7 s t u w x y z} zs;
 def __avect__ v (t:u:w:x:y:z:zs) = __avect__ {v,vector6 6 t u w x y z} zs;
 def __avect__ v (u:w:x:y:z:zs) = __avect__ {v,vector5 5 u w x y z} zs;
 def __avect__ v (w:x:y:z:zs) = __avect__ {v,vector4 4 w x y z} zs;
-def __avect__ v (x:y:z:zs) = __avect__ {v,vector3 3 x y z} zs;
-def __avect__ v (y:z:zs) = __avect__ {v,vector2 2 y z} zs;
-def __avect__ v (z:zs) = __avect__ {v,vector1 1 z} zs;
+def __avect__ v (x:y:z:zs) = __avect__ {v,__C::vector3 3 x y z} zs;
+def __avect__ v (y:z:zs) = __avect__ {v,__C::vector2 2 y z} zs;
+def __avect__ v (z:zs) = __avect__ {v,__C::vector1 1 z} zs;
 def __avect__ v [] = v;
 // This is the public macro to be invoked by {| |}. It parses the argument
 // tuple using __list__, converting it to a list literal so that embedded
@@ -377,6 +389,11 @@ namespace;
 
 public outfix {| |};
 def {| xs |} = __std__::__vect__ xs;
+
+/* Curried nonsplicing constructors. */
+::vector1 z       = __C::vector1 1 z;
+::vector2 y z     = __C::vector2 2 y z;
+::vector3 x y z   = __C::vector3 3 x y z;
 
 extern int matrix_type(expr* x);
 
