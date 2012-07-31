@@ -166,7 +166,7 @@ let x = eval (fact __with__ get_fundef fact);
 map x (0..10);
 [1,1,2,6,24,120,720,5040,40320,362880,3628800]
 foldr __with__ get_fundef foldr;
-foldr __with__ [(foldr f a (x __type__ matrix)-->__C::matrix_foldr f a x),(foldr f a (s __type__ string)-->foldr f a (chars s)),(foldr f a []-->a),(foldr f a (xs __as__ (_:_))-->tick [] xs __with__ [(tick zs (x:xs)-->tack (x:zs) (tick [] xs&) __if__ thunkp xs),(tick zs (x:xs)-->tick (x:zs) xs),(tick zs []-->tack zs a),(tick zs xs-->tack zs (foldr f a xs)),(tack (x:xs) y-->tack xs (f x y)),(tack [] y-->y)])]
+foldr __with__ [(foldr f a (x __type__ matrix)-->__C::matrix_foldr f a x),(foldr f a (s __type__ string)-->foldr f a (chars s)),(foldr f a []-->a),(foldr f a (xs __as__ (_:_))-->aux xs __with__ [(aux xs-->fold_pre len_pre xs __with__ [(fold_pre 0 _-->folded_tail),(fold_pre (n __type__ int) (x:xs)-->f x (fold_pre (n-1) xs))] __when__ [(len_pre __as__ _) folded_tail-->skip_ahead 0 xs]),(skip_ahead (n __type__ int) []-->n a),(skip_ahead (n __type__ int) (xs __as__ (_:_))-->n (aux xs) __if__ n==4096),(skip_ahead (n __type__ int) (x:xs)-->n (f x (aux xs&)) __if__ thunkp xs),(skip_ahead (n __type__ int) (x:xs)-->skip_ahead (n+1) xs),(skip_ahead (n __type__ int) xs-->n (foldr f a xs))])]
 {
   rule #0: x = eval (foldr __with__ get_fundef foldr)
   state 0: #0

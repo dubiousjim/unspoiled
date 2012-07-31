@@ -74,7 +74,7 @@ reverse xs@(_:_)	 = reverse_onto [] xs;
    again, pushing elements in front of the result list ('reverse_onto'). */
 xs@(_:_)+ys	= tick [] xs ys
 with
-  tick zs (x:xs) ys	= __std__::reverse_onto ((xs+ys)&) (x:zs) if thunkp xs;
+  tick zs (x:xs) ys	= __std__::reverse_onto (tick [] xs ys&) (x:zs) if thunkp xs;
 			= tick (x:zs) xs ys;
   tick zs [] ys		= __std__::reverse_onto ys zs;
   /* Handle an improper list tail (xs+ys is in normal form here). */
@@ -315,7 +315,7 @@ filter p []		= [];
 filter p xs@(_:_)	= tick [] xs
 with
   add p x xs		= if p x then x:xs else xs;
-  tick zs (x:xs)	= __std__::reverse_onto (filter p xs&) (add p x zs) if thunkp xs;
+  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (add p x zs) if thunkp xs;
 			= tick (add p x zs) xs;
   tick zs []		= __std__::reverse_onto [] zs;
   tick _ xs		= throw (bad_list_value xs);
@@ -350,7 +350,7 @@ foldr1 f [x]		= x;
 // reverse-based
 foldr f a xs@(_:_)	= tick [] xs
 with
-  tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+  tick zs (x:xs)	= tack (x:zs) (tick [] xs&) if thunkp xs;
 			= tick (x:zs) xs;
   tick zs []		= tack zs a;
   tick zs xs		= tack zs (foldr f a xs);
@@ -457,7 +457,7 @@ end;
 
 map f xs@(_:_)		= tick [] xs
 with
-  tick zs (x:xs)	= __std__::reverse_onto (map f xs&) (f x:zs) if thunkp xs;
+  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
 			= tick (f x:zs) xs;
   tick zs []		= __std__::reverse_onto [] zs;
   tick zs xs		= __std__::reverse_onto (map f xs) zs;
@@ -508,7 +508,7 @@ revmap f xs@(_:_) = revmap_onto f [] xs;
 scanl f a []		= [a];
 scanl f a xs@(_:_)	= tick a [] xs
 with
-  tick a zs (x:xs)	= __std__::reverse_onto (scanl f (f a x) xs&) (a:zs) if thunkp xs;
+  tick a zs (x:xs)	= __std__::reverse_onto (tick (f a x) xs&) (a:zs) if thunkp xs;
 			= tick (f a x) (a:zs) xs;
   tick a zs []		= __std__::reverse_onto [a] zs;
   tick a zs xs		= __std__::reverse_onto (scanl f a xs) zs;
@@ -644,7 +644,7 @@ with
   foldr f a []		= a;
   foldr f a xs@(_:_)	= tick [] xs
   with
-    tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
+    tick zs (x:xs)	= tack (x:zs) (tick [] xs&) if thunkp xs;
 			= tick (x:zs) xs;
     tick zs []		= tack zs a;
     tick zs xs		= tack zs (foldr f a xs);
@@ -954,7 +954,7 @@ namespace __std__ with
 zip f base improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= __std__::reverse_onto (zip f improper xs ys&) (f x y:us)
+  tick us (x:xs) (y:ys)	= __std__::reverse_onto (tick [] xs ys&) (f x y:us)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
@@ -966,7 +966,7 @@ zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= __std__::reverse_onto (zip3 f improper xs ys zs&) (f x y z:us)
+			= __std__::reverse_onto (tick [] xs ys zs&) (f x y z:us)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
