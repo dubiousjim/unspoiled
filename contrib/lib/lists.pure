@@ -318,7 +318,7 @@ with
   tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (add p x zs) if thunkp xs;
 			= tick (add p x zs) xs;
   tick zs []		= __std__::reverse_onto [] zs;
-  tick _ xs		= throw (bad_list_value xs);
+  tick zs xs		= __std__::reverse_onto (filter p xs) zs;
 end;
 
 #! --else
