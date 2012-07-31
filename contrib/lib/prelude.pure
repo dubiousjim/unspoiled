@@ -959,6 +959,22 @@ x,y                 = flatten x y with
     flatten x     z  = tuple2 x z;
 end;
 
+// Additional tuple functions, currently undocumented.
+mapfst f (a,b)   = tuple2 (f a) b;
+mapsnd f (a,b)   = tuple2 a (f b);
+maptrd f (a,b,c) = tuple3 a b (f c);
+
+fst _    (a,_) |
+snd _    (_,a) |
+trd _  (_,_,a) = a;
+
+fst none () |
+snd none () |
+trd none () = none;
+
+
+
+
 ()==()		= 1;
 (x,xs)==(y,ys)	= x==y && xs==ys;
 (x,xs)==_	|
