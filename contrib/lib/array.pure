@@ -131,6 +131,12 @@
 
       remove first and last member from ``a``
 
+   .. function:: pickfirst /array a
+                 picklast /array a
+
+      return the pair ``(first member of a, rest of a)`` or ``(last member of
+      a, rest of a)``, respectively; if ``a`` is empty, return ``()`` instead
+
    .. function:: insert /array a x
 
       insert ``x`` at the beginning of ``a``
@@ -221,7 +227,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public reverse;
+public reverse pickfirst picklast;
 
 namespace array;
 
@@ -229,7 +235,7 @@ namespace array;
 private nonfix nil;
 private tip bin;
 
-private mkbin;
+private mkbin leftbin rightbin;
 
 // array type check
 ::arrayp x			= typep ::array x;
@@ -336,6 +342,26 @@ with
   rmlast (bin 1 a1 a2)		= mkbin 0 (rmlast a1) a2;
 end;
 
+// pick the first member from an array
+::pickfirst (Array nil)         = ();
+::pickfirst (Array a)		= tuple2 y (Array a) when
+    y,a = pickfirst a;
+end with
+  pickfirst (tip y)		= tuple2 y nil;
+  pickfirst (bin 0 a1 a2)       = rightbin 1 a2 (pickfirst a1);
+  pickfirst (bin 1 a1 a2)       = rightbin 0 a2 (pickfirst a1);
+end;
+
+// pick the last member from an array
+::picklast (Array nil)          = ();
+::picklast (Array a)		= tuple2 y (Array a) when
+  y,a = picklast a;
+end with
+  picklast (tip y)		= tuple2 y nil;
+  picklast (bin 0 a1 a2)	= rightbin 1 a1 (picklast a2);
+  picklast (bin 1 a1 a2)	= leftbin 0 (picklast a1) a2;
+end;
+
 // insert a new member at the beginning of an array
 ::insert (Array a) y		= Array (insert a y)
 with
@@ -413,3 +439,13 @@ end;
 mkbin _ nil a2			= a2;
 mkbin _ a1 nil			= a1;
 mkbin b::int a1 a2		= bin b a1 a2;
+
+// leftbin _ () _                  = ();
+leftbin _ (y,nil) a2		= tuple2 y a2;
+leftbin _ ya1 nil	        = ya1;
+leftbin b::int (y,a1) a2	= tuple2 y (bin b a1 a2);
+
+// rightbin _ _ ()                 = ();
+rightbin _ a1 (y,nil)           = tuple2 y a1;
+rightbin _ nil ya2              = ya2;
+rightbin b::int a1 (y,a2)       = tuple2 y (bin b a1 a2);

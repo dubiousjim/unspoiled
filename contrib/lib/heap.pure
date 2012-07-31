@@ -77,6 +77,11 @@
 
       the first (i.e., smallest) member of ``h``
 
+   .. function:: pickfirst /heap h
+
+      return the pair ``(first member of h, rest of h)``; if ``h`` is empty,
+      return ``()`` instead
+
    .. function:: rmfirst /heap h
 
       remove the first (i.e., smallest) member from ``h``
@@ -110,6 +115,7 @@ type heap (Heap _);
    below. */
 
 public heapp emptyheap heap null members list first rmfirst insert;
+public pickfirst;
 
 namespace heap;
 
@@ -151,13 +157,27 @@ end;
 // get the first (smallest) member of a heap
 ::first (Heap (bin _ x _ _))	= x;
 
-// remove the first (smallest) member of a heap
-::rmfirst (Heap h)		= Heap (rmfirst h)
-with
-  rmfirst (bin 0 _ nil nil)	= nil;
-  rmfirst (bin 0 _ h1  h2 )	= update (bin 1 (last h2) h1 (rmlast h2));
-  rmfirst (bin 1 _ h1  h2 )	= update (bin 0 (last h1) (rmlast h1) h2);
+private update;
 
+// remove the first (smallest) member of a heap
+::rmfirst (Heap h)		= Heap (rmfirst h) with
+    rmfirst (bin 0 _ nil nil)	= nil;
+    rmfirst (bin i _ h1  h2 )	= update i h1 h2;
+end if h ~== nil;
+
+// pick the first (smallest) member of a heap
+::pickfirst (Heap nil)          = ();
+::pickfirst (Heap h)		= tuple2 y (Heap h) when
+    y,h = rmfirst h;
+end with
+    rmfirst (bin 0 x nil nil)	= tuple2 x nil;
+    rmfirst (bin i x h1  h2 )	= tuple2 x (update i h1 h2);
+end;
+
+update i::int h1 h2 = case i of
+    0 = update (bin 1 (last h2) h1 (rmlast h2));
+    1 = update (bin 0 (last h1) (rmlast h1) h2);
+end with
   last (bin 0 x::int    nil nil) |
   last (bin 0 x::string nil nil) |
   last (bin 0 x         nil nil)
