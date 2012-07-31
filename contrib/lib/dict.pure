@@ -83,7 +83,8 @@
    :func:`rmlast/dict`, :func:`delete/dict`) missing in the Prolog
    implementation was provided by Jiri Spitz. The generalization of the code
    to arbitrary combinations of ordered/hashed and single-/multi-valued keys
-   was done by Albert Graef.
+   was done by Albert Graef. Dubiousjim expanded the AVL code with additional
+   get and delete methods.
 
    Imports
    ~~~~~~~
@@ -149,6 +150,16 @@
       actually returns a list of values (which may be empty if ``d`` doesn't
       contain ``k``)
 
+   .. function:: grob /dict d k
+
+      get the value from ``d`` by key ``k``; in the case of a multidict this
+      returns the oldest value
+
+   .. function:: grob_other /dict d k
+
+      get the value from ``d`` by key ``k``; in the case of a multidict this
+      returns the newest value
+
    .. function:: null /dict d
 
       test whether ``d`` is an empty dictionary
@@ -193,6 +204,11 @@
 
       remove ``k`` from ``d`` if present (in the multidict case, only the
       first member with the given key ``k`` is removed)
+
+   .. function:: delete_other /dict d k
+
+      remove ``k`` from ``d`` if present (in the multidict case, only the
+      last member with the given key ``k`` is removed)
 
    .. function:: delete_val /dict d (k=>v)
 
@@ -386,16 +402,22 @@ update d@(Dict  _) x y | update d@(HDict  _) x y |
 update d@(MDict _) x y | update d@(HMDict _) x y = insert d (x=>y);
 
 // delete a member by key
-delete (Dict   d) x = Dict   (avl::deletek   d x);
-delete (HDict  d) x = HDict  (avl::hdeletek  d x);
-delete (MDict  d) x = MDict  (avl::mdeletek  d x);
-delete (HMDict d) x = HMDict (avl::mhdeletek d x);
+delete (Dict   d) x = Dict   (avl::deletek    d x);
+delete (HDict  d) x = HDict  (avl::hdeletek   d x);
+delete (MDict  d) x = MDict  (avl::mdeleteko  d x);
+delete (HMDict d) x = HMDict (avl::mhdeleteko d x);
+
+// delete a member by "other" key
+delete_other (Dict   d) x = Dict   (avl::deletek    d x);
+delete_other (HDict  d) x = HDict  (avl::hdeletek   d x);
+delete_other (MDict  d) x = MDict  (avl::mdeletekn  d x);
+delete_other (HMDict d) x = HMDict (avl::mhdeletekn d x);
 
 // delete a member by key=>val
-delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv   d el);
-delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv  d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
-delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
+delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv    d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv   d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekvo  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekvo d el);
 
 // delete all instances of a given key
 delete_all (Dict   d) x = Dict   (avl::deletek    d x);
@@ -458,10 +480,21 @@ rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
 rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
 
 // get a value by key
-(Dict   d)!k = avl::getk   d k;
-(MDict  d)!k = avl::mgetk  d k;
-(HDict  d)!k = avl::hgetk  d k;
-(HMDict d)!k = avl::mhgetk d k;
+(Dict   d)!k = avl::getk    d k;
+(MDict  d)!k = avl::mgetka  d k;
+(HDict  d)!k = avl::hgetk   d k;
+(HMDict d)!k = avl::mhgetka d k;
+
+// get oldest/newest value from mdicts
+grob (Dict   d) k = avl::getk    d k;
+grob (HDict  d) k = avl::hgetk   d k;
+grob (MDict  d) k = avl::mgetko  d k;
+grob (HMDict d) k = avl::mhgetko d k;
+
+grob_other (Dict   d) k = avl::getk    d k;
+grob_other (HDict  d) k = avl::hgetk   d k;
+grob_other (MDict  d) k = avl::mgetkn  d k;
+grob_other (HMDict d) k = avl::mhgetkn d k;
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
