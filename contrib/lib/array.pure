@@ -147,6 +147,10 @@
 
       update two-dimensional array
 
+   .. function:: reverse /array a
+
+      efficiently reverse the array
+
    Examples
    ~~~~~~~~
 
@@ -216,6 +220,8 @@ type array (Array _);
 public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
+
+public reverse;
 
 namespace array;
 
@@ -391,6 +397,14 @@ with
   neq (bin _ _ _) (tip _)	= 1;
   neq (bin b1::int a1 a2) (bin b2::int a3 a4)
 				= b1 ~= b2 || neq a1 a3 || neq a2 a4;
+end;
+
+// efficient reverse
+::reverse (Array a) = Array (tick a) with
+    tick nil = nil;
+    tick t@(tip _) = t;
+    tick (bin 0 a1 a2) = bin 0 (tick a2) (tick a1);
+    tick (bin 1 a1 a2) = bin 1 (tick a1) (tick a2);
 end;
 
 /* Private functions. */
