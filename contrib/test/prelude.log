@@ -1626,6 +1626,128 @@ put_double x/*0:01*/ :: pointer y/*0:1*/ :: double = __C::pointer_put_double x/*
 put_string x/*0:01*/ :: pointer y/*0:1*/ :: string = __C::pointer_put_string x/*0:01*/ y/*0:1*/;
 put_pointer x/*0:01*/ :: pointer y/*0:1*/ :: string = __C::pointer_put_pointer x/*0:01*/ y/*0:1*/;
 put_pointer x/*0:01*/ :: pointer y/*0:1*/ :: pointer = __C::pointer_put_pointer x/*0:01*/ y/*0:1*/;
+sentry f/*0:01*/ x/*0:1*/ = if __C::pure_has_sentry x/*0:1*/ then (case __C::pure_get_sentry x/*0:1*/ of weak::sentrybox1 wr/*0:1*/ = __C::pure_sentry (weak::sentrybox2 wr/*0:1*/ f/*1:01*/) x/*1:1*/; weak::sentrybox2 wr/*0:01*/ _/*0:1*/ = __C::pure_sentry (weak::sentrybox2 wr/*0:01*/ f/*1:01*/) x/*1:1*/; _/*0:*/ = __C::pure_sentry f/*1:01*/ x/*1:1*/ {
+  rule #0: weak::sentrybox1 wr = __C::pure_sentry (weak::sentrybox2 wr f) x
+  rule #1: weak::sentrybox2 wr _ = __C::pure_sentry (weak::sentrybox2 wr f) x
+  rule #2: _ = __C::pure_sentry f x
+  state 0: #0 #1 #2
+	<var> state 1
+	<app> state 2
+  state 1: #2
+  state 2: #0 #1 #2
+	<var> state 3
+	<app> state 5
+	weak::sentrybox1 state 12
+  state 3: #2
+	<var> state 4
+  state 4: #2
+  state 5: #1 #2
+	<var> state 6
+	weak::sentrybox2 state 9
+  state 6: #2
+	<var> state 7
+  state 7: #2
+	<var> state 8
+  state 8: #2
+  state 9: #1 #2
+	<var> state 10
+  state 10: #1 #2
+	<var> state 11
+  state 11: #1 #2
+  state 12: #0 #2
+	<var> state 13
+  state 13: #0 #2
+} end) else __C::pure_sentry f/*0:01*/ x/*0:1*/;
+clear_sentry x/*0:1*/ = if __C::pure_has_sentry x/*0:1*/ then (case __C::pure_get_sentry x/*0:1*/ of weak::sentrybox1 _/*0:1*/ = x/*1:1*/; weak::sentrybox2 wr/*0:01*/ _/*0:1*/ = __C::pure_sentry (weak::sentrybox1 wr/*0:01*/) x/*1:1*/; _/*0:*/ = __C::pure_clear_sentry x/*1:1*/ {
+  rule #0: weak::sentrybox1 _ = x
+  rule #1: weak::sentrybox2 wr _ = __C::pure_sentry (weak::sentrybox1 wr) x
+  rule #2: _ = __C::pure_clear_sentry x
+  state 0: #0 #1 #2
+	<var> state 1
+	<app> state 2
+  state 1: #2
+  state 2: #0 #1 #2
+	<var> state 3
+	<app> state 5
+	weak::sentrybox1 state 12
+  state 3: #2
+	<var> state 4
+  state 4: #2
+  state 5: #1 #2
+	<var> state 6
+	weak::sentrybox2 state 9
+  state 6: #2
+	<var> state 7
+  state 7: #2
+	<var> state 8
+  state 8: #2
+  state 9: #1 #2
+	<var> state 10
+  state 10: #1 #2
+	<var> state 11
+  state 11: #1 #2
+  state 12: #0 #2
+	<var> state 13
+  state 13: #0 #2
+} end) else x/*0:1*/;
+get_sentry x/*0:1*/ = s/*0:1*/ if ok/*0:0*/ when ok@_/*0:0*/ s/*0:1*/ = if __C::pure_has_sentry x/*0:1*/ then (case __C::pure_get_sentry x/*0:1*/ of weak::sentrybox1 _/*0:1*/ = 0 _; weak::sentrybox2 _/*0:01*/ s/*0:1*/ = 1 s/*0:1*/; s/*0:*/ = 1 s/*0:*/ {
+  rule #0: weak::sentrybox1 _ = 0 _
+  rule #1: weak::sentrybox2 _ s = 1 s
+  rule #2: s = 1 s
+  state 0: #0 #1 #2
+	<var> state 1
+	<app> state 2
+  state 1: #2
+  state 2: #0 #1 #2
+	<var> state 3
+	<app> state 5
+	weak::sentrybox1 state 12
+  state 3: #2
+	<var> state 4
+  state 4: #2
+  state 5: #1 #2
+	<var> state 6
+	weak::sentrybox2 state 9
+  state 6: #2
+	<var> state 7
+  state 7: #2
+	<var> state 8
+  state 8: #2
+  state 9: #1 #2
+	<var> state 10
+  state 10: #1 #2
+	<var> state 11
+  state 11: #1 #2
+  state 12: #0 #2
+	<var> state 13
+  state 13: #0 #2
+} end) else 0 _ {
+  rule #0: ok@_ s = if __C::pure_has_sentry x then (case __C::pure_get_sentry x of weak::sentrybox1 _ = 0 _; weak::sentrybox2 _ s = 1 s; s = 1 s end) else 0 _
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+} end;
+cookedp x/*0:1*/ = if __C::pure_has_sentry x/*0:1*/ then (case __C::pure_get_sentry x/*0:1*/ of weak::sentrybox1 _/*0:1*/ = 0; _/*0:*/ = 1 {
+  rule #0: weak::sentrybox1 _ = 0
+  rule #1: _ = 1
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	weak::sentrybox1 state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+  state 6: #0 #1
+} end) else 0;
 cooked p/*0:1*/ :: pointer = sentry free p/*0:1*/;
 pointer_tag x/*0:1*/ :: string = __C::pure_pointer_tag x/*0:1*/;
 pointer_tag x/*0:1*/ :: pointer = get_ptrtag x/*0:1*/;
@@ -1840,6 +1962,32 @@ pointer_cast ty/*0:01*/ :: string x/*0:1*/ :: pointer = pointer_cast (pointer_ta
   state 3: #1
 }
 {
+  rule #0: sentry f x = if __C::pure_has_sentry x then (case __C::pure_get_sentry x of weak::sentrybox1 wr = __C::pure_sentry (weak::sentrybox2 wr f) x; weak::sentrybox2 wr _ = __C::pure_sentry (weak::sentrybox2 wr f) x; _ = __C::pure_sentry f x end) else __C::pure_sentry f x
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+}
+{
+  rule #0: clear_sentry x = if __C::pure_has_sentry x then (case __C::pure_get_sentry x of weak::sentrybox1 _ = x; weak::sentrybox2 wr _ = __C::pure_sentry (weak::sentrybox1 wr) x; _ = __C::pure_clear_sentry x end) else x
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: get_sentry x = s if ok when ok@_ s = if __C::pure_has_sentry x then (case __C::pure_get_sentry x of weak::sentrybox1 _ = 0 _; weak::sentrybox2 _ s = 1 s; s = 1 s end) else 0 _ end
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
+  rule #0: cookedp x = if __C::pure_has_sentry x then (case __C::pure_get_sentry x of weak::sentrybox1 _ = 0; _ = 1 end) else 0
+  state 0: #0
+	<var> state 1
+  state 1: #0
+}
+{
   rule #0: cooked p::pointer = sentry free p
   state 0: #0
 	<var>::pointer state 1
@@ -1881,17 +2029,33 @@ const __C::floatpp_t = pointer_tag "float**";
 const __C::doublep_t = pointer_tag "double*";
 const __C::doublepp_t = pointer_tag "double**";
 type ref x/*0:1*/ :: pointer = refp x/*0:1*/;
-ref x/*0:1*/ = __C::pointer_put_expr r/*0:*/ (__C::pure_new x/*1:1*/)$$sentry unref r/*0:*/ when r/*0:*/ :: pointer = __C::pure_expr_pointer {
+ref x/*0:1*/ = __C::pointer_put_expr r/*0:*/ (__C::pure_new x/*1:1*/)$$sentry (unref clear_sentry) r/*0:*/ when r/*0:*/ :: pointer = __C::pure_expr_pointer {
   rule #0: r::pointer = __C::pure_expr_pointer
   state 0: #0
 	<var>::pointer state 1
   state 1: #0
 } end;
-unref r/*0:1*/ :: ref = __C::pure_free (__C::pointer_get_expr r/*0:1*/)$$clear_sentry r/*0:1*/;
+unref next/*0:01*/ r/*0:1*/ :: ref = __C::pure_free (__C::pointer_get_expr r/*0:1*/)$$next/*0:01*/ r/*0:1*/;
 put r/*0:01*/ :: ref x/*0:1*/ = __C::pure_free (__C::pointer_get_expr r/*0:01*/)$$__C::pointer_put_expr r/*0:01*/ (__C::pure_new x/*0:1*/)$$x/*0:1*/;
 get r/*0:1*/ :: ref = __C::pointer_get_expr r/*0:1*/;
-refp r/*0:1*/ = case r/*0:1*/ of _/*0:*/ :: pointer = get_sentry r/*1:1*/===unref; _/*0:*/ = 0 {
-  rule #0: _::pointer = get_sentry r===unref
+refp r/*0:1*/ = case r/*0:1*/ of _/*0:*/ :: pointer = case get_sentry r/*1:1*/ of unref _/*0:1*/ = 1; _/*0:*/ = 0 {
+  rule #0: unref _ = 1
+  rule #1: _ = 0
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	unref state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+  state 6: #0 #1
+} end; _/*0:*/ = 0 {
+  rule #0: _::pointer = case get_sentry r of unref _ = 1; _ = 0 end
   rule #1: _ = 0
   state 0: #0 #1
 	<var> state 1
@@ -3448,6 +3612,15 @@ x/*0:01*/,y/*0:1*/ = flatten/*0*/ x/*0:01*/ y/*0:1*/ with flatten () (x/*0:101*/
   state 71: #0 #2 #5 #6
   state 72: #2 #3 #6
 } end;
+mapfst f/*0:01*/ (a/*0:101*/,b/*0:11*/) = tuple2 (f/*0:01*/ a/*0:101*/) b/*0:11*/;
+mapsnd f/*0:01*/ (a/*0:101*/,b/*0:11*/) = tuple2 a/*0:101*/ (f/*0:01*/ b/*0:11*/);
+maptrd f/*0:01*/ (a/*0:101*/,b/*0:1101*/,c/*0:111*/) = tuple3 a/*0:101*/ b/*0:1101*/ (f/*0:01*/ c/*0:111*/);
+fst _/*0:01*/ (a/*0:101*/,_/*0:11*/) = a/*0:101*/;
+snd _/*0:01*/ (_/*0:101*/,a/*0:11*/) = a/*0:11*/;
+trd _/*0:01*/ (_/*0:101*/,_/*0:1101*/,a/*0:111*/) = a/*0:111*/;
+fst none/*0:01*/ () = none/*0:01*/;
+snd none/*0:01*/ () = none/*0:01*/;
+trd none/*0:01*/ () = none/*0:01*/;
 ()==() = 1;
 (x/*0:0101*/,xs/*0:011*/)==(y/*0:101*/,ys/*0:11*/) = x/*0:0101*/==y/*0:101*/&&xs/*0:011*/==ys/*0:11*/;
 (x/*0:0101*/,xs/*0:011*/)==_/*0:1*/ = 0;
@@ -4840,6 +5013,53 @@ revmap_onto f/*0:001*/ base/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ base/*
 } end;
 revmap f/*0:01*/ [] = [];
 revmap f/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = revmap_onto f/*0:01*/ [] xs/*0:1*/;
+rotate 1 xs@(_/*0:101*/:_/*0:11*/) = rot/*0*/ xs/*0:1*/ [] with rot [x/*0:0101*/] ys/*0:1*/ = x/*0:0101*/:__std__::reverse_onto [] ys/*0:1*/; rot (x/*0:0101*/:xs/*0:011*/) ys/*0:1*/ = rot/*1*/ xs/*0:011*/ (x/*0:0101*/:ys/*0:1*/) {
+  rule #0: rot [x] ys = x:__std__::reverse_onto [] ys
+  rule #1: rot (x:xs) ys = rot xs (x:ys)
+  state 0: #0 #1
+	<app> state 1
+  state 1: #0 #1
+	<app> state 2
+  state 2: #0 #1
+	: state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+	<var> state 5
+	[] state 7
+  state 5: #1
+	<var> state 6
+  state 6: #1
+  state 7: #0 #1
+	<var> state 8
+  state 8: #0 #1
+} end;
+rotate _/*0:01*/ :: int [] = [];
+rotate 0 xs@(_/*0:101*/:_/*0:11*/) = xs/*0:1*/;
+rotate n/*0:01*/ :: int xs@(_/*0:101*/:_/*0:11*/) = post/*0:1*/+pre/*0:01*/ when xn/*0:*/ = #xs/*0:1*/; n/*0:*/ = (xn/*0:*/-n/*1:01*/) mod xn/*0:*/; pre/*0:01*/,post/*0:1*/ = if n/*0:*/>0 then split n/*0:*/ xs/*2:1*/ else if n/*0:*/<0 then split (xn/*1:*/+n/*0:*/) xs/*2:1*/ else xs/*2:1*/,[] {
+  rule #0: pre,post = if n>0 then split n xs else if n<0 then split (xn+n) xs else xs,[]
+  state 0: #0
+	<app> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	, state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+} {
+  rule #0: n = (xn-n) mod xn
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} {
+  rule #0: xn = #xs
+  state 0: #0
+	<var> state 1
+  state 1: #0
+} end;
 scanl f/*0:001*/ a/*0:01*/ [] = [a/*0:01*/];
 scanl f/*0:001*/ a/*0:01*/ xs@(_/*0:101*/:_/*0:11*/) = tick/*0*/ a/*0:01*/ [] xs/*0:1*/ with tick a/*0:001*/ zs/*0:01*/ (x/*0:101*/:xs/*0:11*/) = __std__::reverse_onto (tick/*2*/ (f/*2:001*/ a/*1:001*/ x/*1:101*/) xs/*1:11*/&) (a/*0:001*/:zs/*0:01*/) if thunkp xs/*0:11*/; tick a/*0:001*/ zs/*0:01*/ (x/*0:101*/:xs/*0:11*/) = tick/*1*/ (f/*1:001*/ a/*0:001*/ x/*0:101*/) (a/*0:001*/:zs/*0:01*/) xs/*0:11*/; tick a/*0:001*/ zs/*0:01*/ [] = __std__::reverse_onto [a/*0:001*/] zs/*0:01*/; tick a/*0:001*/ zs/*0:01*/ xs/*0:1*/ = __std__::reverse_onto (scanl f/*1:001*/ a/*0:001*/ xs/*0:1*/) zs/*0:01*/ {
   rule #0: tick a zs (x:xs) = __std__::reverse_onto (tick (f a x) xs&) (a:zs) if thunkp xs
@@ -6303,7 +6523,47 @@ xs/*0:01*/!!ns/*0:1*/ = ys/*0:*/ if ok/*1*/ ys/*0:*/ when ys/*0:*/ = case ns/*0:
   state 0: #0
 	<var> state 1
   state 1: #0
-} end with cont (n/*0:101*/ :: int:ns/*0:11*/) = ~thunkp ns/*0:11*/&&(case ns/*0:11*/ of [] = 1; m/*0:01*/ :: int:_/*0:1*/ = cont/*2*/ ns/*1:11*/ if m/*0:01*/==n/*1:101*/+1; _/*0:*/ = 0 {
+} end with ok (catmap (nth _/*0:1011*/) _/*0:11*/) = 0; ok _/*0:1*/ = 1 {
+  rule #0: ok (catmap (nth _) _) = 0
+  rule #1: ok _ = 1
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+	<app> state 5
+  state 3: #1
+	<var> state 4
+  state 4: #1
+  state 5: #0 #1
+	<var> state 6
+	catmap state 9
+  state 6: #1
+	<var> state 7
+  state 7: #1
+	<var> state 8
+  state 8: #1
+  state 9: #0 #1
+	<var> state 10
+	<app> state 12
+  state 10: #1
+	<var> state 11
+  state 11: #1
+  state 12: #0 #1
+	<var> state 13
+	nth state 16
+  state 13: #1
+	<var> state 14
+  state 14: #1
+	<var> state 15
+  state 15: #1
+  state 16: #0 #1
+	<var> state 17
+  state 17: #0 #1
+	<var> state 18
+  state 18: #0 #1
+}; cont (n/*0:101*/ :: int:ns/*0:11*/) = ~thunkp ns/*0:11*/&&(case ns/*0:11*/ of [] = 1; m/*0:01*/ :: int:_/*0:1*/ = cont/*2*/ ns/*1:11*/ if m/*0:01*/==n/*1:101*/+1; _/*0:*/ = 0 {
   rule #0: [] = 1
   rule #1: m::int:_ = cont ns if m==n+1
   rule #2: _ = 0
@@ -6366,46 +6626,6 @@ xs/*0:01*/!!ns/*0:1*/ = ys/*0:*/ if ok/*1*/ ys/*0:*/ when ys/*0:*/ = case ns/*0:
   state 0: #0
 	<var> state 1
   state 1: #0
-}; ok (catmap (nth _/*0:1011*/) _/*0:11*/) = 0; ok _/*0:1*/ = 1 {
-  rule #0: ok (catmap (nth _) _) = 0
-  rule #1: ok _ = 1
-  state 0: #0 #1
-	<var> state 1
-	<app> state 2
-  state 1: #1
-  state 2: #0 #1
-	<var> state 3
-	<app> state 5
-  state 3: #1
-	<var> state 4
-  state 4: #1
-  state 5: #0 #1
-	<var> state 6
-	catmap state 9
-  state 6: #1
-	<var> state 7
-  state 7: #1
-	<var> state 8
-  state 8: #1
-  state 9: #0 #1
-	<var> state 10
-	<app> state 12
-  state 10: #1
-	<var> state 11
-  state 11: #1
-  state 12: #0 #1
-	<var> state 13
-	nth state 16
-  state 13: #1
-	<var> state 14
-  state 14: #1
-	<var> state 15
-  state 15: #1
-  state 16: #0 #1
-	<var> state 17
-  state 17: #0 #1
-	<var> state 18
-  state 18: #0 #1
 } end;
 subseq [] a/*0:01*/ :: int b/*0:1*/ :: int = [];
 subseq xs@(_/*0:00101*/:_/*0:0011*/) a/*0:01*/ :: int b/*0:1*/ :: int = take/*0*/ (b/*0:1*/-a/*0:01*/+1) (drop a/*0:01*/ xs/*0:001*/) with take n/*0:01*/ :: int [] = []; take n/*0:01*/ :: int xs@(_/*0:101*/:_/*0:11*/) = tick/*1*/ n/*0:01*/ [] xs/*0:1*/ {
@@ -8504,7 +8724,7 @@ type record {
   rule #7: s::string!!ns = case ns of ns@(n:_) = substr s n (count ns) if cont ns; _ = string (chars s!!ns) end with cont [n::int] = 1; cont (n::int:ns@(m::int:_)) = cont ns if m==n+1; cont _ = 0; count ns = #dropwhile (\n::int -> n<0) ns end
   rule #8: xs@()!!ns = tuple (list xs!!ns)
   rule #9: xs@(_,_)!!ns = tuple (list xs!!ns)
-  rule #10: xs!!ns = ys if ok ys when ys = case ns of ns@(n::int:_) = list (take (count ns) (drop n xs)) if listp xs&&cont ns; _ = catmap (nth xs) ns end end with cont (n::int:ns) = ~thunkp ns&&(case ns of [] = 1; m::int:_ = cont ns if m==n+1; _ = 0 end); nth xs n = catch (cst []) [xs!n]; count ns = #dropwhile (\n::int -> n<0) ns; ok (catmap (nth _) _) = 0; ok _ = 1 end
+  rule #10: xs!!ns = ys if ok ys when ys = case ns of ns@(n::int:_) = list (take (count ns) (drop n xs)) if listp xs&&cont ns; _ = catmap (nth xs) ns end end with ok (catmap (nth _) _) = 0; ok _ = 1; cont (n::int:ns) = ~thunkp ns&&(case ns of [] = 1; m::int:_ = cont ns if m==n+1; _ = 0 end); nth xs n = catch (cst []) [xs!n]; count ns = #dropwhile (\n::int -> n<0) ns end
   state 0: #0 #1 #2 #3 #4 #5 #6 #7 #8 #9 #10
 	<var> state 1
 	<var>::string state 24
@@ -8984,19 +9204,21 @@ type record {
   state 2: #0
 }
 {
-  rule #0: ref x = __C::pointer_put_expr r (__C::pure_new x)$$sentry unref r when r::pointer = __C::pure_expr_pointer end
+  rule #0: ref x = __C::pointer_put_expr r (__C::pure_new x)$$sentry (unref clear_sentry) r when r::pointer = __C::pure_expr_pointer end
   state 0: #0
 	<var> state 1
   state 1: #0
 }
 {
-  rule #0: unref r::ref = __C::pure_free (__C::pointer_get_expr r)$$clear_sentry r
+  rule #0: unref next r::ref = __C::pure_free (__C::pointer_get_expr r)$$next r
   state 0: #0
 	<var> state 1
   state 1: #0
+	<var> state 2
+  state 2: #0
 }
 {
-  rule #0: refp r = case r of _::pointer = get_sentry r===unref; _ = 0 end
+  rule #0: refp r = case r of _::pointer = case get_sentry r of unref _ = 1; _ = 0 end; _ = 0 end
   state 0: #0
 	<var> state 1
   state 1: #0
@@ -12904,11 +13126,59 @@ type record {
 }
 {
   rule #0: rotate n::int s::string = strcat (rotate n (chars s))
-  state 0: #0
+  rule #1: rotate 1 xs@(_:_) = rot xs [] with rot [x] ys = x:__std__::reverse_onto [] ys; rot (x:xs) ys = rot xs (x:ys) end
+  rule #2: rotate _::int [] = []
+  rule #3: rotate 0 xs@(_:_) = xs
+  rule #4: rotate n::int xs@(_:_) = post+pre when xn = #xs; n = (xn-n) mod xn; pre,post = if n>0 then split n xs else if n<0 then split (xn+n) xs else xs,[] end
+  state 0: #0 #1 #2 #3 #4
 	<var>::int state 1
-  state 1: #0
+	1::int state 9
+	0::int state 17
+  state 1: #0 #2 #4
 	<var>::string state 2
+	<app> state 3
+	[] state 8
   state 2: #0
+  state 3: #4
+	<app> state 4
+  state 4: #4
+	: state 5
+  state 5: #4
+	<var> state 6
+  state 6: #4
+	<var> state 7
+  state 7: #4
+  state 8: #2
+  state 9: #0 #1 #2 #4
+	<var>::string state 10
+	<app> state 11
+	[] state 16
+  state 10: #0
+  state 11: #1 #4
+	<app> state 12
+  state 12: #1 #4
+	: state 13
+  state 13: #1 #4
+	<var> state 14
+  state 14: #1 #4
+	<var> state 15
+  state 15: #1 #4
+  state 16: #2
+  state 17: #0 #2 #3 #4
+	<var>::string state 18
+	<app> state 19
+	[] state 24
+  state 18: #0
+  state 19: #3 #4
+	<app> state 20
+  state 20: #3 #4
+	: state 21
+  state 21: #3 #4
+	<var> state 22
+  state 22: #3 #4
+	<var> state 23
+  state 23: #3 #4
+  state 24: #2
 }
 {
   rule #0: span p s::string = strcat pre,strcat post when pre,post = span p (chars s) end
@@ -14249,6 +14519,127 @@ type record {
   state 2: #0
 	<var> state 3
   state 3: #0
+}
+{
+  rule #0: mapfst f (a,b) = tuple2 (f a) b
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<var> state 6
+  state 6: #0
+}
+{
+  rule #0: mapsnd f (a,b) = tuple2 a (f b)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<var> state 6
+  state 6: #0
+}
+{
+  rule #0: maptrd f (a,b,c) = tuple3 a b (f c)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<app> state 2
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<app> state 6
+  state 6: #0
+	<app> state 7
+  state 7: #0
+	, state 8
+  state 8: #0
+	<var> state 9
+  state 9: #0
+	<var> state 10
+  state 10: #0
+}
+{
+  rule #0: fst _ (a,_) = a
+  rule #1: fst none () = none
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<app> state 2
+	() state 7
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<var> state 6
+  state 6: #0
+  state 7: #1
+}
+{
+  rule #0: snd _ (_,a) = a
+  rule #1: snd none () = none
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<app> state 2
+	() state 7
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<var> state 6
+  state 6: #0
+  state 7: #1
+}
+{
+  rule #0: trd _ (_,_,a) = a
+  rule #1: trd none () = none
+  state 0: #0 #1
+	<var> state 1
+  state 1: #0 #1
+	<app> state 2
+	() state 11
+  state 2: #0
+	<app> state 3
+  state 3: #0
+	, state 4
+  state 4: #0
+	<var> state 5
+  state 5: #0
+	<app> state 6
+  state 6: #0
+	<app> state 7
+  state 7: #0
+	, state 8
+  state 8: #0
+	<var> state 9
+  state 9: #0
+	<var> state 10
+  state 10: #0
+  state 11: #1
 }
 {
   rule #0: iterate f x = x:iterate f (f x)&
