@@ -284,7 +284,12 @@ end;
    tail-recursive and handle lazy lists as gracefully as possible. */
 
 all p []		= 1;
-all p (x:xs)		= p x && all p xs;
+all p xs@(_:_)          = tick xs 1 with
+    tick _ 0            = 0;
+    tick [] a           = a;
+    tick (x:xs) a       = tick xs (a && p x);
+    tick xs a           = a && all p xs;
+end;
 
 any p []		= 0;
 any p (x:xs)		= p x || any p xs;
