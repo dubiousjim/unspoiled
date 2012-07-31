@@ -84,8 +84,8 @@
    implementation was provided by Jiri Spitz. The generalization of the code
    to arbitrary combinations of ordered/hashed and single-/multi-valued keys
    was done by Albert Graef. Dubiousjim expanded the AVL code with additional
-   get and delete methods, and implementations of pick, folds, all and any. He
-   also provided the alternate 2-3-Tree implementation.
+   get and delete methods, and implementatons of pick, folds, all and any, and
+   streams. He also provided the alternate 2-3-Tree implementation.
 
    Imports
    ~~~~~~~
@@ -181,6 +181,16 @@
    .. function:: vals /dict d
 
       list the values of ``d``
+
+   .. function:: stream /dict d
+                 mstream /dict d
+                 revstream /dict d
+                 revmstream /dict d
+
+      return the members of ``d`` as a stream; the ``mstream`` functions group
+      all values associated with a key into a single list; the elements
+      are presented in ascending order for ordered dictionaries (or descending
+      order for ``revstream`` and ``revmstream``)
 
    .. function:: first /dict d
                  last /dict d
@@ -552,6 +562,27 @@ vals (MDict  d) = baltree::mvals d;
 vals (HMDict d) = baltree::hvals d;
 
 list d::xdict = members d;
+
+// get members as a stream
+stream (Dict   d) = baltree::streamleft  d;
+stream (HDict  d) = baltree::hstreamleft d;
+stream (MDict  d) = baltree::mstreamleft d;
+stream (HMDict d) = baltree::hstreamleft d;
+
+revstream (Dict   d) = baltree::streamright  d;
+revstream (HDict  d) = baltree::hstreamright d;
+revstream (MDict  d) = baltree::mstreamright d;
+revstream (HMDict d) = baltree::hstreamright d;
+
+mstream (Dict   d) = map dict::mval   (baltree::streamleft    d);
+mstream (HDict  d) = map dict::mval   (baltree::hstreamleft   d);
+mstream (MDict  d) = map dict::mvals  (baltree::streamleft    d);
+mstream (HMDict d) =                     baltree::mhstreamleftk d;
+
+revmstream (Dict   d) = map dict::mval  (baltree::streamright     d);
+revmstream (HDict  d) = map dict::mval  (baltree::hstreamright    d);
+revmstream (MDict  d) = map dict::rev_mvals (baltree::streamright d);
+revmstream (HMDict d) =                    baltree::mhstreamrightk  d;
 
 // get the first and last member
 first (Dict   d) = baltree::first  d;

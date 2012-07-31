@@ -147,6 +147,16 @@
 
       list the members of ``m`` (in ascending order for ordered sets and bags)
 
+   .. function:: stream /set m
+                 mstream /set m
+                 revstream /set m
+                 revmstream /set m
+
+      return the members of ``m`` as a stream; the ``mstream`` functions group
+      all equal values into a single list; the elements are presented in
+      ascending order for ordered sets and bags (or descending order for
+      ``revstream`` and ``revmstream``)
+
    .. function:: first /set m
                  last /set m
 
@@ -377,6 +387,27 @@ members (Bag  m) = baltree::mmembers m;
 members (HBag m) = baltree::hmembers m;
 
 list m::xset = members m;
+
+// get members as a stream
+stream (Set  m) = baltree::streamleft  m;
+stream (HSet m) = baltree::hstreamleft m;
+stream (Bag  m) = baltree::mstreamleft m;
+stream (HBag m) = baltree::hstreamleft m;
+
+revstream (Set  m) = baltree::streamright  m;
+revstream (HSet m) = baltree::hstreamright m;
+revstream (Bag  m) = baltree::mstreamright m;
+revstream (HBag m) = baltree::hstreamright m;
+
+mstream (Set  m) = map (:[]) (baltree::streamleft   m);
+mstream (HSet m) = map (:[]) (baltree::hstreamleft  m);
+mstream (Bag  m) = map val   (baltree::streamleft   m);
+mstream (HBag m) =            baltree::mhstreamleft m;
+
+revmstream (Set  m) = map (:[]) (baltree::streamright   m);
+revmstream (HSet m) = map (:[]) (baltree::hstreamright  m);
+revmstream (Bag  m) = map val   (baltree::streamright   m);
+revmstream (HBag m) =            baltree::mhstreamright m;
 
 // get the first and last member
 first (Set  m) = baltree::first  m;
