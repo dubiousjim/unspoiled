@@ -101,9 +101,21 @@
 
       check whether ``m`` is a set or bag of the corresponding type
 
+   .. function:: union m1 m2
+
+      union: ``m1+m2`` adds the members of ``m2`` to ``m1``; in the bag
+      case, the multiplicity of an element in the result will be the maximum
+      of its multiplicity in ``m1`` and in ``m2``
+
    .. function:: infix + /set m1 m2
 
-      union/sum: ``m1+m2`` adds the members of ``m2`` to ``m1``
+      sum: ``m1+m2`` adds the members of ``m2`` to ``m1``; in the set case,
+      this is just the same as :func: `union/set`; in the bag case, the
+      multiplicity of an element in the result will be the sum of its
+      multiplicity in ``m1`` and in ``m2``. Bag union and bag sum are related
+      as follows::
+
+        union m1 m2 = m1+(m2-m1);
 
    .. function:: infix - /set m1 m2
 
@@ -209,20 +221,6 @@
       well as the comparison operations) allow you to mix arbitrary operand
       types; the necessary conversions from less general set types (ordered,
       set) to more general types (hashed, multiset) are handled automatically.
-
-      Also note that in the case of sets, :func:`+/set` is just the ordinary
-      set union. There are basically two generalizations of this operation to
-      bags, `multiset union` and `multiset sum`; :func:`+/set` implements the
-      *latter*. Thus, if a bag ``m1`` contains ``k1`` instances of an element
-      ``x`` and a bag ``m2`` contains ``k2`` instances of ``x``, then
-      ``m1+m2`` contains ``k1+k2`` instances of ``x`` (rather than ``max k1
-      k2`` instances, which would be the case for multiset union). Multiset
-      sum is probably more common in practical applications, and also
-      generalizes easily to multidicts (see Dictionaries_). However, if
-      multiset union is needed, it can easily be defined in terms of multiset
-      sum as follows::
-
-        union m1 m2 = m1+(m2-m1);
 
    Examples
    ~~~~~~~~
@@ -599,11 +597,19 @@ m1@(Bag _)  >  m2@(Bag _)  |
 m1@(HSet _) >  m2@(HSet _) |
 m1@(HBag _) >  m2@(HBag _) = m1 >= m2 && ~(m1 <= m2);
 
-// set union/sum
+// set sum
 m1@(Set _)  + m2@(Set _)   |
 m1@(Bag _)  + m2@(Bag _)   |
 m1@(HSet _) + m2@(HSet _)  |
 m1@(HBag _) + m2@(HBag _)  = foldl insert m1 (members m2);
+
+// set union
+union m1@(Set  _) m2@(Set  _) |
+union m1@(HSet _) m2@(HSet _) = foldl insert m1 m2;
+union m1@(Bag  _) m2@(Bag  _) |
+union m1@(HBag _) m2@(HBag _) = mfoldl ins m1 m2 with
+    ins m xs@(x:_) = foldl insert m (drop (multiplicity m1 x) xs);
+end;
 
 // set difference
 m1@(Set _)  - m2@(Set _)   |
@@ -709,6 +715,19 @@ m1 + m2@(HSet _) = case m1 of
 		   end if xsetp m1;
 m1@(Bag _) + m2@(Set _) = m1 + bag m2;
 m1@(Set _) + m2@(Bag _) = bag m1 + m2;
+
+union m1@(HBag _) m2 = union m1 (hbag m2) if xsetp m2;
+union m1 m2@(HBag _) = union (hbag m1) m2 if xsetp m1;
+union m1@(HSet _) m2 = case m2 of
+                         _@(Bag _) = union (hbag m1) (hbag m2);
+                         _@(Set _) = union m1 (hset m2);
+                       end if xsetp m2;
+union m1 m2@(HSet _)m2 = case m1 of
+                         _@(Bag _) = union (hbag m1) (hbag m2);
+                         _@union(Set _) = union (hset m1) m2;
+                       end if xsetp m1;
+union m1@(Bag _) m2@(Set _) = union m1 (bag m2);
+union m1@(Set _) m2@(Bag _) = union (bag m1) m2;
 
 m1@(HBag _) - m2 = m1 - hbag m2 if xsetp m2;
 m1 - m2@(HBag _) = hbag m1 - m2 if xsetp m1;
