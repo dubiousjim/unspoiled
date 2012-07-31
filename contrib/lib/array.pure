@@ -167,6 +167,12 @@
 
          rotate i (rmfirst (rotate (-i) a));
 
+   .. function:: all /array p a
+                 any /array p a
+
+      these are equivalent to calling the corresponding list methods on
+      ``members a``, but more efficient (no intermediate list is built)
+
    Examples
    ~~~~~~~~
 
@@ -237,7 +243,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public reverse pickfirst picklast rotate;
+public reverse pickfirst picklast rotate all any;
 
 namespace array;
 
@@ -470,6 +476,19 @@ end;
   #(tip _)			= 1;
   #(bin 0 a1 _)			= #a1 * 2;
   #(bin 1 a1 _)			= #a1 * 2 - 1;
+end;
+
+::all p (Array a) = tick a 1 with
+    tick _ 0 = 0;
+    tick nil a = a;
+    tick (tip y) a = a && p y;
+    tick (bin _ a1 a2) a = tick a2 (tick a1 a);
+end;
+
+::any p (Array a) = tick a with
+    tick nil = 0;
+    tick (tip y) = p y;
+    tick (bin _ a1 a2) = tick a1 || tick a2;
 end;
 
 /* Private functions. */
