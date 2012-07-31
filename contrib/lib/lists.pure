@@ -123,6 +123,23 @@ end;
    '\ :func:`!!`\ '. However '\ :func:`take`\ ' is not eager; if given
    a stream argument it will return a stream result.
 
+   The indexing function '\ :func:`!`\ ' throws the
+   exception ``out_of_bounds`` when given an invalid index.
+
+   Additionally, the following functions will throw the exception
+   ``bad_list_value`` when given an improper list:
+   '\ :func:`reverse`\ ', '\ :func:`reverse_onto`\ ',
+   '\ :func:`lastby`\ ', '\ :func:`pickfirstby`\ ', '\ :func:`picklastby`\ ',
+   '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ', '\ :func:`rmlastby`\ ',
+   '\ :func:`scanr`\ ', '\ :func:`scanr1`\ ', '\ :func:`unzip`\ ',
+   '\ :func:`unzip3`\ '. The other list functions will simply return a
+   not-further-reduced expression.
+
+   '\ :func:`unzip`\ ' and '\ :func:`unzip3`\ ' will also throw the
+   exception ``bad_tuple_value`` if their argument isn't a list whose
+   members are of the form ``x, y`` or ``x, y, z``, respectively.
+
+
    Common List Functions
    ~~~~~~~~~~~~~~~~~~~~~
 
