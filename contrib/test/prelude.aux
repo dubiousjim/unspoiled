@@ -2,4 +2,8 @@
 // basename of the appropriate .log file to check, given the active compiler
 // settings.
 using system;
+#! --if list-opt
+puts "prelude-list-opt";
+#! --else
 puts "prelude";
+#! --endif

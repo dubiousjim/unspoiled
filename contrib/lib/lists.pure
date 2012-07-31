@@ -20,6 +20,22 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
+/* We default to using the existing, reverse-based algorithms. If one
+   runs the interpreter using ``--enable=list-opt``, we instead use
+   algorithms based on the skip-ahead technique described at
+   <http://ocaml.janestreet.com/?q=node/71>. This protects against
+   stack overflows without needing to reverse, gaining some speed
+   and using substantially less memory.
+
+   Note that with ``--enable=list-opt``, you no longer are guaranteed
+   left-to-right evaluation order for `map` and `catmap`. If you need
+   that, you can just explicitly use `foldl` and `reverse`, or
+   disable the optimizations.
+*/
+
+#! --if list-opt
+namespace __std__ with const SKIPSIZE = 4096; end;
+#! --endif
 
 
 /* List reversal. This is a strict operation, of course, so it will loop on
@@ -37,11 +53,12 @@ end;
 
 /* List concatenation. For a robust implementation which works with both
    ordinary lists and streams, we want this to be tail-recursive *and*
-   non-strict. So we first walk down the list, popping elements from the first
+   non-strict. */
+[]+ys		= ys;
+#! --ifnot list-opt
+/* This implementation first walks down the list, popping elements from the first
    operand until we find an empty or thunked tail ('tick'), then walk back up
    again, pushing elements in front of the result list ('tack'). */
-
-[]+ys		= ys;
 xs@(_:_)+ys	= tick [] xs ys
 with
   tick zs (x:xs) ys	= tack (x:zs) ((xs+ys)&) if thunkp xs;
@@ -52,6 +69,23 @@ with
   tack (x:xs) ys	= tack xs (x:ys);
   tack [] ys		= ys;
 end;
+
+#! --else
+// skip-ahead
+xs@(_:_)+ys = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = x:fold_pre (n-1) xs;
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n ys;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (xs+ys);
+end;
+#! --endif
 
 
 /* ..
@@ -228,6 +262,7 @@ all p (x:xs)		= p x && all p xs;
 any p []		= 0;
 any p (x:xs)		= p x || any p xs;
 
+// we don't provide skip-ahead version
 delete [] y = [];
 delete xs@(_:_) y = tick xs [] with
     tick [] _ = xs; // no match
@@ -250,6 +285,8 @@ dropwhile p ys@(x:xs)	= dropwhile p xs if p x;
 			= ys otherwise;
 
 filter p []		= [];
+#! --ifnot list-opt
+// reverse-based
 filter p xs@(_:_)	= tick [] xs
 with
   add p x xs		= if p x then x:xs else xs;
@@ -261,12 +298,33 @@ with
   tack [] ys		= ys;
 end;
 
+#! --else
+// skip-ahead
+filter p xs@(_:_) = aux xs with
+    add p x hs = if p x then x:hs else hs;
+    aux xs = filter_pre len_pre xs with
+        filter_pre 0 _ = filtered_tail;
+        filter_pre n::int (x:xs) = add p x (filter_pre (n-1) xs);
+    end when
+        len_pre@_ filtered_tail = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (add p x (aux xs&)) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (filter p xs);
+end;
+#! --endif
+
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
 
 foldl1 f (x:xs)		= foldl f x xs;
 
 foldr f a []		= a;
+foldr1 f [x]		= x;
+#! --ifnot list-opt
+// reverse-based
 foldr f a xs@(_:_)	= tick [] xs
 with
   tick zs (x:xs)	= tack (x:zs) (foldr f a xs&) if thunkp xs;
@@ -277,7 +335,6 @@ with
   tack [] y		= y;
 end;
 
-foldr1 f [x]		= x;
 foldr1 f xs@(_:_)	= tick [] xs
 with
   /* Do the thunkp check first, before probing the tail. Note that the first
@@ -293,9 +350,44 @@ with
   tack [] y		= y;
 end;
 
+#! --else
+// skip-ahead
+foldr f a xs@(_:_) = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n a;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (f x (aux xs&)) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (foldr f a xs);
+end;
+
+foldr1 f xs@(_:_) = aux xs with
+    aux xs = fold_pre len_pre xs with
+        fold_pre 0 _           = folded_tail;
+        fold_pre n::int (x:xs) = f x (fold_pre (n-1) xs);
+    end when
+        len_pre@_ folded_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int ys@(_:xs) = n (aux ys) if n == __std__::SKIPSIZE;
+                                = n (foldr1 f ys&) if thunkp xs;
+    skip_ahead n::int xs        = case xs of
+                                    [x]  = n x;
+                                    x:xs = skip_ahead (n+1) xs;
+                                    _    = n (foldr1 f xs);
+                                  end;
+end;
+#! --endif
+
 head (x:xs)		= x;
 
-init [x]		= [];
+init [_]		= [];
+#! --ifnot list-opt
+// reverse-based
 init xs@(_:_)		= tick [] xs
 with
   tick zs ys@(_:xs)	= tack zs (init ys&) if thunkp xs;
@@ -308,10 +400,31 @@ with
   tack [] ys		= ys;
 end;
 
+#! --else
+// skip-ahead
+init xs@(_:_) = aux xs with
+    aux xs = init_pre len_pre xs with
+        init_pre 0 _           = chopped_tail;
+        init_pre n::int (x:xs) = x:init_pre (n-1) xs;
+    end when
+        len_pre@_ chopped_tail = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int ys@(x:xs) = n (aux ys) if n == __std__::SKIPSIZE;
+                                = n (init ys&) if thunkp xs;
+    skip_ahead n::int xs        = case xs of
+                                    [_]  = n [];
+                                    _:xs = skip_ahead (n+1) xs;
+                                    _    = n (init xs);
+                                  end;
+end;
+#! --endif
+
 last [x]		= x;
 last (x:xs)		= last xs;
 
 map f []		= [];
+#! --ifnot list-opt
+// reverse-based
 map f xs@(_:_)		= tick [] xs
 with
   tick zs (x:xs)	= tack (f x:zs) (map f xs&) if thunkp xs;
@@ -321,7 +434,24 @@ with
   tack (x:xs) ys	= tack xs (x:ys);
   tack [] ys		= ys;
 end;
+#! --else
+// skip-ahead
+map f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _            = mapped_tail;
+        map_pre n::int (x:xs)  = f x:map_pre (n-1) xs;
+    end when
+        len_pre@_ mapped_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (map f xs);
+end;
+#! --endif
 
+// no skip-ahead implementations yet, I'm lazy
 scanl f a []		= [a];
 scanl f a xs@(_:_)	= tick a [] xs
 with
@@ -382,21 +512,23 @@ end;
 
 tail (x:xs)		= xs;
 
-take n::int []		= [];
-take n::int xs@(_:_)	= tick n [] xs
+take m::int []		= [];
+takewhile p []	= [];
+#! --ifnot list-opt
+// reverse-based
+take m::int xs@(_:_)	= tick m [] xs
 with
-  tick n::int zs xs	= tack zs [] if n<=0;
-			= tack zs (take n xs&) if thunkp xs;
+  tick m::int zs xs	= tack zs [] if m<=0;
+			= tack zs (take m xs&) if thunkp xs;
 			= case xs of
 			    []   = tack zs [];
-			    x:xs = tick (n-1) (x:zs) xs;
-			    _    = tack zs (take n xs);
+			    x:xs = tick (m-1) (x:zs) xs;
+			    _    = tack zs (take m xs);
 			  end;
   tack (x:xs) ys	= tack xs (x:ys);
   tack [] ys		= ys;
 end;
 
-takewhile p []	= [];
 takewhile p xs@(_:_)	= tick [] xs
 with
   tick zs xs		= tack zs (takewhile p xs&) if thunkp xs;
@@ -410,9 +542,45 @@ with
   tack [] ys		= ys;
 end;
 
+#! --else
+// skip-ahead
+take m::int xs@(_:_) = aux m xs with
+    aux 0 xs = [];
+    aux m::int xs = take_pre len_pre xs with
+        take_pre 0      _             = front_tail;
+        take_pre n::int (x:xs)        = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail          = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int []       = n [];
+    skip_ahead m::int n::int xs@(_:_) = n (aux m xs) if n == __std__::SKIPSIZE;
+    skip_ahead m::int n::int (x:xs)   = n [] if m <= 0;
+                                      = n (x:aux (m-1) xs&) if thunkp xs;
+                                      = skip_ahead (m-1) (n+1) xs;
+    skip_ahead m::int n::int xs       = n (take m xs);
+end;
+
+takewhile p xs@(_:_) = aux xs with
+    aux xs = take_pre len_pre xs with
+        take_pre 0      _      = front_tail;
+        take_pre n::int (x:xs) = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail   = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n [];
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n [] if ~p x;
+                               = n (x:aux xs&) if thunkp xs;
+                               = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (takewhile p xs);
+end;
+#! --endif
+
 /* Concatenate a list of lists. */
 
 cat []			= [];
+#! --ifnot list-opt
+// reverse-based
 cat xs@(_:_)		= foldr (tick []) [] xs
 with
   /* Unfortunately, the global list concatenation operator (+) isn't fully
@@ -441,15 +609,62 @@ with
   foldr (tick _) [] x	= cat x;
 end;
 
+#! --else
+// skip-ahead
+cat (xs::list:yss) = aux xs with
+    aux xs = cat_pre len_pre xs with
+        cat_pre 0 _           = catted_tail;
+        cat_pre n::int (x:xs) = x:cat_pre (n-1) xs;
+    end when
+        len_pre@_ catted_tail  = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int []       = n (cat yss);
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = n (x:aux xs&) if thunkp xs;
+    skip_ahead n::int (x:xs)   = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (xs+cat yss);
+end;
+#! --endif
+
 /* Map a function to a list and concatenate the results. This is used by list
    comprehensions. */
 
 catmap f []		= [];
+#! --ifnot list-opt
+// reverse-based
 catmap f xs@(_:_)	= cat (map f xs);
 
 /* NOTE: This definition (from the Haskell prelude) is better, but doesn't
    preserve left-to-right execution order. */
 //catmap f xs@(_:_)	= foldr ((+).f) [] xs;
+
+#! --else
+// skip-ahead
+catmap f xs@(_:_) = aux xs with
+    aux xs = map_pre len_pre xs with
+        map_pre 0 _              = mapped_tail;
+        map_pre n::int (x:xs)    = lazy_cat (f x) (map_pre (n-1) xs);
+    end when
+        len_pre@_ mapped_tail    = skip_map 0 xs;
+    end;
+    skip_map n::int []           = n [];
+    skip_map n::int xs@(_:_)     = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
+                                 = skip_map (n+1) xs;
+    skip_map n::int xs           = n (catmap f xs);
+    lazy_cat xs yss              = cat_pre len_pre xs with
+        cat_pre 0 _              = catted_tail;
+        cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
+    end when
+        len_pre@_ catted_tail    = skip_cat yss 0 xs;
+    end;
+    skip_cat yss n::int []       = n yss;
+    skip_cat yss n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
+    skip_cat yss n::int (x:xs)   = n (x:lazy_cat xs yss&) if thunkp xs;
+    skip_cat yss n::int (x:xs)   = skip_cat yss (n+1) xs;
+    skip_cat yss n::int xs       = n (xs+yss);
+end;
+#! --endif
 
 /* Map a function to a list, like map, but first promote the argument to a
    list if possible. This is used by list comprehensions. */
@@ -545,6 +760,7 @@ cycle ys@(x:xs)		= x : (xs+cycle ys)&;
    takewhile/take and the above, but are implemented directly for maximum
    efficiency. */
 
+// no skip-ahead implentations yet, I'm lazy
 iterwhile p f x		= accum [] p f x with
 			    accum xs p f x = accum (x:xs) p f (f x) if p x;
 				           = reverse xs otherwise;
@@ -619,76 +835,95 @@ cyclen n::int (x:xs)	= [] if n<=0;
 */
 
 zip [] _		|
-zip _ []		= [];
-zip xs@(_:_) ys@(_:_)	= tick [] xs ys
-with
-  tick us (x:xs) (y:ys)	= tack ((x,y):us) (zip xs ys&)
-			    if thunkp xs || thunkp ys;
-			= tick ((x,y):us) xs ys;
-  tick us [] _		|
-  tick us _ []		= tack us [];
-  tick us xs ys		= tack us (zip xs ys);
-  tack (u:us) vs	= tack us (u:vs);
-  tack [] vs		= vs;
-end;
+zip _ []		|
+zipwith f [] _		|
+zipwith f _ []		= [];
 
 zip3 [] _ _		|
 zip3 _ [] _		|
-zip3 _ _ []		= [];
-zip3 xs@(_:_) ys@(_:_) zs@(_:_)
-			= tick [] xs ys zs
-with
-  tick us (x:xs) (y:ys) (z:zs)
-			= tack ((x,y,z):us) (zip3 xs ys zs&)
-			    if thunkp xs || thunkp ys || thunkp zs;
-			= tick ((x,y,z):us) xs ys zs;
-  tick us [] _ _	|
-  tick us _ [] _	|
-  tick us _ _ []	= tack us [];
-  tick us xs ys zs	= tack us (zip3 xs ys zs);
-  tack (u:us) vs	= tack us (u:vs);
-  tack [] vs		= vs;
-end;
+zip3 _ _ []		|
+zipwith3 f [] _ _	|
+zipwith3 f _ [] _	|
+zipwith3 f _ _ []	= [];
 
-zipwith f [] _		|
-zipwith f _ []		= [];
-zipwith f xs@(_:_) ys@(_:_)
+
+namespace __std__ with
+#! --ifnot list-opt
+// reverse-based
+zip f improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
-  tick us (x:xs) (y:ys)	= tack (f x y:us) (zipwith f xs ys&)
+  tick us (x:xs) (y:ys)	= tack (f x y:us) (zip f improper xs ys&)
 			    if thunkp xs || thunkp ys;
 			= tick (f x y:us) xs ys;
   tick us [] _		|
   tick us _ []		= tack us [];
-  tick us xs ys		= tack us (zipwith f xs ys);
+  tick us xs ys		= tack us (improper xs ys);
   tack (u:us) vs	= tack us (u:vs);
   tack [] vs		= vs;
 end;
 
-zipwith3 f [] _ _		|
-zipwith3 f _ [] _		|
-zipwith3 f _ _ []		= [];
-zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_)
+zip3 f improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
-			= tack (f x y z:us) (zipwith3 f xs ys zs&)
+			= tack (f x y z:us) (zip3 f improper xs ys zs&)
 			    if thunkp xs || thunkp ys || thunkp zs;
 			= tick (f x y z:us) xs ys zs;
   tick us [] _ _	|
   tick us _ [] _	|
   tick us _ _ []	= tack us [];
-  tick us xs ys zs	= tack us (zipwith3 f xs ys zs);
+  tick us xs ys zs	= tack us (improper xs ys zs);
   tack (u:us) vs	= tack us (u:vs);
   tack [] vs		= vs;
 end;
 
-dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
-dowith f _ _		= () otherwise;
+#! --else
+// skip-ahead
+zip f improper xs@(_:_) ys@(_:_) = aux xs ys with
+    aux xs ys = zip_pre len_pre xs ys with
+        zip_pre 0 _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) = f x y:zip_pre (n-1) xs ys;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys;
+    end;
+    skip_ahead n::int [] _  |
+    skip_ahead n::int _ []  = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_)
+                            = n (aux xs ys) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys)
+                            = n (f x y:aux xs ys&)
+                              if thunkp xs || thunkp ys;
+                            = skip_ahead (n+1) xs ys;
+    skip_ahead n::int xs ys = n (improper xs ys);
+end;
 
-dowith3 f (x:xs) (y:ys) (z:zs)
-			= f x y z $$ dowith3 f xs ys zs;
-dowith3 f _ _ _		= () otherwise;
+zip3 f improper xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+    aux xs ys zs = zip_pre len_pre xs ys zs with
+        zip_pre 0 _ _ _ = zipped_tail;
+        zip_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:zip_pre (n-1) xs ys zs;
+    end when
+        len_pre@_ zipped_tail = skip_ahead 0 xs ys zs;
+    end;
+    skip_ahead n::int [] _ _   |
+    skip_ahead n::int _ [] _   |
+    skip_ahead n::int _ _ []   = n [];
+    skip_ahead n::int xs@(_:_) ys@(_:_) zs@(_:_)
+                               = n (aux xs ys zs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs) (y:ys) (z:zs)
+                               = n (f x y z:aux xs ys zs&)
+                                 if thunkp xs || thunkp ys || thunkp zs;
+                               = skip_ahead (n+1) xs ys zs;
+    skip_ahead n::int xs ys zs = n (improper xs ys zs);
+end;
+#! --endif
+end;
+
+zip xs@(_:_) ys@(_:_) = __std__::zip (,) (zip) xs ys;
+zipwith f xs@(_:_) ys@(_:_) = __std__::zip f (zipwith f) xs ys;
+
+zip3 xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 comma (zip3) xs ys zs with comma x y z = x,y,z end;
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 f (zipwith3 f) xs ys zs;
 
 unzip []		= [],[];
 unzip us@(_:_)		= foldr accum ([],[]) us
@@ -714,3 +949,10 @@ with
   check (foldr _ _ us)	= throw (bad_list_value us);
   check us		= throw (bad_tuple_value us);
 end;
+
+dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
+dowith f _ _		= () otherwise;
+
+dowith3 f (x:xs) (y:ys) (z:zs)
+                        = f x y z $$ dowith3 f xs ys zs;
+dowith3 f _ _ _		= () otherwise;

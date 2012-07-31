@@ -174,7 +174,15 @@ slice x y = x!!y;
 #!   --disable common-opt
 #!   --disable subseq-opt
 #!   --disable vectorseq-opt
+#!   --disable list-opt
 #! --endif // not opt
+
+// We default to using the reverse-based list algorithms, rather than
+// the skip-ahead optimizations.
+
+#! --ifndef list-opt
+#!   --disable list-opt
+#! --endif
 
 /* Pull in the primitives (arithmetic etc.) and the standard string,
    matrix and record functions. The list functions are pulled in later. Note
@@ -1024,6 +1032,8 @@ xs!!ns		= ys if ok ys when
    some reason. */
 
 subseq [] a::int b::int = [];
+#! --ifnot list-opt
+// reverse-based
 subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
   // This is a version of take modified to expand thunked tails. It uses the
   // same basic logic to make it tail-recursive.
@@ -1038,6 +1048,23 @@ subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
   tack (x:xs) ys	= tack xs (x:ys);
   tack [] ys		= ys;
 end;
+
+#! --else
+// skip-ahead
+subseq xs@(_:_) a::int b::int = take (b-a+1) $ drop a xs with
+    take 0 xs = [];
+    take m::int xs = take_pre len_pre xs with
+        take_pre 0      _             = front_tail;
+        take_pre n::int (x:xs)        = x:take_pre (n-1) xs;
+    end when
+        len_pre@_ front_tail          = skip_ahead m 0 xs;
+    end;
+    skip_ahead m::int n::int xs       = n [] if m <= 0 || xs === [];
+    skip_ahead m::int n::int (x:xs)   = skip_ahead (m-1) (n+1) xs if n < __std__::SKIPSIZE;
+    skip_ahead m::int n::int xs       = n (take m xs);
+end;
+#! --endif
+
 subseq x a b = slice x (a..b);
 
 #! --if subseq-opt
