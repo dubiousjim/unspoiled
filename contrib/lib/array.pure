@@ -121,6 +121,11 @@
 
       list of members in a two-dimensional array
 
+   .. function:: stream /array a
+                 revstream /array a
+
+      return the members of ``a`` as a stream
+
    .. function:: first /array a
       		 last /array a
 
@@ -248,7 +253,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public reverse pickfirst picklast rotate all any map;
+public reverse pickfirst picklast rotate all any map stream revstream;
 
 namespace array;
 
@@ -326,6 +331,29 @@ with
 end;
 
 ::list x@(Array _)		= members x;
+
+// get all array members in stream form
+::stream (Array a)		= members a
+with
+  members nil			= [];
+  members (tip x)		= x:[]&;
+  members (bin _ a1 a2)		= merge (members a1) (members a2);
+  // merge lists xs (even elements) and ys (odd elements)
+  merge [] ys			= stream ys;
+  merge (x:xs) ys		= x:merge ys xs&;
+end;
+
+// get all array members in reverse stream form
+::revstream (Array a)		= members a
+with
+  members nil			= [];
+  members (tip x)		= x:[]&;
+  members (bin 0 a1 a2)		= merge (members a2) (members a1);
+  members (bin 1 a1 a2)		= merge (members a1) (members a2);
+  // merge lists xs (even elements) and ys (odd elements)
+  merge [] ys			= stream ys;
+  merge (x:xs) ys		= x:merge ys xs&;
+end;
 
 // get all members of an two-dimensional array in list form
 ::members2 x@(Array _)		= map members (members x);
