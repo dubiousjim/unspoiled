@@ -569,8 +569,8 @@ takewhile p []	= [];
 // reverse-based
 take m::int xs@(_:_)	= tick m [] xs
 with
-  tick m::int zs xs	= __std__::reverse_onto [] zs if m<=0;
-			= __std__::reverse_onto (take m xs&) zs if thunkp xs;
+  tick m::int zs xs     = __std__::reverse_onto (take m xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
+                        = __std__::reverse_onto [] zs if m<=0;
 			= case xs of
 			    []   = __std__::reverse_onto [] zs;
 			    x:xs = tick (m-1) (x:zs) xs;
@@ -580,7 +580,7 @@ end;
 
 takewhile p xs@(_:_)	= tick [] xs
 with
-  tick zs xs		= __std__::reverse_onto (takewhile p xs&) zs if thunkp xs;
+  tick zs xs		= __std__::reverse_onto (takewhile p xs&) zs if thunkp xs; // we don't deconstruct xs so as to check p x only one on one codepath
 			= case xs of
 			    []   = __std__::reverse_onto [] zs;
 			    x:xs = tick (x:zs) xs if p x;
