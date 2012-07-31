@@ -28,6 +28,9 @@ of elements that are mutually <=, the later-occurring one will occur earlier in
 the result. This may sometimes be useful.
 */
 
+reverse_onto [] base = base;
+reverse_onto (x:xs) base = reverse_onto xs (x:base);
+
 public msort;
 
 msort _ [] = [];
@@ -59,9 +62,9 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             when
                 wn = if yn > 0 then yn + zn else yn;
                 ws, wa = if ya && ~za && ~(lt y z) then
-                            reverse_onto zs ys, 0
-                         else if ~ya && za && (lt y z) then
                             reverse_onto ys zs, 0
+                         else if ~ya && za && (lt y z) then
+                            reverse_onto zs ys, 0
                          else if ya < 0 then
                             // ys has only one member
                             merge lt (~za) ys zs [], ~za
@@ -74,7 +77,7 @@ msort lt (x:xs) = step lt xs x [] 1 (-1) [] with
             end
         );
 
-    merge _ _ us [] ws | merge _ _ [] us ws = reverse_onto ws us;
+    merge _ _ us [] ws | merge _ _ [] us ws = reverse_onto us ws;
     merge lt wa (yy@(y:ys)) (zz@(z:zs)) ws =
         if (lt y z) ~= wa then
             merge lt wa ys zz (y:ws)

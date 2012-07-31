@@ -2,7 +2,6 @@
 
 /* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
    Copyright (c) 2008-2012 by Jiri Spitz <jiri.spitz@bluetone.cz>.
-   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 
    This file is part of the Pure standard library.
 
@@ -70,7 +69,8 @@
    dictionaries compare keys using equality (assuming two keys ``a`` and ``b``
    to be equal if neither ``a<b`` nor ``b<a`` holds), while hashed
    dictionaries check for syntactical equality (using :func:`===`). The
-   associated values are compared using the :func:`==?` predicate.
+   associated values are compared using the :func:`==` predicate if it is
+   defined, falling back to syntactic equality otherwise.
 
    The underlying AVL tree data structure can be found in the avltrees.pure
    module which is included in the library, but not to be invoked directly.
@@ -119,7 +119,7 @@
                  mdictp d
                  hmdictp d
 
-      check whether ``d`` is a dictionary of the corresponding type
+      check whether ``x`` is a dictionary of the corresponding type
 
    .. function:: mkdict y xs
                  mkhdict y xs
@@ -150,16 +150,6 @@
       actually returns a list of values (which may be empty if ``d`` doesn't
       contain ``x``)
 
-   .. function:: grob /dict d x
-
-      get the value from ``d`` by key ``x``; in the case of a multidict this
-      returns the oldest value
-
-   .. function:: grob_other /dict d x
-
-      get the value from ``d`` by key ``x``; in the case of a multidict this
-      returns the newest value
-
    .. function:: null /dict d
 
       test whether ``d`` is an empty dictionary
@@ -181,16 +171,6 @@
 
       list the values of ``d``
 
-   .. function:: stream /dict d
-                 mstream /dict d
-                 rev_stream /dict d
-                 rev_mstream /dict d
-
-      return the members of ``d`` as a stream; the ``mstream`` functions group
-      all values associated with a key into a single list; the elements
-      are presented in ascending order for ordered dictionaries (or descending
-      order for ``rev_stream`` and ``rev_mstream``)
-
    .. function:: first /dict d
                  last /dict d
 
@@ -200,12 +180,6 @@
                  rmlast /dict d
 
       remove the first and the last member from ``d``, respectively
-
-   .. function:: pickfirst /dict d
-                 picklast /dict d
-
-      return the pair ``(first member of d, rest of d)`` or ``(last member of d, rest of d)``,
-      respectively; if ``d`` is empty, return ``()`` instead
 
    .. function:: insert /dict d (x=>y)
                  update /dict d x y
@@ -221,23 +195,6 @@
       remove ``x`` from ``d`` if present (in the multidict case, only the
       first member with the given key ``x`` is removed)
 
-   .. function:: delete_other /dict d x
-
-      remove ``x`` from ``d`` if present (in the multidict case, only the
-      last member with the given key ``x`` is removed)
-
-   .. function:: pick /dict d x
-
-      remove ``x`` from ``d``, and return the pair ``(x, rest of d)``;
-      if ``x`` is not present in ``d``, return ``()`` instead
-      (in the multidict case, only the first member with the given key ``x`` is picked)
-
-   .. function:: pick_other /dict d x
-
-      remove ``x`` from ``d``, and return the pair ``(x, rest of d)``;
-      if ``x`` is not present in ``d``, return ``()`` instead
-      (in the multidict case, only the last member with the given key ``x`` is picked)
-
    .. function:: delete_val /dict d (x=>y)
 
       remove a specific key-value pair ``x=>y`` from ``d`` if present (in the
@@ -249,47 +206,6 @@
       remove all instances of ``x`` from ``d`` (in the non-multidict case,
       this is just the same as :func:`delete/dict`)
 
-   .. function:: pick_all /dict d x
-
-      remove all instances of ``x`` from ``d``, and return the pair ``(list of xs, rest of d)``;
-      if ``x`` is not present in ``d``, return ``()`` instead
-
-   .. function:: foldl f a /dict d
-                 foldl1 f /dict d
-                 foldr f a /dict d
-                 foldr1 f /dict d
-                 any p /dict d
-                 all p /dict d
-
-      these are equivalent to calling the corresponding list methods on ``members d``, but more
-      efficient (no intermediate list is built)
-
-   .. function:: mfoldl f a /dict d
-                 mfoldl1 f /dict d
-                 mfoldr f a /dict d
-                 mfoldr1 f /dict d
-                 many p /dict d
-                 mall p /dict d
-
-      these are like the functions ``foldl`` and so on, except that ``f`` receives all the values
-      associated with a given key bundled together in a single list; so the signature of
-      ``mfoldl`` is::
-
-        mfoldl (\a (k=>vs) ...) a d
-
-   .. function:: filter p /dict d
-                 mfilter p /dict d
-
-      these return a dict that contains all instances of ``x`` from ``d`` that
-      satisfy the predicate ``p``; the first passes values to ``p`` one-at-a-time
-      (like ``foldl``), the second passes them all at once (like ``mfoldl``)
-
-   .. function:: partition p /dict d
-                 mpartition p /dict d
-
-      these are equivalent to ``filter p d, filter ((~).p) d`` and
-      ``mfilter p d, mfilter ((~).p) d``, respectively, but more efficient
-
    .. note::
 
       * The infix operators :func:`+/dict`, :func:`-/dict` and :func:`*\/dict`
@@ -300,12 +216,12 @@
       	less general dictionary types (ordered, single-valued) to more general
       	types (hashed, multi-valued) are handled automatically.
 
-      * The :func:`delete_val/weak` function compares values using
-        coarse-grained equality (:func:`==?`). If there is more than one
-        instance of the given value under the given key, the first such
-        instance will be removed (which, if :func:`==` is defined on the
-        values, may be any instance that compares equal, not necessarily an
-        exact match).
+      * The :func:`delete_val/dict` function compares values using equality
+        (:func:`==`) if it is defined, falling back to syntactic equality
+        (:func:`===`) otherwise. If there is more than one instance of the
+        given value under the given key, the first such instance will be
+        removed (which, if :func:`==` is defined on the values, may be any
+        instance that compares equal, not necessarily an exact match).
 
       * In the multidict case, :func:`delete_val/dict` may require linear time
         with respect to the number of different values stored under the given
@@ -418,19 +334,7 @@
 
 */
 
-namespace dict;
-    mval   (k=>v)      = k=>[v];
-#! --if trees23
-    using trees23;
-    mvals     (k=>kvs) = k=>revmap val kvs;
-    rev_mvals (k=>kvs) = k=>map val kvs;
-#! --else
-    using avltrees;
-    mvals     (k=>kvs) = k=>map val kvs;
-    rev_mvals (k=>kvs) = k=>revmap val kvs;
-#! --endif
-namespace;
-
+using avltrees;
 
 // These should be considered private.
 public Dict HDict MDict HMDict;
@@ -446,10 +350,10 @@ hmdictp x = typep hmdict x;
 xdictp  x = typep xdict  x;
 
 // create an empty dict
-emptydict	= Dict   baltree::emptytree;
-emptyhdict	= HDict  baltree::emptytree;
-emptymdict	= MDict  baltree::emptytree;
-emptyhmdict	= HMDict baltree::emptytree;
+emptydict	= Dict   avl::emptytree;
+emptyhdict	= HDict  avl::emptytree;
+emptymdict	= MDict  avl::emptytree;
+emptyhmdict	= HMDict avl::emptytree;
 
 // conversions between the different dictionary types
 public members;
@@ -473,314 +377,100 @@ mkmdict  y xs::rlist = mdict  (zipwith (=>) xs (repeatn (#xs) y));
 mkhmdict y xs::rlist = hmdict (zipwith (=>) xs (repeatn (#xs) y));
 
 // insert a member
-insert (Dict   d) el@(x=>y) = Dict   (baltree::insertk   d el);
-insert (HDict  d) el@(x=>y) = HDict  (baltree::hinsertk  d el);
-insert (MDict  d) el@(x=>y) = MDict  (baltree::minsertk  d el);
-insert (HMDict d) el@(x=>y) = HMDict (baltree::mhinsertk d el);
+insert (Dict   d) el@(x=>y) = Dict   (avl::insertk   d el);
+insert (HDict  d) el@(x=>y) = HDict  (avl::hinsertk  d el);
+insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
+insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
 
 // curried version of insert
 update d@(Dict  _) x y | update d@(HDict  _) x y |
 update d@(MDict _) x y | update d@(HMDict _) x y = insert d (x=>y);
 
 // delete a member by key
-delete (Dict   d) x = Dict   (baltree::deletek    d x);
-delete (HDict  d) x = HDict  (baltree::hdeletek   d x);
-delete (MDict  d) x = MDict  (baltree::mdeleteko  d x);
-delete (HMDict d) x = HMDict (baltree::mhdeleteko d x);
-
-// delete a member by "other" key
-delete_other (Dict   d) x = Dict   (baltree::deletek    d x);
-delete_other (HDict  d) x = HDict  (baltree::hdeletek   d x);
-delete_other (MDict  d) x = MDict  (baltree::mdeletekn  d x);
-delete_other (HMDict d) x = HMDict (baltree::mhdeletekn d x);
-
-// pick a member by key
-pick (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
-pick (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
-pick (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopko  d x end;
-pick (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopko d x end;
-
-// pick a member by "other" key
-pick_other (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
-pick_other (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
-pick_other (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopkn  d x end;
-pick_other (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopkn d x end;
+delete (Dict   d) x = Dict   (avl::deletek   d x);
+delete (HDict  d) x = HDict  (avl::hdeletek  d x);
+delete (MDict  d) x = MDict  (avl::mdeletek  d x);
+delete (HMDict d) x = HMDict (avl::mhdeletek d x);
 
 // delete a member by key=>val
-delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv    d el);
-delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv   d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekvo  d el); // uses old
-delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekvo d el); // uses old
+delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv   d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv  d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekv  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekv d el);
 
 // delete all instances of a given key
-delete_all (Dict   d) x = Dict   (baltree::deletek    d x);
-delete_all (HDict  d) x = HDict  (baltree::hdeletek   d x);
-delete_all (MDict  d) x = MDict  (baltree::mdeleteka  d x);
-delete_all (HMDict d) x = HMDict (baltree::mhdeleteka d x);
-
-// pick all members by key
-pick_all (Dict   d) x = [v], (Dict d)       when v,d = baltree::popk    d x end;
-pick_all (HDict  d) x = [v], (HDict d)      when v,d = baltree::hpopk   d x end;
-pick_all (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopka  d x end;
-pick_all (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopka d x end;
+delete_all (Dict   d) x = Dict   (avl::deletek    d x);
+delete_all (HDict  d) x = HDict  (avl::hdeletek   d x);
+delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
+delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
 
 // check for the empty dict
 null (Dict  d) | null (HDict  d) |
-null (MDict d) | null (HMDict d) = baltree::null d;
+null (MDict d) | null (HMDict d) = avl::null d;
 
 // dict size
-#(Dict   d) = baltree::size  d;
-#(HDict  d) = baltree::hsize d;
-#(MDict  d) = baltree::msize d;
-#(HMDict d) = baltree::hsize d;
+#(Dict   d) = avl::size  d;
+#(MDict  d) = avl::msize d;
+#(HDict  d) = avl::hsize d;
+#(HMDict d) = avl::hsize d;
 
 // membership test
-member (Dict   d) k = baltree::memberk  d k;
-member (HDict  d) k = baltree::hmemberk d k;
-member (MDict  d) k = baltree::memberk  d k;
-member (HMDict d) k = baltree::hmemberk d k;
+member (Dict   d) k = avl::memberk  d k;
+member (MDict  d) k = avl::memberk  d k;
+member (HDict  d) k = avl::hmemberk d k;
+member (HMDict d) k = avl::hmemberk d k;
 
 // get the members, keys and values of a dict as a list
-members (Dict   d) = baltree::members  d;
-members (HDict  d) = baltree::hmembers d;
-members (MDict  d) = baltree::mmembers d;
-members (HMDict d) = baltree::hmembers d;
+members (Dict   d) = avl::members  d;
+members (MDict  d) = avl::mmembers d;
+members (HDict  d) = avl::hmembers d;
+members (HMDict d) = avl::hmembers d;
 
-keys (Dict   d) = baltree::keys  d;
-keys (HDict  d) = baltree::hkeys d;
-keys (MDict  d) = baltree::mkeys d;
-keys (HMDict d) = baltree::hkeys d;
+keys (Dict   d) = avl::keys  d;
+keys (MDict  d) = avl::mkeys d;
+keys (HDict  d) = avl::hkeys d;
+keys (HMDict d) = avl::hkeys d;
 
-vals (Dict   d) = baltree::vals  d;
-vals (HDict  d) = baltree::hvals d;
-vals (MDict  d) = baltree::mvals d;
-vals (HMDict d) = baltree::hvals d;
+vals (Dict   d) = avl::vals  d;
+vals (MDict  d) = avl::mvals d;
+vals (HDict  d) = avl::hvals d;
+vals (HMDict d) = avl::hvals d;
 
 list d::xdict = members d;
 
-// get members as a stream
-stream (Dict   d) = baltree::streamleft  d;
-stream (HDict  d) = baltree::hstreamleft d;
-stream (MDict  d) = baltree::mstreamleft d;
-stream (HMDict d) = baltree::hstreamleft d;
-
-rev_stream (Dict   d) = baltree::streamright  d;
-rev_stream (HDict  d) = baltree::hstreamright d;
-rev_stream (MDict  d) = baltree::mstreamright d;
-rev_stream (HMDict d) = baltree::hstreamright d;
-
-mstream (Dict   d) = map dict::mval   (baltree::streamleft    d);
-mstream (HDict  d) = map dict::mval   (baltree::hstreamleft   d);
-mstream (MDict  d) = map dict::mvals  (baltree::streamleft    d);
-mstream (HMDict d) =                     baltree::mhstreamleftk d;
-
-rev_mstream (Dict   d) = map dict::mval  (baltree::streamright     d);
-rev_mstream (HDict  d) = map dict::mval  (baltree::hstreamright    d);
-rev_mstream (MDict  d) = map dict::rev_mvals (baltree::streamright d);
-rev_mstream (HMDict d) =                    baltree::mhstreamrightk  d;
-
 // get the first and last member
-first (Dict   d) = baltree::first  d;
-last  (Dict   d) = baltree::last   d;
-first (HDict  d) = baltree::hfirst d;
-last  (HDict  d) = baltree::hlast  d;
-first (MDict  d) = baltree::mfirst d;
-last  (MDict  d) = baltree::mlast  d;
-first (HMDict d) = baltree::hfirst d;
-last  (HMDict d) = baltree::hlast  d;
+first (Dict   d) = avl::first  d;
+first (MDict  d) = avl::mfirst d;
+last  (Dict   d) = avl::last   d;
+last  (MDict  d) = avl::mlast  d;
+first (HDict  d) = avl::hfirst d;
+first (HMDict d) = avl::hfirst d;
+last  (HDict  d) = avl::hlast  d;
+last  (HMDict d) = avl::hlast  d;
 
 // remove the first and last member
-rmfirst (Dict   d) = Dict   (baltree::rmfirst  d);
-rmlast  (Dict   d) = Dict   (baltree::rmlast   d);
-rmfirst (HDict  d) = HDict  (baltree::hrmfirst d);
-rmlast  (HDict  d) = HDict  (baltree::hrmlast  d);
-rmfirst (MDict  d) = MDict  (baltree::mrmfirst d);
-rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
-rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
-rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
-
-// pick the first and last member
-pickfirst (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::popfirst  d end;
-picklast  (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::poplast   d end;
-pickfirst (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpopfirst d end;
-picklast  (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpoplast  d end;
-pickfirst (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpopfirst d end;
-picklast  (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpoplast  d end;
-pickfirst (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpopfirst d end;
-picklast  (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpoplast  d end;
-
-// folds
-// takes k=>v one at a time
-foldl  f a (Dict   d) = baltree::foldl  id f a d;
-foldl  f a (HDict  d) = baltree::hfoldl id f a d;
-foldl  f a (MDict  d) = baltree::mfoldl    f a d;
-foldl  f a (HMDict d) = baltree::hfoldl id f a d;
-
-// takes k=>vs
-mfoldl f a (Dict   d) = baltree::foldl  dict::mval    f a d;
-mfoldl f a (HDict  d) = baltree::hfoldl dict::mval    f a d;
-mfoldl f a (MDict  d) = baltree::foldl  dict::mvals   f a d;
-mfoldl f a (HMDict d) = baltree::mhfoldlk               f a d;
-
-// takes k=>v one at a time
-foldl1  f (Dict   d) = baltree::foldl1  id f d;
-foldl1  f (HDict  d) = baltree::hfoldl1 id f d;
-foldl1  f (MDict  d) = baltree::mfoldl1    f d;
-foldl1  f (HMDict d) = baltree::hfoldl1 id f d;
-// takes k=>vs
-mfoldl1 f (Dict   d) = baltree::foldl1  dict::mval    f d;
-mfoldl1 f (HDict  d) = baltree::hfoldl1 dict::mval    f d;
-mfoldl1 f (MDict  d) = baltree::foldl1  dict::mvals   f d;
-mfoldl1 f (HMDict d) = baltree::mhfoldl1k               f d;
-
-// takes k=>v one at a time
-foldr  f a (Dict   d) = baltree::foldr  id f a d;
-foldr  f a (HDict  d) = baltree::hfoldr id f a d;
-foldr  f a (MDict  d) = baltree::mfoldr    f a d;
-foldr  f a (HMDict d) = baltree::hfoldr id f a d;
-// takes k=>vs
-mfoldr f a (Dict   d) = baltree::foldr  dict::mval    f a d;
-mfoldr f a (HDict  d) = baltree::hfoldr dict::mval    f a d;
-mfoldr f a (MDict  d) = baltree::foldr  dict::mvals   f a d;
-mfoldr f a (HMDict d) = baltree::mhfoldrk               f a d;
-
-// takes k=>v one at a time
-foldr1  f (Dict   d) = baltree::foldr1  id f d;
-foldr1  f (HDict  d) = baltree::hfoldr1 id f d;
-foldr1  f (MDict  d) = baltree::mfoldr1    f d;
-foldr1  f (HMDict d) = baltree::hfoldr1 id f d;
-// takes k=>vs
-mfoldr1 f (Dict   d) = baltree::foldr1  dict::mval    f d;
-mfoldr1 f (HDict  d) = baltree::hfoldr1 dict::mval    f d;
-mfoldr1 f (MDict  d) = baltree::foldr1  dict::mvals   f d;
-mfoldr1 f (HMDict d) = baltree::mhfoldr1k               f d;
-
-// takes k=>v one at a time
-all  p (Dict   d) = baltree::all  p d;
-all  p (HDict  d) = baltree::hall p d;
-all  p (MDict  d) = baltree::mall p d;
-all  p (HMDict d) = baltree::hall p d;
-// takes k=>vs
-mall p (Dict   d) = baltree::all  (p.dict::mval )  d;
-mall p (HDict  d) = baltree::hall (p.dict::mval )  d;
-mall p (MDict  d) = baltree::all  (p.dict::mvals ) d;
-mall p (HMDict d) = baltree::mhallk                p d;
-
-// takes k=>v one at a time
-any  p (Dict   d) = baltree::any  p d;
-any  p (HDict  d) = baltree::hany p d;
-any  p (MDict  d) = baltree::many p d;
-any  p (HMDict d) = baltree::hany p d;
-// takes k=>vs
-many p (Dict   d) = baltree::any  (p.dict::mval )  d;
-many p (HDict  d) = baltree::hany (p.dict::mval )  d;
-many p (MDict  d) = baltree::any  (p.dict::mvals ) d;
-many p (HMDict d) = baltree::mhanyk                p d;
+rmfirst (Dict   d) = Dict   (avl::rmfirst  d);
+rmlast  (Dict   d) = Dict   (avl::rmlast   d);
+rmfirst (MDict  d) = MDict  (avl::mrmfirst d);
+rmlast  (MDict  d) = MDict  (avl::mrmlast  d);
+rmfirst (HDict  d) = HDict  (avl::hrmfirst d);
+rmlast  (HDict  d) = HDict  (avl::hrmlast  d);
+rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
+rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
 
 // get a value by key
-(Dict   d)!k = baltree::getk    d k;
-(HDict  d)!k = baltree::hgetk   d k;
-(MDict  d)!k = baltree::mgetka  d k;
-(HMDict d)!k = baltree::mhgetka d k;
-
-// get oldest/newest value from mdicts
-grob (Dict   d) k = baltree::getk    d k;
-grob (HDict  d) k = baltree::hgetk   d k;
-grob (MDict  d) k = baltree::mgetko  d k;
-grob (HMDict d) k = baltree::mhgetko d k;
-
-grob_other (Dict   d) k = baltree::getk    d k;
-grob_other (HDict  d) k = baltree::hgetk   d k;
-grob_other (MDict  d) k = baltree::mgetkn  d k;
-grob_other (HMDict d) k = baltree::mhgetkn d k;
-
-filter  p (Dict   d)
-  = Dict (baltree::foldl id add baltree::emptytree d) with
-    add yes x = if p x then baltree::insertk yes x else yes;
-end;
-filter  p (HDict  d)
-  = HDict (baltree::hfoldl id add baltree::emptytree d) with
-    add yes x = if p x then baltree::hinsertk yes x else yes;
-end;
-filter  p (MDict  d)
-  = MDict (baltree::mfoldl add baltree::emptytree d) with
-    add yes x = if p x then baltree::minsertk yes x else yes;
-end;
-filter  p (HMDict d)
-  = HMDict (baltree::hfoldl id add baltree::emptytree d) with
-    add yes x = if p x then baltree::mhinsertk yes x else yes;
-end;
-
-mfilter  p (Dict   d)
-  = Dict (baltree::foldl id add baltree::emptytree d) with
-    add yes x@(xk=>xv) = if p (xk=>[xv]) then baltree::insertk yes x else yes;
-end;
-mfilter  p (HDict  d)
-  = HDict (baltree::hfoldl id add baltree::emptytree d) with
-    add yes x@(xk=>xv) = if p (xk=>[xv]) then baltree::hinsertk yes x else yes;
-end;
-mfilter  p (MDict  d)
-  = MDict (baltree::foldl dict::mvals add baltree::emptytree d) with
-    add yes xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs else yes;
-    ins xk d xv = baltree::minsertk d (xk=>xv);
-end;
-mfilter  p (HMDict d)
-  = HMDict (baltree::mhfoldlk add baltree::emptytree d) with
-    add yes xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs else yes;
-    ins xk d xv = baltree::mhinsertk d (xk=>xv);
-end;
-
-partition  p (Dict   d) = Dict yes, Dict no when
-    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x = if p x then baltree::insertk yes x, no else yes, baltree::insertk no x;
-end;
-partition  p (HDict  d) = HDict yes, HDict no when
-    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x = if p x then baltree::hinsertk yes x, no else yes, baltree::hinsertk no x;
-end;
-partition  p (MDict  d) = MDict yes, MDict no when
-    yes, no = baltree::mfoldl add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x = if p x then baltree::minsertk yes x, no else yes, baltree::minsertk no x;
-end;
-partition  p (HMDict d) = HMDict yes, HMDict no when
-    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x = if p x then baltree::mhinsertk yes x, no else yes, baltree::mhinsertk no x;
-end;
-
-mpartition  p (Dict   d) = Dict yes, Dict no when
-    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x@(xk=>xv) = if p (xk=>[xv]) then baltree::insertk yes x, no else yes, baltree::insertk no x;
-end;
-mpartition  p (HDict  d) = HDict yes, HDict no when
-    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) x@(xk=>xv) = if p (xk=>[xv]) then baltree::hinsertk yes x, no else yes, baltree::hinsertk no x;
-end;
-mpartition  p (MDict  d) = MDict yes, MDict no when
-    yes, no = baltree::foldl dict::mvals add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs, no else yes, foldl (ins xk) no xvs;
-    ins xk d xv = baltree::minsertk d (xk=>xv);
-end;
-mpartition  p (HMDict d) = HMDict yes, HMDict no when
-    yes, no = baltree::mhfoldlk add (baltree::emptytree, baltree::emptytree) d;
-end with
-    add (yes, no) xs@(xk=>xvs) = if p xs then foldl (ins xk) yes xvs, no else yes, foldl (ins xk) no xvs;
-    ins xk d xv = baltree::mhinsertk d (xk=>xv);
-end;
-
+(Dict   d)!k = avl::getk   d k;
+(MDict  d)!k = avl::mgetk  d k;
+(HDict  d)!k = avl::hgetk  d k;
+(HMDict d)!k = avl::mhgetk d k;
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
   /* This case is optimized so that we only need a single traversal of the
      member lists which can be done in linear time. Also note that keys are
      compared for equality in the sense that two keys are equal if neither is
-     less than the other, whereas values are compared for (==?). */
+     less than the other, whereas values are compared for proper equality (==)
+     if it is defined, falling back to (===) otherwise. */
   cmp [] [] = 1;
   cmp (x:xs) [] = 0;
   cmp [] (x:xs) = 0;

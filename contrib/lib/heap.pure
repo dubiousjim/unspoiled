@@ -1,7 +1,6 @@
 /* Pure's priority queue data structure implemented as binary trees */
 
 /* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
-   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 
    This file is part of the Pure standard library.
 
@@ -111,7 +110,6 @@ type heap (Heap _);
    below. */
 
 public heapp emptyheap heap null members list first rmfirst insert;
-public pickfirst stream;
 
 namespace heap;
 
@@ -144,7 +142,7 @@ end;
 ::members h@(Heap _)		= [] if null h;
 				= accum [first h] (rmfirst h)
 with
-  accum ys h			= __std__::reverse_onto [] ys if null h;
+  accum ys h			= reverse ys if null h;
 				= accum ((first h):ys) (rmfirst h)
 end;
 
@@ -153,33 +151,13 @@ end;
 // get the first (smallest) member of a heap
 ::first (Heap (bin _ x _ _))	= x;
 
-private update;
-
 // remove the first (smallest) member of a heap
-::rmfirst (Heap h)		= Heap (rmfirst h) with
-    rmfirst (bin 0 _ nil nil)	= nil;
-    rmfirst (bin i _ h1  h2 )	= update i h1 h2;
-end if h ~== nil;
+::rmfirst (Heap h)		= Heap (rmfirst h)
+with
+  rmfirst (bin 0 _ nil nil)	= nil;
+  rmfirst (bin 0 _ h1  h2 )	= update (bin 1 (last h2) h1 (rmlast h2));
+  rmfirst (bin 1 _ h1  h2 )	= update (bin 0 (last h1) (rmlast h1) h2);
 
-// pick the first (smallest) member of a heap
-::pickfirst (Heap nil)          = ();
-::pickfirst (Heap h)		= tuple2 y (Heap h) when
-    y,h = rmfirst h;
-end with
-    rmfirst (bin 0 x nil nil)	= tuple2 x nil;
-    rmfirst (bin i x h1  h2 )	= tuple2 x (update i h1 h2);
-end;
-
-::stream (Heap nil)             = [];
-::stream (Heap h)               = rmfirst h with
-    rmfirst (bin 0 x nil nil)	= x:[]&;
-    rmfirst (bin i x h1  h2 )	= x:rmfirst (update i h1 h2)&;
-end;
-
-update i::int h1 h2 = case i of
-    0 = update (bin 1 (last h2) h1 (rmlast h2));
-    1 = update (bin 0 (last h1) (rmlast h1) h2);
-end with
   last (bin 0 x::int    nil nil) |
   last (bin 0 x::string nil nil) |
   last (bin 0 x         nil nil)
@@ -196,8 +174,8 @@ end with
   update (bin 1 x         (bin b1::int x1         h1 h2) nil)
 				= bin 1 x (bin b1 x1 h1 h2) nil
 				      if x <= x1;
-				= bin 1 x1 (update (bin b1 x h1 h2)) nil
-				      otherwise;
+				= bin 1 x1 (update (bin b1 x h1 h2))
+				  nil otherwise;
   update (bin b::int x::int    (bin b1::int x1::int    h1 h2)
 					(bin b2::int x2::int    h3 h4)) |
   update (bin b::int x::string (bin b1::int x1::string h1 h2)

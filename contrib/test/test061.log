@@ -166,7 +166,7 @@ let x = eval (fact __with__ get_fundef fact);
 map x (0..10);
 [1,1,2,6,24,120,720,5040,40320,362880,3628800]
 foldr __with__ get_fundef foldr;
-foldr __with__ [(foldr f a (x __type__ matrix)-->__C::matrix_foldr f a x),(foldr f a (s __type__ string)-->foldr f a (chars s)),(foldr f a []-->a),(foldr f a (xs __as__ (_:_))-->tick [] xs __with__ [(tick zs (x:xs)-->tack (x:zs) (tick [] xs&) __if__ thunkp xs),(tick zs (x:xs)-->tick (x:zs) xs),(tick zs []-->tack zs a),(tick zs xs-->tack zs (foldr f a xs)),(tack (x:xs) y-->tack xs (f x y)),(tack [] y-->y)])]
+foldr __with__ [(foldr f a (x __type__ matrix)-->__C::matrix_foldr f a x),(foldr f a (s __type__ string)-->foldr f a (chars s)),(foldr f a []-->a),(foldr f a (xs __as__ (_:_))-->tick [] xs __with__ [(tick zs (x:xs)-->tack (x:zs) (foldr f a xs&) __if__ thunkp xs),(tick zs (x:xs)-->tick (x:zs) xs),(tick zs []-->tack zs a),(tick zs xs-->tack zs (foldr f a xs)),(tack (x:xs) y-->tack xs (f x y)),(tack [] y-->y)])]
 {
   rule #0: x = eval (foldr __with__ get_fundef foldr)
   state 0: #0

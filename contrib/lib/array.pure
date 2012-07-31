@@ -3,7 +3,6 @@
    binary trees. */
 
 /* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
-   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 
    This file is part of the Pure standard library.
 
@@ -218,15 +217,13 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public pickfirst picklast reverse rotate map all any stream rev_stream;
-
 namespace array;
 
 /* Tree constructors. */
 private nonfix nil;
 private tip bin;
 
-private mkbin leftbin rightbin;
+private mkbin;
 
 // array type check
 ::arrayp x			= typep ::array x;
@@ -297,29 +294,6 @@ end;
 
 ::list x@(Array _)		= members x;
 
-// get all array members in stream form
-::stream (Array a)		= members a
-with
-  members nil			= [];
-  members (tip x)		= x:[]&;
-  members (bin _ a1 a2)		= merge (members a1) (members a2);
-  // merge lists xs (even elements) and ys (odd elements)
-  merge [] ys			= stream ys;
-  merge (x:xs) ys		= x:merge ys xs&;
-end;
-
-// get all array members in reverse stream form
-::rev_stream (Array a)		= members a
-with
-  members nil			= [];
-  members (tip x)		= x:[]&;
-  members (bin 0 a1 a2)		= merge (members a2) (members a1);
-  members (bin 1 a1 a2)		= merge (members a1) (members a2);
-  // merge lists xs (even elements) and ys (odd elements)
-  merge [] ys			= stream ys;
-  merge (x:xs) ys		= x:merge ys xs&;
-end;
-
 // get all members of an two-dimensional array in list form
 ::members2 x@(Array _)		= map members (members x);
 
@@ -354,26 +328,6 @@ with
   rmlast (tip _)		= nil;
   rmlast (bin 0 a1 a2)		= mkbin 1 a1 (rmlast a2);
   rmlast (bin 1 a1 a2)		= mkbin 0 (rmlast a1) a2;
-end;
-
-// pick the first member from an array
-::pickfirst (Array nil)         = ();
-::pickfirst (Array a)		= tuple2 y (Array a) when
-    y,a = pickfirst a;
-end with
-  pickfirst (tip y)		= tuple2 y nil;
-  pickfirst (bin 0 a1 a2)       = rightbin 1 a2 (pickfirst a1);
-  pickfirst (bin 1 a1 a2)       = rightbin 0 a2 (pickfirst a1);
-end;
-
-// pick the last member from an array
-::picklast (Array nil)          = ();
-::picklast (Array a)		= tuple2 y (Array a) when
-  y,a = picklast a;
-end with
-  picklast (tip y)		= tuple2 y nil;
-  picklast (bin 0 a1 a2)	= rightbin 1 a1 (picklast a2);
-  picklast (bin 1 a1 a2)	= leftbin 0 (picklast a1) a2;
 end;
 
 // insert a new member at the beginning of an array
@@ -439,78 +393,9 @@ with
 				= b1 ~= b2 || neq a1 a3 || neq a2 a4;
 end;
 
-// efficient reverse
-::reverse (Array a) = Array (tick a) with
-    tick nil = nil;
-    tick t@(tip _) = t;
-    tick (bin 0 a1 a2) = bin 0 (tick a2) (tick a1);
-    tick (bin 1 a1 a2) = bin 1 (tick a1) (tick a2);
-end;
-
-// efficient rotate
-// to remove an element at an arbitrary index i, you can:
-// `rotate i (rmfirst (rotate (-i) a));`
-::rotate _::int x@(Array nil) = x;
-
-::rotate n::int (Array a) = tick (opt n (#a)) a with
-  // optimize the number and direction of rotation
-  opt i m = ((i+h) mod m) - h when j = m >> 1; h   = if i >= 0 then j else -j; end;
-  tick n::int a = tick (n-1) (insert a y) when y,a = picklast a; end if n > 0;
-  tick n::int a = tick (n+1) (append a y) when y,a = pickfirst a; end if n < 0;
-  tick 0 a      = Array a;
-  picklast (tip y)		= tuple2 y nil;
-  picklast (bin 0 a1 a2)	= rightbin 1 a1 (picklast a2);
-  picklast (bin 1 a1 a2)	= leftbin 0 (picklast a1) a2;
-  insert nil y			= tip y;
-  insert (tip x) y		= bin 0 (tip y) (tip x);
-  insert (bin 0 a1 a2) y	= mkbin 1 (insert a2 y) a1;
-  insert (bin 1 a1 a2) y	= mkbin 0 (insert a2 y) a1;
-  pickfirst (tip y)		= tuple2 y nil;
-  pickfirst (bin 0 a1 a2)       = rightbin 1 a2 (pickfirst a1);
-  pickfirst (bin 1 a1 a2)       = rightbin 0 a2 (pickfirst a1);
-  append nil y			= tip y;
-  append (tip x) y		= bin 0 (tip x) (tip y);
-  append (bin 0 a1 a2) y	= mkbin 1 (append a1 y) a2;
-  append (bin 1 a1 a2) y	= mkbin 0 a1 (append a2 y);
-  #nil				= 0;
-  #(tip _)			= 1;
-  #(bin 0 a1 _)			= #a1 * 2;
-  #(bin 1 a1 _)			= #a1 * 2 - 1;
-end;
-
-::map f x@(Array nil) = x;
-::map f (Array a) = Array (tick a) with
-  tick nil           = nil;
-  tick (tip y)       = tip (f y);
-  tick (bin b a1 a2) = bin b (tick a1) (tick a2);
-end;
-
-::all p (Array a) = tick a 1 with
-    tick _ 0 = 0;
-    tick nil a = a;
-    tick (tip y) a = a && p y;
-    tick (bin _ a1 a2) a = tick a2 (tick a1 a);
-end;
-
-::any p (Array a) = tick a with
-    tick nil = 0;
-    tick (tip y) = p y;
-    tick (bin _ a1 a2) = tick a1 || tick a2;
-end;
-
 /* Private functions. */
 
 // construct a binary array node
 mkbin _ nil a2			= a2;
 mkbin _ a1 nil			= a1;
 mkbin b::int a1 a2		= bin b a1 a2;
-
-// leftbin _ () _                  = ();
-leftbin _ (y,nil) a2		= tuple2 y a2;
-leftbin _ ya1 nil	        = ya1;
-leftbin b::int (y,a1) a2	= tuple2 y (bin b a1 a2);
-
-// rightbin _ _ ()                 = ();
-rightbin _ a1 (y,nil)           = tuple2 y a1;
-rightbin _ nil ya2              = ya2;
-rightbin b::int a1 (y,a2)       = tuple2 y (bin b a1 a2);

@@ -2,7 +2,6 @@
 /* Basic string functions. */
 
 /* Copyright (c) 2008-2012 by Albert Graef <Dr.Graef@t-online.de>.
-   Copyright (c) 2012 by Dubiousjim <dubiousjim@gmail.com>.
 
    This file is part of the Pure standard library.
 
@@ -551,15 +550,7 @@ s::string+xs@(_:_)	= chars s+xs;
 xs@(_:_)+s::string	= xs+chars s;
 
 reverse s::string	= strcat (reverse (chars s));
-reverse_onto b::string s::string = strcat (reverse_onto [b] (chars s));
-reverse_onto b::string s = reverse_onto (chars b) s;
-reverse_onto b s::string
-                = strcat (reverse_onto [b] (chars s)) if stringp b when b = string_concat_list b end;
-                = reverse_onto b (chars s) otherwise;
 catmap f s::string	= catmap f (chars s);
-catmap_onto f b::string s::string = catmap_onto f (chars b) (chars s);
-catmap_onto f b         s::string = catmap_onto f b         (chars s);
-catmap_onto f b::string s         = catmap_onto f (chars b) s;
 rowcatmap f s::string	= rowcatmap f (chars s);
 colcatmap f s::string	= colcatmap f (chars s);
 listmap f s::string	= map f (chars s);
@@ -572,139 +563,31 @@ cyclen n::int s::string	= cyclen n (chars s) if ~null s;
 all p s::string		= all p (chars s);
 any p s::string		= any p (chars s);
 do f s::string		= do f (chars s);
-// #s-n is the exact size, but can't we let C figure that out?
-drop n::int s::string	= substr s n (2147483647);
+drop n::int s::string	= substr s n (#s-n);
 dropwhile p s::string	= strcat (dropwhile p (chars s));
 filter p s::string	= strcat (filter p (chars s));
-firstby p none s::string = firstby p none (chars s);
-// Is this plain ugly, or ugly in a lovely way?
-foldl  f a s::string	                 = foldl  f a (chars s);
-foldl1 f   s::string	                 = foldl1 f   (chars s);
-foldl2 f a s::string t::string           = foldl2 f a (chars s) (chars t);
-foldl2 f a s         t::string           = foldl2 f a s         (chars t);
-foldl2 f a s::string t                   = foldl2 f a (chars s) t;
-foldl3 f a s::string t::string u::string = foldl3 f a (chars s) (chars t) (chars u);
-foldl3 f a s::string t::string u         = foldl3 f a (chars s) (chars t) u;
-foldl3 f a s::string t         u::string = foldl3 f a (chars s) t         (chars u);
-foldl3 f a s::string t         u         = foldl3 f a (chars s) t         u;
-foldl3 f a s         t::string u::string = foldl3 f a s         (chars t) (chars u);
-foldl3 f a s         t::string u         = foldl3 f a s         (chars t) u;
-foldl3 f a s         t         u::string = foldl3 f a s         t         (chars u);
-foldr  f a s::string	                 = foldr  f a (chars s);
-foldr1 f   s::string	                 = foldr1 f   (chars s);
-foldr2 f a s::string t::string           = foldr2 f a (chars s) (chars t);
-foldr2 f a s         t::string           = foldr2 f a s         (chars t);
-foldr2 f a s::string t                   = foldr2 f a (chars s) t;
-foldr3 f a s::string t::string u::string = foldr3 f a (chars s) (chars t) (chars u);
-foldr3 f a s::string t::string u         = foldr3 f a (chars s) (chars t) u;
-foldr3 f a s::string t         u::string = foldr3 f a (chars s) t         (chars u);
-foldr3 f a s::string t         u         = foldr3 f a (chars s) t         u;
-foldr3 f a s         t::string u::string = foldr3 f a s         (chars t) (chars u);
-foldr3 f a s         t::string u         = foldr3 f a s         (chars t) u;
-foldr3 f a s         t         u::string = foldr3 f a s         t         (chars u);
+foldl f a s::string	= foldl f a (chars s);
+foldl1 f s::string	= foldl1 f (chars s);
+foldr f a s::string	= foldr f a (chars s);
+foldr1 f s::string	= foldr1 f (chars s);
 head s::string		= s!0 if ~null s;
 init s::string		= substr s 0 (#s-1) if ~null s;
 last s::string		= s!(#s-1) if ~null s;
-lastby p none s::string = lastby p none (chars s);
 map f s::string		= map f (chars s);
-map_onto f b::string s::string = map_onto f (chars b) (chars s);
-map_onto f b s::string = map_onto f b (chars s);
-map_onto f b::string s = map_onto f (chars b) s;
-partition p s::string	= strcat yes, strcat no when
-    yes, no = partition p (chars s);
-end;
-pickfirstby p s::string = case pickfirstby p (chars s) of
-    () = ();
-    c,cs = c, strcat cs;
-end;
-picklastby p s::string = case picklastby p (chars s) of
-    () = ();
-    c,cs = c, strcat cs;
-end;
-revmap f s::string	= revmap f (chars s);
-revmap_onto f b::string s::string = revmap_onto f (chars b) (chars s);
-revmap_onto f b s::string = revmap_onto f b (chars s);
-revmap_onto f b::string s = revmap_onto f (chars b) s;
-rmfirstby p s::string   = strcat (rmfirstby p (chars s));
-rmlastby p s::string    = strcat (rmfirstby p (chars s));
-rotate n::int s::string = strcat (rotate n (chars s));
 scanl f a s::string	= scanl f a (chars s);
 scanl1 f s::string	= scanl1 f (chars s);
 scanr f a s::string	= scanr f a (chars s);
 scanr1 f s::string	= scanr1 f (chars s);
-span p s::string        = strcat pre, strcat post when
-    pre,post = span p (chars s);
-end;
-// #s-n is the exact size, but can't we let C figure that out?
-split n::int s::string  = substr s 0 n, substr s n (2147483647);
 take n::int s::string	= substr s 0 n;
 takewhile p s::string	= strcat (takewhile p (chars s));
 tail s::string		= substr s 1 (#s-1) if ~null s;
-// And how lovely is this?
-zip                       s::string t::string           = zip (chars s) (chars t);
-zip                       s         t::string           = zip s         (chars t);
-zip                       s::string t                   = zip (chars s) t;
-zip_onto b::string        s::string t::string           = zip_onto (chars b) (chars s) (chars t);
-zip_onto b::string        s::string t                   = zip_onto (chars b) (chars s) t;
-zip_onto b::string        s         t::string           = zip_onto (chars b) s         (chars t);
-zip_onto b::string        s         t                   = zip_onto (chars b) s         t;
-zip_onto b                s::string t::string           = zip_onto b         (chars s) (chars t);
-zip_onto b                s::string t                   = zip_onto b         (chars s) t;
-zip_onto b                s         t::string           = zip_onto b         s         (chars t);
-zip3                      s::string t::string u::string = zip3 (chars s) (chars t) (chars u);
-zip3                      s::string t::string u         = zip3 (chars s) (chars t) u;
-zip3                      s::string t         u::string = zip3 (chars s) t         (chars u);
-zip3                      s::string t         u         = zip3 (chars s) t         u;
-zip3                      s         t::string u::string = zip3 s         (chars t) (chars u);
-zip3                      s         t::string u         = zip3 s         (chars t) u;
-zip3                      s         t         u::string = zip3 s         t         (chars u);
-zip3_onto b::string       s::string t::string u::string = zip3_onto (chars b) (chars s) (chars t) (chars u);
-zip3_onto b::string       s::string t::string u         = zip3_onto (chars b) (chars s) (chars t) u;
-zip3_onto b::string       s::string t         u::string = zip3_onto (chars b) (chars s) t         (chars u);
-zip3_onto b::string       s::string t         u         = zip3_onto (chars b) (chars s) t         u;
-zip3_onto b::string       s         t::string u::string = zip3_onto (chars b) s         (chars t) (chars u);
-zip3_onto b::string       s         t::string u         = zip3_onto (chars b) s         (chars t) u;
-zip3_onto b::string       s         t         u::string = zip3_onto (chars b) s         t         (chars u);
-zip3_onto b::string       s         t         u         = zip3_onto (chars b) s         t         u;
-zip3_onto b               s::string t::string u::string = zip3_onto b         (chars s) (chars t) (chars u);
-zip3_onto b               s::string t::string u         = zip3_onto b         (chars s) (chars t) u;
-zip3_onto b               s::string t         u::string = zip3_onto b         (chars s) t         (chars u);
-zip3_onto b               s::string t         u         = zip3_onto b         (chars s) t         u;
-zip3_onto b               s         t::string u::string = zip3_onto b         s         (chars t) (chars u);
-zip3_onto b               s         t::string u         = zip3_onto b         s         (chars t) u;
-zip3_onto b               s         t         u::string = zip3_onto b         s         t         (chars u);
-zipwith f                 s::string t::string           = zipwith f (chars s) (chars t);
-zipwith f                 s         t::string           = zipwith f s         (chars t);
-zipwith f                 s::string t                   = zipwith f (chars s) t;
-zipwith_onto f b::string  s::string t::string           = zipwith_onto f (chars b) (chars s) (chars t);
-zipwith_onto f b::string  s::string t                   = zipwith_onto f (chars b) (chars s) t;
-zipwith_onto f b::string  s         t::string           = zipwith_onto f (chars b) s         (chars t);
-zipwith_onto f b::string  s         t                   = zipwith_onto f (chars b) s         t;
-zipwith_onto f b          s::string t::string           = zipwith_onto f b         (chars s) (chars t);
-zipwith_onto f b          s::string t                   = zipwith_onto f b         (chars s) t;
-zipwith_onto f b          s         t::string           = zipwith_onto f b         s         (chars t);
-zipwith3 f                s::string t::string u::string = zipwith3 f (chars s) (chars t) (chars u);
-zipwith3 f                s::string t::string u         = zipwith3 f (chars s) (chars t) u;
-zipwith3 f                s::string t         u::string = zipwith3 f (chars s) t         (chars u);
-zipwith3 f                s::string t         u         = zipwith3 f (chars s) t         u;
-zipwith3 f                s         t::string u::string = zipwith3 f s         (chars t) (chars u);
-zipwith3 f                s         t::string u         = zipwith3 f s         (chars t) u;
-zipwith3 f                s         t         u::string = zipwith3 f s         t         (chars u);
-zipwith3_onto f b::string s::string t::string u::string = zipwith3_onto f (chars b) (chars s) (chars t) (chars u);
-zipwith3_onto f b::string s::string t::string u         = zipwith3_onto f (chars b) (chars s) (chars t) u;
-zipwith3_onto f b::string s::string t         u::string = zipwith3_onto f (chars b) (chars s) t         (chars u);
-zipwith3_onto f b::string s::string t         u         = zipwith3_onto f (chars b) (chars s) t         u;
-zipwith3_onto f b::string s         t::string u::string = zipwith3_onto f (chars b) s         (chars t) (chars u);
-zipwith3_onto f b::string s         t::string u         = zipwith3_onto f (chars b) s         (chars t) u;
-zipwith3_onto f b::string s         t         u::string = zipwith3_onto f (chars b) s         t         (chars u);
-zipwith3_onto f b::string s         t         u         = zipwith3_onto f (chars b) s         t         u;
-zipwith3_onto f b         s::string t::string u::string = zipwith3_onto f b         (chars s) (chars t) (chars u);
-zipwith3_onto f b         s::string t::string u         = zipwith3_onto f b         (chars s) (chars t) u;
-zipwith3_onto f b         s::string t         u::string = zipwith3_onto f b         (chars s) t         (chars u);
-zipwith3_onto f b         s::string t         u         = zipwith3_onto f b         (chars s) t         u;
-zipwith3_onto f b         s         t::string u::string = zipwith3_onto f b         s         (chars t) (chars u);
-zipwith3_onto f b         s         t::string u         = zipwith3_onto f b         s         (chars t) u;
-zipwith3_onto f b         s         t         u::string = zipwith3_onto f b         s         t         (chars u);
+zip s::string t::string	= zip (chars s) (chars t);
+zip3 s::string t::string u::string
+			= zip3 (chars s) (chars t) (chars u);
+zipwith f s::string t::string
+			= zipwith f (chars s) (chars t);
+zipwith3 f s::string t::string u::string
+			= zipwith3 f (chars s) (chars t) (chars u);
 dowith f s::string t::string
 			= dowith f (chars s) (chars t);
 dowith3 f s::string t::string u::string
