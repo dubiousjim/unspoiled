@@ -552,24 +552,51 @@ end with
 end;
 
 // comparisons
-m1@(Set _)  == m2@(Set _)  |
-m1@(Bag _)  == m2@(Bag _)  = cmp (members m1) (members m2) with
-  // Optimize this case so that it only requires a single traversal.
+public infix (<) <;
+public infix (<=) <=;
+public infix (==) ==;
+namespace set;
+private nonfix fail;
+private count mcount;
+
+count m2 m1 = catch handler (foldl f (#m2) m1) with
+    f n2::int x = if member m2 x then n2-1 else throw fail;
+    handler fail = -1;
+    handler e = throw e;
+end;
+
+mcount op m2 m1 = catch handler (mfoldl f (#m2) m1) with
+    f n2::int xs@(x:_) = if op nx (multiplicity m2 x) then n2-nx else throw fail
+                         when nx = #xs end;
+    handler fail = -1;
+    handler e = throw e;
+end;
+
+// m1 == m2 = m1 <= m2 && m2 <= m1
+m1@(Set  _) ::== m2@(Set  _) |
+m1@(Set  _) ::== m2@(Bag  _) |
+m1@(Bag  _) ::== m2@(Set  _) |
+m1@(Bag  _) ::== m2@(Bag  _) = cmp (members m1) (members m2) with
   cmp [] [] = 1;
   cmp (x:xs) [] = 0;
   cmp [] (x:xs) = 0;
   cmp (x:xs) (y:ys) = ~(x<y || y<x) && cmp xs ys;
 end;
-m1@(HSet _) == m2@(HSet _) |
-m1@(HBag _) == m2@(HBag _) = m1 <= m2 && m2 <= m1;
+m2@(HSet _) ::== m1@(Set  _) |
+m2@(HBag _) ::== m1@(Set  _) |
+m2@(HBag _) ::== m1@(HSet _) |
+m1@(Set  _) ::== m2@(HSet _) |
+m1@(Set  _) ::== m2@(HBag _) |
+m1@(HSet _) ::== m2@(HBag _) |
+m1@(HSet _) ::== m2@(HSet _) = 0 == count m2 m1;
+m2@(HSet _) ::== m1@(Bag  _) |
+m2@(HBag _) ::== m1@(Bag  _) |
+m1@(Bag  _) ::== m2@(HSet _) |
+m1@(Bag  _) ::== m2@(HBag _) |
+m1@(HBag _) ::== m2@(HBag _) = 0 == mcount (==) m2 m1;
 
-m1@(Set _)  ~= m2@(Set _)  |
-m1@(Bag _)  ~= m2@(Bag _)  |
-m1@(HSet _) ~= m2@(HSet _) |
-m1@(HBag _) ~= m2@(HBag _) = ~(m1 == m2);
-
-m1@(Set _)  <= m2@(Set _)  = cmp (members m1) (members m2) with
-  // Optimize this case so that it works in linear time.
+// m1 <= m2 = null (m1 - m2)
+m1@(Set _)  ::<= m2@(Set _)  = cmp (members m1) (members m2) with
   cmp [] [] = 1;
   cmp (x:xs) [] = 0;
   cmp [] (x:xs) = 1;
@@ -578,179 +605,149 @@ m1@(Set _)  <= m2@(Set _)  = cmp (members m1) (members m2) with
   = cmp xs1 ys if y<x;
   = cmp xs ys;
 end;
-m1@(HSet _) <= m2@(HSet _) = all (member m2) (members m1);
-m1@(Bag _)  <= m2@(Bag _)  |
-m1@(HBag _) <= m2@(HBag _) = null (m1 - m2);
+m1@(Set  _) ::<= m2@(HSet _) |
+m1@(Set  _) ::<= m2@(Bag  _) |
+m1@(Set  _) ::<= m2@(HBag _) |
+m1@(HSet _) ::<= m2@(HSet _) |
+m1@(HSet _) ::<= m2@(HBag _) = all (member m2) m1;
+m1@(HSet _) ::<= m2@(Set  _) |
+m1@(HSet _) ::<= m2@(Bag  _) = all (member (hbag m2)) m1;
+m1@(HBag _) ::<= m2@(Set  _) |
+m1@(HBag _) ::<= m2@(Bag  _) = 0 <= mcount (<=) (hbag m2) m1;
+m1@(Bag  _) ::<= m2@(Set  _) |
+m1@(Bag  _) ::<= m2@(HSet _) |
+m1@(Bag  _) ::<= m2@(Bag  _) |
+m1@(Bag  _) ::<= m2@(HBag _) |
+m1@(HBag _) ::<= m2@(HSet _) |
+m1@(HBag _) ::<= m2@(HBag _) = 0 <= mcount (<=) m2 m1;
 
-m1@(Set _)  >= m2@(Set _)  = m2 <= m1;
-m1@(HSet _) >= m2@(HSet _) = all (member m1) (members m2);
-m1@(Bag _)  >= m2@(Bag _)  |
-m1@(HBag _) >= m2@(HBag _) = null (m2 - m1);
+// m1 < m2 = m1 <= m2 && ~(m2 <= m1)
+m1@(Set _)  ::< m2@(Set _)  = cmp 0 (members m1) (members m2) with
+  cmp smaller [] [] = smaller;
+  cmp _ (x:xs) [] = 0;
+  cmp _ [] (x:xs) = 1;
+  cmp smaller xs1@(x:xs) (y:ys)
+  = 0 if x<y;
+  = cmp 1 xs1 ys if y<x;
+  = cmp smaller xs ys;
+end;
+m1@(Set  _) ::<  m2@(HSet _) |
+m1@(Set  _) ::<  m2@(Bag  _) |
+m1@(Set  _) ::<  m2@(HBag _) |
+m1@(HSet _) ::<  m2@(HSet _) |
+m1@(HSet _) ::<  m2@(HBag _) = 0 < count m2 m1;
+m1@(HSet _) ::<  m2@(Set  _) |
+m1@(HSet _) ::<  m2@(Bag  _) = 0 < count (hbag m2) m1;
+m1@(HBag _) ::<  m2@(Set  _) |
+m1@(HBag _) ::<  m2@(Bag  _) = 0 < mcount (<=) (hbag m2) m1;
+m1@(Bag  _) ::<  m2@(Set  _) |
+m1@(Bag  _) ::<  m2@(HSet _) |
+m1@(Bag  _) ::<  m2@(Bag  _) |
+m1@(Bag  _) ::<  m2@(HBag _) |
+m1@(HBag _) ::<  m2@(HSet _) |
+m1@(HBag _) ::<  m2@(HBag _) = 0 < mcount (<=) m2 m1;
 
-m1@(Set _)  <  m2@(Set _)  |
-m1@(Bag _)  <  m2@(Bag _)  |
-m1@(HSet _) <  m2@(HSet _) |
-m1@(HBag _) <  m2@(HBag _) = m1 <= m2 && ~(m1 >= m2);
-
-m1@(Set _)  >  m2@(Set _)  |
-m1@(Bag _)  >  m2@(Bag _)  |
-m1@(HSet _) >  m2@(HSet _) |
-m1@(HBag _) >  m2@(HBag _) = m1 >= m2 && ~(m1 <= m2);
+namespace;
+m1::xset ~= m2::xset = ~(m1 == m2);
+m1::xset >= m2::xset = m2 <= m1;
+m1::xset >  m2::xset = m2 < m1;
 
 // set sum
-m1@(Set _)  + m2@(Set _)   |
+m2@(HSet _) +  m1@(Bag  _) |
+m1@(Bag  _) +  m2@(HSet _) = foldl insert (hbag m1) m2;
+m2@(Set  _) +  m1@(Set  _) |
+m2@(Set  _) +  m1@(HSet _) |
+m2@(Set  _) +  m1@(Bag  _) |
+m2@(Set  _) +  m1@(HBag _) |
+m2@(HSet _) +  m1@(HBag _) |
+m2@(Bag  _) +  m1@(HBag _) |
+m2@(HBag _) +  m1@(HBag _) |
+m1@(HSet _) +  m2@(Set  _) |
+m1@(HSet _) +  m2@(HSet _) |
+m1@(Bag  _) +  m2@(Set  _) |
 m1@(Bag _)  + m2@(Bag _)   |
-m1@(HSet _) + m2@(HSet _)  |
-m1@(HBag _) + m2@(HBag _)  = foldl insert m1 (members m2);
+m1@(HBag _) +  m2@(Set  _) |
+m1@(HBag _) +  m2@(HSet _) |
+m1@(HBag _) +  m2@(Bag  _) = foldl insert m1 m2;
 
 // set union
+union m2@(Set  _) m1@(HSet _) |
 union m1@(Set  _) m2@(Set  _) |
+union m1@(HSet _) m2@(Set  _) |
 union m1@(HSet _) m2@(HSet _) = foldl insert m1 m2;
+
+union m2@(HSet _) m1@(Bag  _) |
+union m1@(Bag  _) m2@(HSet _) = foldl ins (hbag m1) m2 with
+    ins m1 x = if member m1 x then m1 else insert m1 x;
+end;
+union m2@(Set  _) m1@(Bag  _) |
+union m2@(Set  _) m1@(HBag _) |
+union m2@(HSet _) m1@(HBag _) |
+union m1@(Bag  _) m2@(Set  _) |
+union m1@(HBag _) m2@(Set  _) |
+union m1@(HBag _) m2@(HSet _) = foldl ins m1 m2 with
+    ins m1 x = if member m1 x then m1 else insert m1 x;
+end;
+union m2@(Bag  _) m1@(HBag _) |
 union m1@(Bag  _) m2@(Bag  _) |
+union m1@(HBag _) m2@(Bag  _) |
 union m1@(HBag _) m2@(HBag _) = mfoldl ins m1 m2 with
     ins m xs@(x:_) = foldl insert m (drop (multiplicity m1 x) xs);
 end;
 
 // set difference
+// there may be more efficient ways to do `_ - (Bag _)` and `_ - (HBag _)`
+// but it's unclear whether the overhead of doing a mfoldl beats the
+// inefficiencies of the naive method used here
+m1@(Set  _) -  m2@(HSet _) |
+m1@(Set  _) -  m2@(HBag _) = foldl delete (hset m1) m2;
+m1@(Bag  _) -  m2@(HSet _) |
+m1@(Bag  _) -  m2@(HBag _) = foldl delete (hbag m1) m2;
 m1@(Set _)  - m2@(Set _)   |
+m1@(Set  _) -  m2@(Bag  _) |
+m1@(HSet _) -  m2@(Set  _) |
+m1@(HSet _) -  m2@(HSet _) |
+m1@(HSet _) -  m2@(Bag  _) |
+m1@(HSet _) -  m2@(HBag _) |
+m1@(Bag  _) -  m2@(Set  _) |
 m1@(Bag _)  - m2@(Bag _)   |
-m1@(HSet _) - m2@(HSet _)  |
-m1@(HBag _) - m2@(HBag _)  = foldl delete m1 (members m2);
+m1@(HBag _) -  m2@(Set  _) |
+m1@(HBag _) -  m2@(HSet _) |
+m1@(HBag _) -  m2@(Bag  _) |
+m1@(HBag _) -  m2@(HBag _) = foldl delete m1 m2;
 
 // set intersection
-m1@(Set _)  * m2@(Set _)   |
-m1@(Bag _)  * m2@(Bag _)   |
-m1@(HSet _) * m2@(HSet _)  |
-m1@(HBag _) * m2@(HBag _)  = m1 - (m1 - m2);
-
-// automatic coercion rules
-
-m1@(HBag _) == m2 = m1 == hbag m2 if xsetp m2;
-m1 == m2@(HBag _) = hbag m1 == m2 if xsetp m1;
-m1@(HSet _) == m2 = case m2 of
-		      _@(Bag _) = hbag m1 == hbag m2;
-		      _@(Set _) = m1 == hset m2;
-		    end if xsetp m2;
-m1 == m2@(HSet _) = case m1 of
-		      _@(Bag _) = hbag m1 == hbag m2;
-		      _@(Set _) = hset m1 == m2;
-		    end if xsetp m1;
-m1@(Bag _) == m2@(Set _) = m1 == bag m2;
-m1@(Set _) == m2@(Bag _) = bag m1 == m2;
-
-m1@(HBag _) ~= m2 = m1 ~= hbag m2 if xsetp m2;
-m1 ~= m2@(HBag _) = hbag m1 ~= m2 if xsetp m1;
-m1@(HSet _) ~= m2 = case m2 of
-		      _@(Bag _) = hbag m1 ~= hbag m2;
-		      _@(Set _) = m1 ~= hset m2;
-		    end if xsetp m2;
-m1 ~= m2@(HSet _) = case m1 of
-		      _@(Bag _) = hbag m1 ~= hbag m2;
-		      _@(Set _) = hset m1 ~= m2;
-		    end if xsetp m1;
-m1@(Bag _) ~= m2@(Set _) = m1 ~= bag m2;
-m1@(Set _) ~= m2@(Bag _) = bag m1 ~= m2;
-
-m1@(HBag _) <= m2 = m1 <= hbag m2 if xsetp m2;
-m1 <= m2@(HBag _) = hbag m1 <= m2 if xsetp m1;
-m1@(HSet _) <= m2 = case m2 of
-		      _@(Bag _) = hbag m1 <= hbag m2;
-		      _@(Set _) = m1 <= hset m2;
-		    end if xsetp m2;
-m1 <= m2@(HSet _) = case m1 of
-		      _@(Bag _) = hbag m1 <= hbag m2;
-		      _@(Set _) = hset m1 <= m2;
-		    end if xsetp m1;
-m1@(Bag _) <= m2@(Set _) = m1 <= bag m2;
-m1@(Set _) <= m2@(Bag _) = bag m1 <= m2;
-
-m1@(HBag _) >= m2 = m1 >= hbag m2 if xsetp m2;
-m1 >= m2@(HBag _) = hbag m1 >= m2 if xsetp m1;
-m1@(HSet _) >= m2 = case m2 of
-		      _@(Bag _) = hbag m1 >= hbag m2;
-		      _@(Set _) = m1 >= hset m2;
-		    end if xsetp m2;
-m1 >= m2@(HSet _) = case m1 of
-		      _@(Bag _) = hbag m1 >= hbag m2;
-		      _@(Set _) = hset m1 >= m2;
-		    end if xsetp m1;
-m1@(Bag _) >= m2@(Set _) = m1 >= bag m2;
-m1@(Set _) >= m2@(Bag _) = bag m1 >= m2;
-
-m1@(HBag _) < m2 = m1 < hbag m2 if xsetp m2;
-m1 < m2@(HBag _) = hbag m1 < m2 if xsetp m1;
-m1@(HSet _) < m2 = case m2 of
-		     _@(Bag _) = hbag m1 < hbag m2;
-		     _@(Set _) = m1 < hset m2;
-		   end if xsetp m2;
-m1 < m2@(HSet _) = case m1 of
-		     _@(Bag _) = hbag m1 < hbag m2;
-		     _@(Set _) = hset m1 < m2;
-		   end if xsetp m1;
-m1@(Bag _) < m2@(Set _) = m1 < bag m2;
-m1@(Set _) < m2@(Bag _) = bag m1 < m2;
-
-m1@(HBag _) > m2 = m1 > hbag m2 if xsetp m2;
-m1 > m2@(HBag _) = hbag m1 > m2 if xsetp m1;
-m1@(HSet _) > m2 = case m2 of
-		     _@(Bag _) = hbag m1 > hbag m2;
-		     _@(Set _) = m1 > hset m2;
-		   end if xsetp m2;
-m1 > m2@(HSet _) = case m1 of
-		     _@(Bag _) = hbag m1 > hbag m2;
-		     _@(Set _) = hset m1 > m2;
-		   end if xsetp m1;
-m1@(Bag _) > m2@(Set _) = m1 > bag m2;
-m1@(Set _) > m2@(Bag _) = bag m1 > m2;
-
-m1@(HBag _) + m2 = m1 + hbag m2 if xsetp m2;
-m1 + m2@(HBag _) = hbag m1 + m2 if xsetp m1;
-m1@(HSet _) + m2 = case m2 of
-		     _@(Bag _) = hbag m1 + hbag m2;
-		     _@(Set _) = m1 + hset m2;
-		   end if xsetp m2;
-m1 + m2@(HSet _) = case m1 of
-		     _@(Bag _) = hbag m1 + hbag m2;
-		     _@(Set _) = hset m1 + m2;
-		   end if xsetp m1;
-m1@(Bag _) + m2@(Set _) = m1 + bag m2;
-m1@(Set _) + m2@(Bag _) = bag m1 + m2;
-
-union m1@(HBag _) m2 = union m1 (hbag m2) if xsetp m2;
-union m1 m2@(HBag _) = union (hbag m1) m2 if xsetp m1;
-union m1@(HSet _) m2 = case m2 of
-                         _@(Bag _) = union (hbag m1) (hbag m2);
-                         _@(Set _) = union m1 (hset m2);
-                       end if xsetp m2;
-union m1 m2@(HSet _)m2 = case m1 of
-                         _@(Bag _) = union (hbag m1) (hbag m2);
-                         _@union(Set _) = union (hset m1) m2;
-                       end if xsetp m1;
-union m1@(Bag _) m2@(Set _) = union m1 (bag m2);
-union m1@(Set _) m2@(Bag _) = union (bag m1) m2;
-
-m1@(HBag _) - m2 = m1 - hbag m2 if xsetp m2;
-m1 - m2@(HBag _) = hbag m1 - m2 if xsetp m1;
-m1@(HSet _) - m2 = case m2 of
-		     _@(Bag _) = hbag m1 - hbag m2;
-		     _@(Set _) = m1 - hset m2;
-		   end if xsetp m2;
-m1 - m2@(HSet _) = case m1 of
-		     _@(Bag _) = hbag m1 - hbag m2;
-		     _@(Set _) = hset m1 - m2;
-		   end if xsetp m1;
-m1@(Bag _) - m2@(Set _) = m1 - bag m2;
-m1@(Set _) - m2@(Bag _) = bag m1 - m2;
-
-m1@(HBag _) * m2 = m1 * hbag m2 if xsetp m2;
-m1 * m2@(HBag _) = hbag m1 * m2 if xsetp m1;
-m1@(HSet _) * m2 = case m2 of
-		     _@(Bag _) = hbag m1 * hbag m2;
-		     _@(Set _) = m1 * hset m2;
-		   end if xsetp m2;
-m1 * m2@(HSet _) = case m1 of
-		     _@(Bag _) = hbag m1 * hbag m2;
-		     _@(Set _) = hset m1 * m2;
-		   end if xsetp m1;
-m1@(Bag _) * m2@(Set _) = m1 * bag m2;
-m1@(Set _) * m2@(Bag _) = bag m1 * m2;
+// m1 * m2 = m1 - (m1 - m2)
+m1@(Set _)  * m2@(Set _)  = cmp emptyset (members m1) (members m2) with
+  cmp m _  [] |
+  cmp m [] _  = m;
+  cmp m xx@(x:xs) yy@(y:ys)
+    = cmp m xx ys if y<x;
+    = cmp m xs yy if x<y;
+    = cmp (insert m x) xs ys;
+end;
+m2@(Set  _) * m1@(HSet _) |
+m1@(HSet _) * m2@(Set  _) |
+m1@(HSet _) * m2@(HSet _) = foldl ins emptyhset m2 with
+    ins m x = if member m1 x then insert m x else m;
+end;
+m2@(Set  _) * m1@(Bag  _) |
+m1@(Bag  _) * m2@(Set  _) = foldl ins emptybag m2 with
+    ins m x = if member m1 x then insert m x else m;
+end;
+m2@(Set  _) * m1@(HBag _) |
+m2@(HSet _) * m1@(HBag _) |
+m1@(HBag _) * m2@(Set  _) |
+m1@(HBag _) * m2@(HSet _) = foldl ins emptyhbag m2 with
+    ins m x = if member m1 x then insert m x else m;
+end;
+m1@(Bag  _) * m2@(Bag  _) = mfoldl ins emptybag m2 with
+    ins m xs@(x:_) = foldl insert m (drop (#xs-multiplicity m1 x) xs);
+end;
+m2@(Bag  _) * m1@(HSet _) |
+m2@(Bag  _) * m1@(HBag _) |
+m1@(HSet _) * m2@(Bag  _) |
+m1@(HBag _) * m2@(Bag  _) |
+m1@(HBag _) * m2@(HBag _) = mfoldl ins emptyhbag m2 with
+    ins m xs@(x:_) = foldl insert m (drop (#xs-multiplicity m1 x) xs);
+end;
