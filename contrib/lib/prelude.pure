@@ -184,6 +184,13 @@ slice x y = x!!y;
 #!   --disable list-opt
 #! --endif
 
+// We default to using avltrees rather than trees23.
+
+#! --ifndef trees23
+#!   --disable trees23
+#! --endif
+
+
 /* Pull in the primitives (arithmetic etc.) and the standard string,
    matrix and record functions. The list functions are pulled in later. Note
    that the math, pointers and system modules are *not* included here, so you

@@ -33,7 +33,11 @@
    to arbitrary combinations of ordered/hashed and single-/multi-valued keys
    was done by Albert Graef. Dubiousjim added more get and delete methods. */
 
+#! --ifnot trees23
+namespace baltree;
+#! --else
 namespace avl;
+#! --endif
 
 /* Tree constructors: ``nil`` denotes an empty tree, ``bin x balance left right``
    an interior node with the given balance factor and left and right subtrees.

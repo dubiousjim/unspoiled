@@ -84,7 +84,8 @@
    implementation was provided by Jiri Spitz. The generalization of the code
    to arbitrary combinations of ordered/hashed and single-/multi-valued keys
    was done by Albert Graef. Dubiousjim expanded the AVL code with additional
-   get and delete methods.
+   get and delete methods. He also provided the alternate 2-3-Tree
+   implementation.
 
    Imports
    ~~~~~~~
@@ -349,7 +350,19 @@
 
 */
 
-using avltrees;
+namespace dict;
+    mval   (k=>v)      = k=>[v];
+#! --if trees23
+    using trees23;
+    mvals     (k=>kvs) = k=>revmap val kvs;
+    rev_mvals (k=>kvs) = k=>map val kvs;
+#! --else
+    using avltrees;
+    mvals     (k=>kvs) = k=>map val kvs;
+    rev_mvals (k=>kvs) = k=>revmap val kvs;
+#! --endif
+namespace;
+
 
 // These should be considered private.
 public Dict HDict MDict HMDict;
@@ -365,10 +378,10 @@ hmdictp x = typep hmdict x;
 xdictp  x = typep xdict  x;
 
 // create an empty dict
-emptydict	= Dict   avl::emptytree;
-emptyhdict	= HDict  avl::emptytree;
-emptymdict	= MDict  avl::emptytree;
-emptyhmdict	= HMDict avl::emptytree;
+emptydict	= Dict   baltree::emptytree;
+emptyhdict	= HDict  baltree::emptytree;
+emptymdict	= MDict  baltree::emptytree;
+emptyhmdict	= HMDict baltree::emptytree;
 
 // conversions between the different dictionary types
 public members;
@@ -392,109 +405,109 @@ mkmdict  y xs::rlist = mdict  (zipwith (=>) xs (repeatn (#xs) y));
 mkhmdict y xs::rlist = hmdict (zipwith (=>) xs (repeatn (#xs) y));
 
 // insert a member
-insert (Dict   d) el@(x=>y) = Dict   (avl::insertk   d el);
-insert (HDict  d) el@(x=>y) = HDict  (avl::hinsertk  d el);
-insert (MDict  d) el@(x=>y) = MDict  (avl::minsertk  d el);
-insert (HMDict d) el@(x=>y) = HMDict (avl::mhinsertk d el);
+insert (Dict   d) el@(x=>y) = Dict   (baltree::insertk   d el);
+insert (HDict  d) el@(x=>y) = HDict  (baltree::hinsertk  d el);
+insert (MDict  d) el@(x=>y) = MDict  (baltree::minsertk  d el);
+insert (HMDict d) el@(x=>y) = HMDict (baltree::mhinsertk d el);
 
 // curried version of insert
 update d@(Dict  _) x y | update d@(HDict  _) x y |
 update d@(MDict _) x y | update d@(HMDict _) x y = insert d (x=>y);
 
 // delete a member by key
-delete (Dict   d) x = Dict   (avl::deletek    d x);
-delete (HDict  d) x = HDict  (avl::hdeletek   d x);
-delete (MDict  d) x = MDict  (avl::mdeleteko  d x);
-delete (HMDict d) x = HMDict (avl::mhdeleteko d x);
+delete (Dict   d) x = Dict   (baltree::deletek    d x);
+delete (HDict  d) x = HDict  (baltree::hdeletek   d x);
+delete (MDict  d) x = MDict  (baltree::mdeleteko  d x);
+delete (HMDict d) x = HMDict (baltree::mhdeleteko d x);
 
 // delete a member by "other" key
-delete_other (Dict   d) x = Dict   (avl::deletek    d x);
-delete_other (HDict  d) x = HDict  (avl::hdeletek   d x);
-delete_other (MDict  d) x = MDict  (avl::mdeletekn  d x);
-delete_other (HMDict d) x = HMDict (avl::mhdeletekn d x);
+delete_other (Dict   d) x = Dict   (baltree::deletek    d x);
+delete_other (HDict  d) x = HDict  (baltree::hdeletek   d x);
+delete_other (MDict  d) x = MDict  (baltree::mdeletekn  d x);
+delete_other (HMDict d) x = HMDict (baltree::mhdeletekn d x);
 
 // delete a member by key=>val
-delete_val (Dict   d) el@(x=>y) = Dict   (avl::deletekv    d el);
-delete_val (HDict  d) el@(x=>y) = HDict  (avl::hdeletekv   d el);
-delete_val (MDict  d) el@(x=>y) = MDict  (avl::mdeletekvo  d el);
-delete_val (HMDict d) el@(x=>y) = HMDict (avl::mhdeletekvo d el);
+delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv    d el);
+delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv   d el);
+delete_val (MDict  d) el@(x=>y) = MDict  (baltree::mdeletekvo  d el);
+delete_val (HMDict d) el@(x=>y) = HMDict (baltree::mhdeletekvo d el);
 
 // delete all instances of a given key
-delete_all (Dict   d) x = Dict   (avl::deletek    d x);
-delete_all (HDict  d) x = HDict  (avl::hdeletek   d x);
-delete_all (MDict  d) x = MDict  (avl::mdeleteka  d x);
-delete_all (HMDict d) x = HMDict (avl::mhdeleteka d x);
+delete_all (Dict   d) x = Dict   (baltree::deletek    d x);
+delete_all (HDict  d) x = HDict  (baltree::hdeletek   d x);
+delete_all (MDict  d) x = MDict  (baltree::mdeleteka  d x);
+delete_all (HMDict d) x = HMDict (baltree::mhdeleteka d x);
 
 // check for the empty dict
 null (Dict  d) | null (HDict  d) |
-null (MDict d) | null (HMDict d) = avl::null d;
+null (MDict d) | null (HMDict d) = baltree::null d;
 
 // dict size
-#(Dict   d) = avl::size  d;
-#(MDict  d) = avl::msize d;
-#(HDict  d) = avl::hsize d;
-#(HMDict d) = avl::hsize d;
+#(Dict   d) = baltree::size  d;
+#(HDict  d) = baltree::hsize d;
+#(MDict  d) = baltree::msize d;
+#(HMDict d) = baltree::hsize d;
 
 // membership test
-member (Dict   d) k = avl::memberk  d k;
-member (MDict  d) k = avl::memberk  d k;
-member (HDict  d) k = avl::hmemberk d k;
-member (HMDict d) k = avl::hmemberk d k;
+member (Dict   d) k = baltree::memberk  d k;
+member (HDict  d) k = baltree::hmemberk d k;
+member (MDict  d) k = baltree::memberk  d k;
+member (HMDict d) k = baltree::hmemberk d k;
 
 // get the members, keys and values of a dict as a list
-members (Dict   d) = avl::members  d;
-members (MDict  d) = avl::mmembers d;
-members (HDict  d) = avl::hmembers d;
-members (HMDict d) = avl::hmembers d;
+members (Dict   d) = baltree::members  d;
+members (HDict  d) = baltree::hmembers d;
+members (MDict  d) = baltree::mmembers d;
+members (HMDict d) = baltree::hmembers d;
 
-keys (Dict   d) = avl::keys  d;
-keys (MDict  d) = avl::mkeys d;
-keys (HDict  d) = avl::hkeys d;
-keys (HMDict d) = avl::hkeys d;
+keys (Dict   d) = baltree::keys  d;
+keys (HDict  d) = baltree::hkeys d;
+keys (MDict  d) = baltree::mkeys d;
+keys (HMDict d) = baltree::hkeys d;
 
-vals (Dict   d) = avl::vals  d;
-vals (MDict  d) = avl::mvals d;
-vals (HDict  d) = avl::hvals d;
-vals (HMDict d) = avl::hvals d;
+vals (Dict   d) = baltree::vals  d;
+vals (HDict  d) = baltree::hvals d;
+vals (MDict  d) = baltree::mvals d;
+vals (HMDict d) = baltree::hvals d;
 
 list d::xdict = members d;
 
 // get the first and last member
-first (Dict   d) = avl::first  d;
-first (MDict  d) = avl::mfirst d;
-last  (Dict   d) = avl::last   d;
-last  (MDict  d) = avl::mlast  d;
-first (HDict  d) = avl::hfirst d;
-first (HMDict d) = avl::hfirst d;
-last  (HDict  d) = avl::hlast  d;
-last  (HMDict d) = avl::hlast  d;
+first (Dict   d) = baltree::first  d;
+last  (Dict   d) = baltree::last   d;
+first (HDict  d) = baltree::hfirst d;
+last  (HDict  d) = baltree::hlast  d;
+first (MDict  d) = baltree::mfirst d;
+last  (MDict  d) = baltree::mlast  d;
+first (HMDict d) = baltree::hfirst d;
+last  (HMDict d) = baltree::hlast  d;
 
 // remove the first and last member
-rmfirst (Dict   d) = Dict   (avl::rmfirst  d);
-rmlast  (Dict   d) = Dict   (avl::rmlast   d);
-rmfirst (MDict  d) = MDict  (avl::mrmfirst d);
-rmlast  (MDict  d) = MDict  (avl::mrmlast  d);
-rmfirst (HDict  d) = HDict  (avl::hrmfirst d);
-rmlast  (HDict  d) = HDict  (avl::hrmlast  d);
-rmfirst (HMDict d) = HMDict (avl::hrmfirst d);
-rmlast  (HMDict d) = HMDict (avl::hrmlast  d);
+rmfirst (Dict   d) = Dict   (baltree::rmfirst  d);
+rmlast  (Dict   d) = Dict   (baltree::rmlast   d);
+rmfirst (HDict  d) = HDict  (baltree::hrmfirst d);
+rmlast  (HDict  d) = HDict  (baltree::hrmlast  d);
+rmfirst (MDict  d) = MDict  (baltree::mrmfirst d);
+rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
+rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
+rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
 
 // get a value by key
-(Dict   d)!k = avl::getk    d k;
-(MDict  d)!k = avl::mgetka  d k;
-(HDict  d)!k = avl::hgetk   d k;
-(HMDict d)!k = avl::mhgetka d k;
+(Dict   d)!k = baltree::getk    d k;
+(HDict  d)!k = baltree::hgetk   d k;
+(MDict  d)!k = baltree::mgetka  d k;
+(HMDict d)!k = baltree::mhgetka d k;
 
 // get oldest/newest value from mdicts
-grob (Dict   d) k = avl::getk    d k;
-grob (HDict  d) k = avl::hgetk   d k;
-grob (MDict  d) k = avl::mgetko  d k;
-grob (HMDict d) k = avl::mhgetko d k;
+grob (Dict   d) k = baltree::getk    d k;
+grob (HDict  d) k = baltree::hgetk   d k;
+grob (MDict  d) k = baltree::mgetko  d k;
+grob (HMDict d) k = baltree::mhgetko d k;
 
-grob_other (Dict   d) k = avl::getk    d k;
-grob_other (HDict  d) k = avl::hgetk   d k;
-grob_other (MDict  d) k = avl::mgetkn  d k;
-grob_other (HMDict d) k = avl::mhgetkn d k;
+grob_other (Dict   d) k = baltree::getk    d k;
+grob_other (HDict  d) k = baltree::hgetk   d k;
+grob_other (MDict  d) k = baltree::mgetkn  d k;
+grob_other (HMDict d) k = baltree::mhgetkn d k;
 
 // comparisons
 d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
