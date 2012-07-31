@@ -103,12 +103,12 @@
 
       return an empty dictionary
 
-   .. function:: dict xs
-                 hdict xs
-                 mdict xs
-                 hmdict xs
+   .. function:: dict kvs
+                 hdict kvs
+                 mdict kvs
+                 hmdict kvs
 
-      create a dictionary of the corresponding type either from a list ``xs``
+      create a dictionary of the corresponding type either from a list ``kvs``
       of key-value pairs in the form ``key=>value``, or from another
       dictionary; in the latter case the argument is converted to a dictionary
       of the desired target type
@@ -118,12 +118,12 @@
                  mdictp d
                  hmdictp d
 
-      check whether ``x`` is a dictionary of the corresponding type
+      check whether ``d`` is a dictionary of the corresponding type
 
-   .. function:: mkdict y xs
-                 mkhdict y xs
-                 mkmdict y xs
-                 mkhmdict y xs
+   .. function:: mkdict v ks
+                 mkhdict v ks
+                 mkmdict v ks
+                 mkhmdict v ks
 
       create a dictionary from a list of keys and a constant value
 
@@ -143,19 +143,19 @@
 
       size of a dictionary (the number of members it contains)
 
-   .. function:: infix ! /dict d x
+   .. function:: infix ! /dict d k
 
-      get the value from ``d`` by key ``x``; in the case of a multidict this
+      get the value from ``d`` by key ``k``; in the case of a multidict this
       actually returns a list of values (which may be empty if ``d`` doesn't
-      contain ``x``)
+      contain ``k``)
 
    .. function:: null /dict d
 
       test whether ``d`` is an empty dictionary
 
-   .. function:: member /dict d x
+   .. function:: member /dict d k
 
-      test whether ``d`` contains a member with key ``x``
+      test whether ``d`` contains a member with key ``k``
 
    .. function:: members /dict d
                  list /dict d
@@ -180,29 +180,29 @@
 
       remove the first and the last member from ``d``, respectively
 
-   .. function:: insert /dict d (x=>y)
-                 update /dict d x y
+   .. function:: insert /dict d (k=>v)
+                 update /dict d k v
 
-      insert ``x=>y`` into ``d`` (this always adds a new member in a
+      insert ``k=>v`` into ``d`` (this always adds a new member in a
       multidict, otherwise it replaces an existing value if there is one);
       note that :func:`update/dict` is just a fully curried version of
-      :func:`insert/dict`, so ``update d x y`` behaves exactly like
-      ``insert d (x=>y)``
+      :func:`insert/dict`, so ``update d k v`` behaves exactly like
+      ``insert d (k=>v)``
 
-   .. function:: delete /dict d x
+   .. function:: delete /dict d k
 
-      remove ``x`` from ``d`` if present (in the multidict case, only the
-      first member with the given key ``x`` is removed)
+      remove ``k`` from ``d`` if present (in the multidict case, only the
+      first member with the given key ``k`` is removed)
 
-   .. function:: delete_val /dict d (x=>y)
+   .. function:: delete_val /dict d (k=>v)
 
-      remove a specific key-value pair ``x=>y`` from ``d`` if present (in the
-      multidict case, only the first instance of ``x=>y`` is removed); please
+      remove a specific key-value pair ``k=>v`` from ``d`` if present (in the
+      multidict case, only the first instance of ``k=>v`` is removed); please
       also see the notes below regarding this operation
 
-   .. function:: delete_all /dict d x
+   .. function:: delete_all /dict d k
 
-      remove all instances of ``x`` from ``d`` (in the non-multidict case,
+      remove all entries with key ``k`` from ``d`` (in the non-multidict case,
       this is just the same as :func:`delete/dict`)
 
    .. note::
