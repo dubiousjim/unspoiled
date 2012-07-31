@@ -758,6 +758,7 @@ def void [x] | void {x} = void x;
         > reverse_onto [20,10] (3..5);
         [5, 4, 3, 20, 10]
 
+      Note: This operation and '\ :func:`reverse`\ ' are both inherently eager.
 
    In addition, the prelude provides the following conversion operations.
 
@@ -1058,8 +1059,13 @@ xs!!ns		= ys if ok ys when
    and the generic case in which we fall back to the standard slicing
    operation above. Other specialized optimization rules can be found in the
    matrices and strings modules. NOTE: You can run the interpreter with the
-   --disable subseq-opt option if you need to disable these optimizations for
-   some reason. */
+   `--disable subseq-opt` option if you need to disable these optimizations for
+   some reason.
+
+   Note also that this function will force any stream as far as needed to
+   return a list result. `take` on the other hand doesn't force its argument
+   past its first element; so you can get a lazy version of `subseq` using
+   a combination of `drop` and `take`. */
 
 subseq [] a::int b::int = [];
 #! --ifnot list-opt

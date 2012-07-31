@@ -109,6 +109,20 @@ end;
    can find in the Haskell prelude. Some functions have slightly different
    names, though, and of course everything is typed dynamically.
 
+   Along with '\ :func:`#`\ ', '\ :func:`reverse`\ ', and
+   '\ :func:`reverse_onto`\ ', above, the following functions are inherently
+   eager: '\ :func:`do`\ ', '\ :func:`dowith`\ ', '\ :func:`dowith3`\ ',
+   '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
+   '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`lastby`\ ',
+   '\ :func:`picklastby`\ ', '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ',
+   and '\ :func:`rmlastby`\ '. The other list functions
+   will force stream arguments only as far as necessary.
+
+   Note that '\ :func:`subseq`\ ' in the prelude is also eager, as are
+   the indexing function '\ :func:`!`\ ' and the slicing function
+   '\ :func:`!!`\ '. However '\ :func:`take`\ ' is not eager; if given
+   a stream argument it will return a stream result.
+
    Common List Functions
    ~~~~~~~~~~~~~~~~~~~~~
 
@@ -372,6 +386,7 @@ delete xs@(_:_) y = tick xs [] with
     tick xs ws          = __std__::reverse_onto (delete xs y) ws;
 end;
 
+// inherently eager
 do f []			= ();
 do f (x:xs)		= f x $$ do f xs;
 
@@ -525,6 +540,7 @@ end;
 #! --endif
 namespace;
 
+// All the left-folding functions are inherently eager.
 foldl f a []		= a;
 foldl f a (x:xs)	= foldl f (f a x) xs;
 
@@ -694,6 +710,7 @@ init xs@(_:_) = aux xs with
 end;
 #! --endif
 
+// inherently eager
 last [x]		= x;
 last (x:xs)		= last xs;
 
@@ -785,6 +802,7 @@ partition p xs@(_:_) = aux xs with
 end;
 #! --endif
 
+// inherently eager
 revmap_onto f base [] = base;
 revmap_onto f base xs@(_:_) = tick base xs with
     tick a [] = a;
@@ -835,7 +853,7 @@ scanr1 f [x]		= [x];
 scanr1 f xs@(_:_)	= tick [] xs
 with
   tick zs (x:xs)	= tack zs us when
-			    ys = scanr1 f xs&;
+			    ys = scanr1 f xs&; // these thunks get forced two elements at a time
 			    y  = (case ys of
 				    y:_ = y;
 				    scanr1 _ ys = throw (bad_list_value ys);
@@ -1411,6 +1429,7 @@ with
   check us		= throw (bad_tuple_value us);
 end;
 
+// `dowith` and `dowith3` are inherently eager
 dowith f (x:xs) (y:ys)	= f x y $$ dowith f xs ys;
 dowith f _ _		= () otherwise;
 
