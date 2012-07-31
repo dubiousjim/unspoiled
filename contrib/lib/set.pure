@@ -125,6 +125,11 @@
 
       test whether ``m`` contains ``x``
 
+   .. function:: multiplicity m x
+
+      returns the number of times ``x`` occurs in set or bag ``m`` (in the
+      set case, this is just the same as :func:`member/set`)
+
    .. function:: members /set m
                  list /set m
 
@@ -317,6 +322,12 @@ member (Set  m) y = baltree::member  m y;
 member (HSet m) y = baltree::hmember m y;
 member (Bag  m) y = baltree::memberk m y;
 member (HBag m) y = baltree::hmember m y;
+
+// get multiplicity
+multiplicity (Set  m) y = baltree::member   m y;
+multiplicity (HSet m) y = baltree::hmember  m y;
+multiplicity (Bag  m) y = #baltree::mgetka  m y;
+multiplicity (HBag m) y = baltree::mhcount m y;
 
 // get all members of a set as a list
 members (Set  m) = baltree::members  m;

@@ -316,7 +316,7 @@ end;
 
 /* Indexing for hashed (multi-)dicts. */
 
-public hgetk mhgetka mhgetko mhgetkn;
+public hgetk mhcount mhgetka mhgetko mhgetkn;
 
 hgetk t y = get t (hash y) y with
   get nil _ _ = throw out_of_bounds;
@@ -326,6 +326,14 @@ hgetk t y = get t (hash y) y with
     = case dropwhile (\(x=>_) -> x~==y) xs of
         (x=>v):_ = v; _ = throw out_of_bounds;
       end;
+end;
+
+mhcount t y = get t (hash y) y with
+  get nil _ _ = 0;
+  get (bin (k::int=>xs) _ l r) key::int y
+    = get l key y if k > key;
+    = get r key y if k < key;
+    = ::foldl (\a x -> a + (x===y)) 0 xs;
 end;
 
 mhgetka t y = get t (hash y) y with

@@ -448,7 +448,7 @@ mgetkn t k = base_mgetk k ::head t;
 
 /* Indexing for hashed (multi-)dicts. */
 
-public hgetk mhgetka mhgetko mhgetkn;
+public hgetk mhcount mhgetka mhgetko mhgetkn;
 
 hgetk t k = get (hash k) k t with
     get _ _ nil = throw out_of_bounds;
@@ -495,6 +495,10 @@ base_mhgetka t k z match = get (hash k) k t with
         = match k zs if res == EQ2;
         = get h k r if res == GT2;
     end;
+end;
+
+mhcount t k = base_mhgetka t k 0 match with
+    match k us = ::foldl (\a x -> a + (k===x)) 0 us;
 end;
 
 mhgetka t k = base_mhgetka t k [] match with
