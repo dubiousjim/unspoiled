@@ -81,13 +81,13 @@ end;
 
    .. function:: catmap f xs
 
-      convenience function which combines :func:`cat` and :func:`map`; this is
-      also used to implement list comprehensions
+      convenience function which combines '\ :func:`cat`\ ' and
+      '\ :func:`map`\ '; this is also used to implement list comprehensions
 
    .. function:: do f xs
 
-      apply ``f`` to all members of ``xs``, like :func:`map`, but throw away
-      all intermediate results and return ``()``
+      apply ``f`` to all members of ``xs``, like '\ :func:`map`\ ', but throw
+      away all intermediate results and return ``()``
 
    .. function:: drop n xs
 
