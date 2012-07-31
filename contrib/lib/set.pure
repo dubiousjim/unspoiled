@@ -166,6 +166,29 @@
       remove all instances of ``x`` from ``m`` (in the set case, this is just
       the same as :func:`delete/set`)
 
+   .. function:: foldl /set f a m
+                 foldl1 /set f m
+                 foldr /set f a m
+                 foldr1 /set f m
+                 any /set p m
+                 all /set p m
+
+      these are equivalent to calling the corresponding list methods on
+      ``members m``, but more efficient (no intermediate list is built)
+
+   .. function:: mfoldl /set f a m
+                 mfoldl1 /set f m
+                 mfoldr /set f a m
+                 mfoldr1 /set f m
+                 many /set p m
+                 mall /set p m
+
+      these are like the functions ``foldl`` and so on, except that ``f``
+      receives all the equivalent values grouped together in a single list; so
+      the signature of ``mfoldl`` is::
+
+        mfoldl (\a xs -> ...) a m
+
    .. note::
 
       The infix operators (:func:`+/set`, :func:`-/set`, :func:`*\/set`, as
@@ -372,6 +395,73 @@ pickfirst (Bag  m) = tuple2 v (Bag  m) when v,m = baltree::mpopfirst m end;
 picklast  (Bag  m) = tuple2 v (Bag  m) when v,m = baltree::mpoplast  m end;
 pickfirst (HBag m) = tuple2 v (HBag m) when v,m = baltree::hpopfirst m end;
 picklast  (HBag m) = tuple2 v (HBag m) when v,m = baltree::hpoplast  m end;
+
+// folds
+// takes elements one at a time
+foldl  f a (Set  m) = baltree::foldl  id f a m;
+foldl  f a (HSet m) = baltree::hfoldl id f a m;
+foldl  f a (Bag  m) = baltree::mfoldl    f a m;
+foldl  f a (HBag m) = baltree::hfoldl id f a m;
+// takes elements as a list
+mfoldl f a (Set  m) = baltree::foldl  (:[]) f a m;
+mfoldl f a (HSet m) = baltree::hfoldl (:[]) f a m;
+mfoldl f a (Bag  m) = baltree::foldl  val   f a m;
+mfoldl f a (HBag m) = baltree::mhfoldl      f a m;
+
+// takes elements one at a time
+foldl1  f (Set  m) = baltree::foldl1  id f m;
+foldl1  f (HSet m) = baltree::hfoldl1 id f m;
+foldl1  f (Bag  m) = baltree::mfoldl1    f m;
+foldl1  f (HBag m) = baltree::hfoldl1 id f m;
+// takes elements as a list
+mfoldl1 f (Set  m) = baltree::foldl1  (:[]) f m;
+mfoldl1 f (HSet m) = baltree::hfoldl1 (:[]) f m;
+mfoldl1 f (Bag  m) = baltree::foldl1  val   f m;
+mfoldl1 f (HBag m) = baltree::mhfoldl1      f m;
+
+// takes elements one at a time
+foldr  f a (Set  m) = baltree::foldr  id f a m;
+foldr  f a (HSet m) = baltree::hfoldr id f a m;
+foldr  f a (Bag  m) = baltree::mfoldr    f a m;
+foldr  f a (HBag m) = baltree::hfoldr id f a m;
+// takes elements as a list
+mfoldr f a (Set  m) = baltree::foldr  (:[]) f a m;
+mfoldr f a (HSet m) = baltree::hfoldr (:[]) f a m;
+mfoldr f a (Bag  m) = baltree::foldr  val   f a m;
+mfoldr f a (HBag m) = baltree::mhfoldr      f a m;
+
+// takes elements one at a time
+foldr1  f (Set  m) = baltree::foldr1  id f m;
+foldr1  f (HSet m) = baltree::hfoldr1 id f m;
+foldr1  f (Bag  m) = baltree::mfoldr1    f m;
+foldr1  f (HBag m) = baltree::hfoldr1 id f m;
+// takes elements as a list
+mfoldr1 f (Set  m) = baltree::foldr1  (:[]) f m;
+mfoldr1 f (HSet m) = baltree::hfoldr1 (:[]) f m;
+mfoldr1 f (Bag  m) = baltree::foldr1  val   f m;
+mfoldr1 f (HBag m) = baltree::mhfoldr1      f m;
+
+// takes elements one at a time
+all  p (Set  m) = baltree::all  p m;
+all  p (HSet m) = baltree::hall p m;
+all  p (Bag  m) = baltree::mall p m;
+all  p (HBag m) = baltree::hall p m;
+// takes elements as a list
+mall p (Set  m) = baltree::all  (p.(:[])) m;
+mall p (HSet m) = baltree::hall (p.(:[])) m;
+mall p (Bag  m) = baltree::all  (p.val)   m;
+mall p (HBag m) = baltree::mhall p        m;
+
+// takes elements one at a time
+any  p (Set  m) = baltree::any  p m;
+any  p (HSet m) = baltree::hany p m;
+any  p (Bag  m) = baltree::many p m;
+any  p (HBag m) = baltree::hany p m;
+// takes elements as a list
+many p (Set  m) = baltree::any  (p.(:[])) m;
+many p (HSet m) = baltree::hany (p.(:[])) m;
+many p (Bag  m) = baltree::any  (p.val)   m;
+many p (HBag m) = baltree::mhany p        m;
 
 // comparisons
 m1@(Set _)  == m2@(Set _)  |
