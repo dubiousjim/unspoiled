@@ -115,7 +115,7 @@ end;
    '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
    '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`lastby`\ ',
    '\ :func:`picklastby`\ ', '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ',
-   and '\ :func:`rmlastby`\ '. The other list functions
+   '\ :func:`rmlastby`\ ', and '\ :func:`rotate`\ '. The other list functions
    will force stream arguments only as far as necessary.
 
    Note that '\ :func:`subseq`\ ' in the prelude is also eager, as are
@@ -321,6 +321,14 @@ end;
 
       return ``xs`` without the last member satisfying the predicate ``p``;
       if no member satisfies ``p`` will just return ``xs``
+
+   .. function:: rotate n xs
+
+      ``rotate 1 xs`` combines :func:`last` and :func:`init`, but only
+      traverses ``xs`` once::
+
+        > rotate 1 [1, 2, 3, 4]
+        [4, 1, 2, 3]
 
    .. function:: scanl f a xs
 
@@ -829,6 +837,39 @@ end;
 
 revmap f [] = [];
 revmap f xs@(_:_) = revmap_onto f [] xs;
+
+// inherently eager
+#! --ifnot list-opt
+// reverse-based
+rotate 1 xs@(_:_) = rot xs [] with
+    rot [x] ys = x:__std__::reverse_onto [] ys;
+    rot (x:xs) ys = rot xs (x:ys);
+end;
+
+#! --else
+// skip-ahead
+rotate 1 xs@(_:_) = aux xs with
+    aux xs = lastx:rotate_pre len_pre xs with
+        rotate_pre 0      _      = chopped_tail;
+        rotate_pre n::int (x:xs) = x:rotate_pre (n-1) xs;
+    end when
+        len_pre@_ (lastx:chopped_tail) = skip_ahead 0 xs;
+    end;
+    skip_ahead n::int x@[_]    = n x;
+    skip_ahead n::int xs@(_:_) = n (aux xs) if n == __std__::SKIPSIZE;
+    skip_ahead n::int (x:xs)   = skip_ahead (n+1) xs;
+    skip_ahead n::int xs       = n (rotate xs);
+end;
+#! --endif
+
+rotate _::int [] = [];
+rotate 0 xs@(_:_) = xs;
+
+rotate n::int xs@(_:_) = post+pre when
+    xn = #xs;
+    n = (xn-n) mod xn;
+    pre,post = if n > 0 then split n xs else if n < 0 then split (xn+n) xs else xs, [];
+end;
 
 // no skip-ahead implementations yet, I'm lazy
 scanl f a []		= [a];
