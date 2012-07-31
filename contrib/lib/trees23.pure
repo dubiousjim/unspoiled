@@ -112,7 +112,7 @@ type tree nil | tree (bin _ _ _) | tree (tri _ _ _ _ _);
 /* Basic 2-3-tree operations, single value per key. */
 
 public size members keys vals;
-public first last rmfirst rmlast;
+public first last rmfirst rmlast popfirst poplast;
 
 // Compute the size of a tree.
 
@@ -170,10 +170,20 @@ rmfirst t = head3 $ pop_left t;
 rmlast nil = nil;
 rmlast t = head3 $ pop_right t;
 
+popfirst nil = ();
+popfirst t = case pop_left t of
+    child@_ _ w = tuple2 w child;
+end;
+
+poplast nil = ();
+poplast t = case pop_right t of
+    child@_ _ w = tuple2 w child;
+end;
+
 /* Basic 2-3-tree operations, multiple values per key. */
 
 public msize mmembers mkeys mvals;
-public mfirst mlast mrmfirst mrmlast;
+public mfirst mlast mrmfirst mrmlast mpopfirst mpoplast;
 
 msize t = size t with
     size nil = 0;
@@ -224,11 +234,21 @@ mrmfirst t = head3 $ mpop_left t;
 mrmlast nil = nil;
 mrmlast t = head3 $ mpop_right t;
 
+mpopfirst nil = ();
+mpopfirst t = case mpop_left t of
+    child@_ _ w = tuple2 w child;
+end;
+
+mpoplast nil = ();
+mpoplast t = case mpop_right t of
+    child@_ _ w = tuple2 w child;
+end;
+
 /* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
 public hsize hmembers hkeys hvals;
-public hfirst hlast hrmfirst hrmlast;
+public hfirst hlast hrmfirst hrmlast hpopfirst hpoplast;
 
 hsize t    = msize t;
 hmembers t = mmembers t;
@@ -238,6 +258,8 @@ hfirst t   = mfirst t;
 hlast t    = mlast t;
 hrmfirst t = mrmfirst t;
 hrmlast t  = mrmlast t;
+hpopfirst t = mpopfirst t;
+hpoplast t  = mpoplast t;
 
 /* Membership test for ordered sets and dictionaries. */
 
@@ -615,7 +637,7 @@ insertk t new@(k=>v) = catch (whenfail t) (head2 $ ins k v new t) with
     end;
 end;
 
-public delete deletek deletekv;
+public delete deletek deletekv popk popkv;
 
 delete t old = catch (whenfail t) (head3 $ pop old t) with
     pop _ nil = throw fail;
@@ -675,6 +697,11 @@ end;
 
 deletek t k = catch (whenfail t) (head3 $ base_popk k t);
 
+popk t k = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_popk k t;
+end);
+
+
 // Delete one specific key=>val pair.
 
 private base_popkv;
@@ -710,6 +737,14 @@ base_popkv k v t = pop k v t with
 end;
 
 deletekv t (k=>v) = catch (whenfail t) (head3 $ base_popkv k v t);
+
+// The popkv methods may seem like overkill: you already know the k=>v so
+// why isn't deletekv enough? However we do need these methods for weak-value
+// dicts.
+popkv t (k=>v) = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_popkv k v t;
+end);
+
 
 /* Ordered case, multiple values. */
 
@@ -781,8 +816,8 @@ minsertk t new@(k=>_) = head2 $ ins k new t with
     end;
 end;
 
-public mdelete mdeleteko mdeletekn;
-public mdeletekvo mdeletekvn mdeletekva;
+public mdelete mdeleteko mdeletekn mpopko mpopkn;
+public mdeletekvo mdeletekvn mdeletekva mpopkva;
 
 private base_mpopk;
 
@@ -830,7 +865,15 @@ mdelete t old = catch (whenfail t) (head3 $ base_mpopk id old t);
 
 mdeleteko t k = catch (whenfail t) (head3 $ base_mpopk (rotate 1) k t);
 
+mpopko t k = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_mpopk (rotate 1) k t;
+end);
+
 mdeletekn t k = catch (whenfail t) (head3 $ base_mpopk id k t);
+
+mpopkn t k = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_mpopk id k t;
+end);
 
 mdeletekvo t (k=>v) = catch (whenfail t) (head3 $ pop k v t) with
     del v us = picklastby ((v==?).val) us; // throw fail if no hits
@@ -948,13 +991,21 @@ end;
 
 mdeletekva t (k=>v) = catch (whenfail t) (head3 $ base_mpopkva k v t);
 
+// See comments to popkv on why this is needed.
+mpopkva t (k=>v) = catch (whenfail ()) (tuple2 vs child when
+    child@_ _ vs = base_mpopkva k v t;
+    vs = revmap val vs;
+end);
+
+
 // Delete all members for a given key.
 
-public mdeletea mdeleteka;
+public mdeletea mdeleteka mpopka;
 
 mdeletea t old = deletek t old;
 
 mdeleteka t k = mdeletea t k;
+mpopka t k = popk t k;
 
 /* Hashed trees, single value. */
 
@@ -1038,8 +1089,8 @@ end;
 
 // These are also valid for multi-hashes.
 
-public hdelete hdeletek;
-public hdeletekv;
+public hdelete hdeletek hpopk;
+public hdeletekv hpopkv;
 
 hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     // custom version of rmfirstby, that doesn't tolerate failure
@@ -1124,6 +1175,11 @@ end;
 
 hdeletek t k = catch (whenfail t) (head3 $ base_hpopk k t);
 
+hpopk t k = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_hpopk k t;
+end);
+
+
 private base_hpopkv;
 
 base_hpopkv k old t = pop (hash k) old t with
@@ -1169,6 +1225,12 @@ base_hpopkv k old t = pop (hash k) old t with
 end;
 
 hdeletekv t old@(k=>_) = catch (whenfail t) (head3 $ base_hpopkv k old t);
+
+// See comments to popkv on why this is needed.
+hpopkv t old@(k=>_) = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_hpopkv k old t;
+end);
+
 
 /* Hashed trees, multiple values. */
 
@@ -1242,8 +1304,8 @@ mhinsertk t new@(k=>_) = head2 $ ins (hash k) new t with
     end;
 end;
 
-public mhdelete mhdeleteko mhdeletekn;
-public mhdeletekvo mhdeletekvn mhdeletekva;
+public mhdelete mhdeleteko mhdeletekn mhpopko mhpopkn;
+public mhdeletekvo mhdeletekvn mhdeletekva mhpopkva;
 
 // mhdelete deletes the first (newest) match, which will be === old
 // (not merely EQ, as with mdelete).
@@ -1253,6 +1315,7 @@ mhdelete        t old = hdelete   t old;
 // The mh*n functions pop the first (newest) match.
 
 mhdeletekn     t k   = hdeletek  t k;
+mhpopkn        t k   = hpopk     t k;
 
 mhdeletekvo t old@(k=>_) = catch (whenfail t) (head3 $ pop (hash k) old t) with
     // throw fail if no hits
@@ -1377,6 +1440,11 @@ end;
 
 mhdeleteko t k = catch (whenfail t) (head3 $ base_mhpopko k t);
 
+mhpopko t k = catch (whenfail ()) (tuple2 v child when
+    child@_ _ (_=>v) = base_mhpopko k t;
+end);
+
+
 private base_mhpopkva;
 
 base_mhpopkva k old t = pop (hash k) old t with
@@ -1419,7 +1487,14 @@ end;
 
 mhdeletekva t old@(k=>_) = catch (whenfail t) (head3 $ base_mhpopkva k old t);
 
-public mhdeletea mhdeleteka;
+// See comments to popkv on why this is needed.
+mhpopkva t old@(k=>_) = catch (whenfail ()) (tuple2 vs child when
+    child@_ _ vs = base_mhpopkva k old t;
+    vs = revmap val vs;
+end);
+
+
+public mhdeletea mhdeleteka mhpopka;
 
 mhdeletea t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     pop h::int old nil = throw fail;
@@ -1498,6 +1573,10 @@ base_mhpopka k t = pop (hash k) k t with
 end;
 
 mhdeleteka t k = catch (whenfail t) (head3 $ base_mhpopka k t);
+
+mhpopka t k = catch (whenfail ()) (vs, child when
+    child@_ _ (_=>vs) = base_mhpopka k t;
+end);
 
 /* Private helper functions. */
 

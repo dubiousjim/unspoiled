@@ -84,8 +84,8 @@
    implementation was provided by Jiri Spitz. The generalization of the code
    to arbitrary combinations of ordered/hashed and single-/multi-valued keys
    was done by Albert Graef. Dubiousjim expanded the AVL code with additional
-   get and delete methods. He also provided the alternate 2-3-Tree
-   implementation.
+   get and delete methods, and implementations of pick. He also provided the
+   alternate 2-3-Tree implementation.
 
    Imports
    ~~~~~~~
@@ -192,6 +192,12 @@
 
       remove the first and the last member from ``d``, respectively
 
+   .. function:: pickfirst /dict d
+                 picklast /dict d
+
+      return the pair ``(first member of d, rest of d)`` or ``(last member of d, rest of d)``,
+      respectively; if ``d`` is empty, return ``()`` instead
+
    .. function:: insert /dict d (k=>v)
                  update /dict d k v
 
@@ -211,6 +217,20 @@
       remove ``k`` from ``d`` if present (in the multidict case, only the
       last member with the given key ``k`` is removed)
 
+   .. function:: pick /dict d k
+
+      remove ``k`` from ``d``, and return the pair ``(v, rest of d)``, where
+      ``v`` was the value associated with key ``k``; if ``k`` is not present
+      in ``d``, instead return ``()`` (in the multidict case, only the first
+      member with the given key ``k`` is picked)
+
+   .. function:: pick_other /dict d k
+
+      remove ``k`` from ``d``, and return the pair ``(v, rest of d)``, where
+      ``v`` was the value associated with key ``k``; if ``k`` is not present
+      in ``d``, instead return ``()`` (in the multidict case, only the last
+      member with the given key ``k`` is picked)
+
    .. function:: delete_val /dict d (k=>v)
 
       remove a specific key-value pair ``k=>v`` from ``d`` if present (in the
@@ -221,6 +241,12 @@
 
       remove all entries with key ``k`` from ``d`` (in the non-multidict case,
       this is just the same as :func:`delete/dict`)
+
+   .. function:: pick_all /dict d k
+
+      remove all entries with key ``k`` from ``d``, and return the pair ``(vs,
+      rest of d)``, where ``vs`` is the list of all values associated with
+      key ``k``; if ``k`` is not present in ``d``, instead return ``()``
 
    .. note::
 
@@ -426,6 +452,18 @@ delete_other (HDict  d) x = HDict  (baltree::hdeletek   d x);
 delete_other (MDict  d) x = MDict  (baltree::mdeletekn  d x);
 delete_other (HMDict d) x = HMDict (baltree::mhdeletekn d x);
 
+// pick a member by key
+pick (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
+pick (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
+pick (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopko  d x end;
+pick (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopko d x end;
+
+// pick a member by "other" key
+pick_other (Dict   d) x = tuple2 v (Dict d)   when v,d = baltree::popk    d x end;
+pick_other (HDict  d) x = tuple2 v (HDict d)  when v,d = baltree::hpopk   d x end;
+pick_other (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopkn  d x end;
+pick_other (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopkn d x end;
+
 // delete a member by key=>val
 delete_val (Dict   d) el@(x=>y) = Dict   (baltree::deletekv    d el);
 delete_val (HDict  d) el@(x=>y) = HDict  (baltree::hdeletekv   d el);
@@ -437,6 +475,12 @@ delete_all (Dict   d) x = Dict   (baltree::deletek    d x);
 delete_all (HDict  d) x = HDict  (baltree::hdeletek   d x);
 delete_all (MDict  d) x = MDict  (baltree::mdeleteka  d x);
 delete_all (HMDict d) x = HMDict (baltree::mhdeleteka d x);
+
+// pick all members by key
+pick_all (Dict   d) x = [v], (Dict d)       when v,d = baltree::popk    d x end;
+pick_all (HDict  d) x = [v], (HDict d)      when v,d = baltree::hpopk   d x end;
+pick_all (MDict  d) x = tuple2 v (MDict d)  when v,d = baltree::mpopka  d x end;
+pick_all (HMDict d) x = tuple2 v (HMDict d) when v,d = baltree::mhpopka d x end;
 
 // check for the empty dict
 null (Dict  d) | null (HDict  d) |
@@ -491,6 +535,16 @@ rmfirst (MDict  d) = MDict  (baltree::mrmfirst d);
 rmlast  (MDict  d) = MDict  (baltree::mrmlast  d);
 rmfirst (HMDict d) = HMDict (baltree::hrmfirst d);
 rmlast  (HMDict d) = HMDict (baltree::hrmlast  d);
+
+// pick the first and last member
+pickfirst (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::popfirst  d end;
+picklast  (Dict   d) = tuple2 kv (Dict d)   when kv,d = baltree::poplast   d end;
+pickfirst (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpopfirst d end;
+picklast  (HDict  d) = tuple2 kv (HDict d)  when kv,d = baltree::hpoplast  d end;
+pickfirst (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpopfirst d end;
+picklast  (MDict  d) = tuple2 kv (MDict d)  when kv,d = baltree::mpoplast  d end;
+pickfirst (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpopfirst d end;
+picklast  (HMDict d) = tuple2 kv (HMDict d) when kv,d = baltree::hpoplast  d end;
 
 // get a value by key
 (Dict   d)!k = baltree::getk    d k;
