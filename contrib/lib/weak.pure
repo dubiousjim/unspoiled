@@ -267,3 +267,765 @@ end if private_refp wr;
             end;
         orig; // keep orig from being collected until everything is set up
     end otherwise;
+
+
+/* ..
+
+   High-level API
+   ~~~~~~~~~~~~~~
+   We provide a high-level API for weakrefs in the form of weak sets and
+   weak-keyed and weak-valued dicts.
+
+   Weak sets don't increase the reference-count of their members, permitting
+   them to be garbage collected while still in the set. The set will be
+   automatically updated in that case to remove that element.
+
+   Weak-keyed dicts don't increase the reference counts of their keys, permitting
+   these keys to be garbage collected while still in the dict. The dict will
+   be automatically updated in that case to remove the entry (or entries) with
+   that key. There are two versions to choose from, depending on whether
+   multiple values for the same key should be allowed.
+
+   Weak-valued dicts don't increase the reference counts of their values,
+   permitting these values to be garbage collected while still in the dict. The
+   dict will be automatically updated in that case to remove keys pointing to
+   that value. There are four versions to choose from, depending on whether the
+   keys are ordered or hashed, and whether multiple values for the same key
+   should be allowed.
+
+   Of necessity, all of these collections are mutable.
+
+   TODO: There is no technical obstacle to implementing weak bags, but it's
+   hard to imagine a good use case, so it seems worth it to omit them just to
+   keep the API cleaner. One could always use a wkdict with the value being the
+   key's multiplicity, if necessary (or an wkmdict with the value being ()).
+
+   .. type:: wset /type
+
+      A weak set. Distinct keys are stored in an apparently random order.
+
+   .. type:: wkdict /type
+
+      A weak-keyed dictionary. Distinct keys are stored in an apparently
+      random order.
+
+   .. type:: wkmdict /type
+
+      A weak-keyed dictionary, like :type:`wkdict/type`, which allows multiple
+      values to be associated with the same key.
+
+   .. type:: wkxdict /type
+
+      This is just an abstract supertype for matching any kind of weak-keyed
+      dictionary provided by this module.
+
+   .. type:: wvdict /type
+
+      A weak-valued dictionary. This assumes an ordered key type, i.e., the
+      predicate :func:`<` must be defined on the keys.
+
+   .. type:: wvhdict /type
+
+      A hashed weak-valued dictionary which works with any (mixture of) key
+      types but stores members in an apparently random order.
+
+   .. type:: wvmdict /type
+
+      An ordered weak-valued dictionary, like :type:`wvdict/type`, which allows
+      multiple values to be associated with the same key.
+
+   .. type:: wvhmdict /type
+
+      A multi-valued weak-valued dictionary, like :type:`wvmdict/type`, but
+      uses hashed keys like :type:`wvhdict/type`.
+
+   .. type:: wvxdict /type
+
+      This is just an abstract supertype for matching any kind of weak-valued
+      dictionary provided by this module.
+
+
+   As with regular :type:`mdict/type` and :type:`hmdict/type`, the multidicts
+   provided here keep different values for the same key in the order in which
+   they were inserted, and this is also the order in which they will be
+   retrieved by the :func:`members/weak`, :func:`keys/weak`, :func:`vals/weak`
+   and indexing operations.
+
+   TODO: Are we going to keep these operations? Other traversals, e.g. by fold?
+
+   TODO: point out that ==, ~=, <= and < aren't defined for these; neither are
+   conversions between different types of dicts; neither are + - *.
+
+   Operations
+   ~~~~~~~~~~
+
+   .. function:: emptywset
+                 emptywkdict
+                 emptywkmdict
+                 emptywvdict
+                 emptywvhdict
+                 emptywvmdict
+                 emptywvhmdict
+
+      return an empty weak set or weak dictionary
+
+   .. function:: wset xs
+
+      create a weak set from a list ``xs`` of elements
+
+   .. function:: wkdict kvs
+                 wkmdict kvs
+                 wvdict kvs
+                 wvhdict kvs
+                 wvmdict kvs
+                 wvhmdict kvs
+
+      create a weak dictionary of the corresponding type from a list ``kvs``
+      of key-value pairs in the form ``key=>value``
+
+   .. function:: wsetp m
+
+      check whether ``m`` is a weak set
+
+   .. function:: wkdictp d
+                 wkmdictp d
+                 wvdictp d
+                 wvhdictp d
+                 wvmdictp d
+                 wvhmdictp d
+
+      check whether ``d`` is a weak dictionary of the corresponding type
+
+   .. function:: mkwkdict v ks
+                 mkwkmdict v ks
+                 mkwvdict v ks
+                 mkwvhdict v ks
+                 mkwvmdict v ks
+                 mkwvhmdict v ks
+
+      create a weak dictionary from a list of keys and a constant value
+
+   .. function:: prefix # /weak m
+                 prefix # /weak d
+
+      size of a weak set ``m`` or weak dictionary ``d`` (the number of members
+      it contains)
+
+   .. function:: infix ! /weak d k
+
+      get the value from weak dictionary ``d`` by key ``k``; in the case of a
+      multidict this actually returns a list of values (which may be empty if
+      ``d`` doesn't contain ``k``)
+
+   .. function:: grob /weak d k
+
+      get the value from weak dictionary ``d`` by key ``k``; in the case of a
+      multidict this returns the oldest value
+
+   .. function:: grob_other /weak d k
+
+      get the value from weak dictionary ``d`` by key ``k``; in the case of a
+      multidict this returns the newest value
+
+   .. function:: null /weak m
+                 null /weak d
+
+      test whether ``m`` is an empty weak set or ``d`` an empty weak dictionary
+
+   .. function:: member /weak m x
+                 member /weak d k
+
+      test whether weak set ``m`` contains the element ``x``; or whether
+      weak dictionary ``d`` contains an entry with key ``k``
+
+   .. function:: members /weak m
+                 members /weak d
+                 list /weak m
+                 list /weak d
+
+      list the uncollected members of a weak set ``m`` or weak dictionary ``d``
+      (in ascending order for ordered dictionaries)
+
+      TODO: Will this (and keys, vals) be kept? If so, explain that the
+      only the currently live objects will be returned, and that the return
+      expressions count again towards keeping the objects from being collected.
+
+   .. function:: keys /weak d
+
+      list the keys of a weak dictionary ``d`` (in ascending order for ordered
+      dictionaries)
+
+   .. function:: vals /weak d
+
+      list the values of a weak dictionary ``d``
+
+   .. function:: insert /weak m x
+                 insert /weak d (k=>v)
+                 update /weak d k v
+
+      insert the element ``x`` into weak set ``m``; or insert
+      the entry ``k=>v`` into weak dictionary ``d`` (this always adds a new
+      member in a multidict, otherwise it replaces an existing value if there
+      is one); note that :func:`update/weak` is just a fully curried version
+      of :func:`insert/weak`, so ``update d k v`` behaves exactly like
+      ``insert d (k=>v)``
+
+      Because the weak collections are mutable, these operations don't
+      return an updated collection but imperatively update the original,
+      and return ``()``.
+
+TODO
+   .. function:: delete /weak d x
+
+      remove ``x`` from set or dictionary ``d`` if present (in the multidict
+      case, only the first member with the given key ``x`` is removed)
+
+      Because the weak collections are mutable, this operation
+      (and all the other delete-variants) doesn't return an updated collection
+      but imperatively updates the original, and returns ``()``.
+
+   .. function:: delete_other /weak d x
+
+      remove key ``x`` from dictionary ``d`` if present (in the multidict case,
+      only the last member with the given key ``x`` is removed)
+
+   .. function:: delete_val /weak d (x=>y)
+
+      remove a specific key-value pair ``x=>y`` from dictionary ``d`` if
+      present (in the multidict case, only the first instance of ``x=>y`` is
+      removed); please also see the notes below regarding this operation
+
+   .. function:: delete_all /weak d x
+
+      remove all instances of key ``x`` from dictionary ``d`` (in the
+      non-multidict case, this is just the same as :func:`delete/weak`)
+
+   .. note::
+
+      * The :func:`delete_val/weak` function compares values using
+        coarse-grained equality (:func:`==?`). If there is more than one
+        instance of the given value under the given key, the first such
+        instance will be removed (which, if :func:`==` is defined on the
+        values, may be any instance that compares equal, not necessarily an
+        exact match).
+
+      * As with regular multidicts, the :func:`delete_val/weak` may require
+        linear time with respect to the number of different values stored under
+        the given key.
+
+   Example
+   ~~~~~~~
+   TODO: Simplify/better explain this example.
+
+   This example uses the not (otherwise) documented ``weak::gasp`` function,
+   which installs a sentry on an object that makes it (assuming you've run
+   ``using system``) gasp out "<name> is dying" when the object is garbage
+   collected. This is compatible with the regular refcell system and with
+   weakrefs, but not with other sentries. ::
+
+     > using weak, system;
+     > // we create a bunch of gasping objects
+     > let [r3,r4,r5,r6,r7,r8,r9,r10,r11] = map (\i -> weak::gasp s (ref i) when s = sprintf "r%d" i end) (3..11);
+     > // we create another bunch of gasping objects that refer to the first ones
+     > let [q3,q4,q5,q6,q7,q8,q9,q10,q11] = zipwith (\i r -> weak::gasp s [r] when s = sprintf "q%d" i end) (3..11) [r3,r4,r5,r6,r7,r8,r9,r10,r11];
+     > // also make r7 refer back to q7, so these form a cycle
+     > put r7 q7;
+     [#<pointer 0x8051a8af0>]
+     > // we release our strong refs to r7 and q7, nonetheless they will never be collected
+     > let r7,q7=0,0;
+     > // we create a weak-key dict and a weak-value dict
+     > // we have to explicitly specify that the weak-value dict uses unordered keys
+     > // for weak-key dicts this is already known to be the case
+     > let k = wkdict[]; let v = wvhdict[];
+     > // now we insert r,q pairs into our two dicts; the pattern isn't obvious but covers all the cases
+     > do (insert k) [(r8=>q8),(r9=>q9),(q10=>r10),(q11=>r11)]; do (insert v) [(r3=>q3),(r4=>q4),(q5=>r5),(q6=>r6)];
+     ()
+     ()
+     > // 4 entries in each dict
+     > #k,#v;
+     4,4
+
+   Now what we will do is release some of the strong refs so that we're left
+   with a setup like this. The ===> indicates an external/strong ref. The <---
+   reminds you that the q-objects refer to the r-objects.
+
+       Weak-key dict
+           key     value
+             r8 <---  q8 <===
+       ===>  r9 <---  q9
+            q10 ---> r10 <===
+       ===> q11 ---> r11
+
+       Weak-value dict
+           key     value
+             r3 <---  q3 <===
+       ===>  r4 <---  q4
+             q5 --->  r5 <===
+       ===>  q6 --->  r6
+
+   What we should expect is that when we get to that point, then
+   q10 will no longer have any strong refs and should die. r10 shouldn't die
+   because we have an external ref to it, but it should no longer be in the
+   wk-dict.
+
+   Similarly, q4 should no longer have any strong refs and should die.
+   r4 shouldn't die but should no longer be in the wv dict. ::
+
+     > let r8,q9,q10,r11,r3,q4,q5,r6=0,0,0,0,0,0,0,0;
+     q4 is dying
+     q10 is dying
+     > #k,#v;
+     3,3
+
+   As we expected. Now we will release all of the references::
+
+     > let q3,r4,r5,q6,r7,q7,q8,r9,r10,q11=0,0,0,0,0,0,0,0,0,0;
+
+   What we should expect is that r10 and r4, no longer in any dict, should now
+   die.
+
+   Also, that q11 should die because there is no external ref to it and the
+   wk-dict doesn't maintain a ref either. And then the q11=>r11 entry should be
+   removed from the wk-dict, and then nothing else will be keeping r11 alive, so
+   it should die too.
+
+   Similarly, in the wv-dict, q3 should die because there is no external ref to it
+   and the wv-dict doesn't maintain a ref either. And then the r3=>q3 entry should
+   be removed from the wv-dict, and then nothing else will be keeping r3 alive, so
+   it should die too.
+
+   However, q8 and q9 are kept alive as values in the wk-dict, and they keep
+   their keys alive. And q5 and q6 are kept alive as keys in the wv-dict, and
+   they keep their values alive.
+
+   And this is just what we see does happen::
+
+     r4 is dying
+     r10 is dying
+     q3 is dying
+     r3 is dying
+     q11 is dying
+     r11 is dying
+     > #k,#v;
+     2,2
+
+   So to emulate a cyclical reference, you can have one of the objects (q)
+   explicitly refer to the other (r), and then put the r,q pair into a weak
+   dictionary so you can look up the other one. The two patterns that work are to
+   have q=>r be the entry in a weak-key dict (as q11=>r11 was above), or to have
+   r=>q be the entry in a weak-value dict (as r3=>q3 was above).
+
+   Of these two patterns, the q11=>r11 in a
+   wk-dict one doesn't gain us anything, because we can already get to r
+   from the internals of q. And if we didn't maintain an external reference
+   to q, it would die. (As seen in the q10=>r10 example.)
+
+   So the useful pattern is to have r3=>q3 in a wv-dict, and keep an
+   external ref at least to q. Given q, you can open it up to get to r.
+   Given a different reference to r, you can look up q from the dictionary,
+   assuming there are other external refs to q around. If we ever release
+   the other refs to q, it will be collectable and then the dictionary
+   entry will be dropped (as in the r4=>q4 example), and then even if you
+   still have a reference to r you won't be able to get from r to (the now
+   collected) q in any way.
+
+*/
+
+namespace;
+#! --if trees23
+using trees23;
+#! --else
+using avltrees;
+#! --endif
+
+public wset wkdict wkmdict wkxdict wvdict wvmdict wvhdict wvhmdict wvxdict;
+public emptywset emptywkdict emptywkmdict emptywvdict emptywvmdict emptywvhdict emptywvhmdict;
+public insert update delete delete_all delete_other delete_val member members keys vals grob grob_other printf;
+
+// type checks
+wsetp     x = typep wset     x;
+wkdictp   x = typep wkdict   x;
+wkmdictp  x = typep wkmdict  x;
+wvdictp   x = typep wvdict   x;
+wvmdictp  x = typep wvmdict  x;
+wvhdictp  x = typep wvhdict  x;
+wvhmdictp x = typep wvhmdict x;
+
+// create a set from a list
+wset     xs::rlist  = foldl insert emptywset     xs;
+
+// create a dict from a list
+wkdict   kvs::rlist = foldl insert emptywkdict   kvs;
+wkmdict  kvs::rlist = foldl insert emptywkmdict  kvs;
+wvdict   kvs::rlist = foldl insert emptywvdict   kvs;
+wvmdict  kvs::rlist = foldl insert emptywvmdict  kvs;
+wvhdict  kvs::rlist = foldl insert emptywvhdict  kvs;
+wvhmdict kvs::rlist = foldl insert emptywvhmdict kvs;
+
+// create a dict from a list of keys and a constant value
+mkwkdict   v ks::rlist = wkdict   (zipwith (=>) ks (repeatn (#ks) v));
+mkwkmdict  v ks::rlist = wkmdict  (zipwith (=>) ks (repeatn (#ks) v));
+mkwvdict   v ks::rlist = wvdict   (zipwith (=>) ks (repeatn (#ks) v));
+mkwvmdict  v ks::rlist = wvmdict  (zipwith (=>) ks (repeatn (#ks) v));
+mkwvhdict  v ks::rlist = wvhdict  (zipwith (=>) ks (repeatn (#ks) v));
+mkwvhmdict v ks::rlist = wvhmdict (zipwith (=>) ks (repeatn (#ks) v));
+
+
+namespace weak;
+
+// This (undocumented) function is useful for testing. It will make any object
+// announce when it's about to be collected. Compatible with existing refcells
+// and weakrefs, but not with other sorts of sentries.
+public gasp;
+gasp name::string x = case get_sentry x of
+    unref next = sentry (unref (next . announcer)) x;
+    get_sentry _ = sentry announcer x;
+    _ = throw "sentry conflict"
+end with
+    announcer _ = ::printf "%s is dying\n" name;
+end;
+
+
+private WSet WKDict WKMDict WVDict WVMDict WVHDict WVHMDict;
+
+private wk_newdict wv_newdict wk_insert wv_insert;
+private wk_delete wv_delete wv_mdelete wk_delete_val wv_delete_val wv_mdelete_val;
+private wk_member wv_member wv_mmember wk_get wv_get wv_mget;
+private apply WVE;
+
+type ::wset     (WSet   _ _);
+
+type ::wkdict   (WKDict _ _) | ::wkmdict   (WKMDict _ _)
+   | ::wvdict   (WVDict _ _) | ::wvmdict   (WVMDict _ _)
+   | ::wvhdict (WVHDict _ _) | ::wvhmdict (WVHMDict _ _);
+
+type ::wkxdict  (WKDict _ _) | ::wkxdict  (WKMDict _ _)
+   | ::wvxdict  (WVDict _ _) | ::wvxdict  (WVMDict _ _)
+   | ::wvxdict (WVHDict _ _) | ::wvxdict (WVHMDict _ _);
+
+
+// set methods
+::emptywset                 = wk_newdict WSet  baltree::hdelete;
+::insert (WSet dptr ws) y = () when
+    d = get dptr;
+    wk, expirer = weakref y ws;
+    // harmless to let weak sentry run after wk has been deleted from d
+    // so we don't bother keeping track of the expirer
+    d = baltree::hinsert d wk;
+    put dptr d;
+end;
+::delete (WSet dptr _) y    = wk_delete  baltree::hdelete  dptr y;
+::member (WSet   dptr _) y  = wk_member  baltree::hmember  dptr y;
+::#(WSet dptr _)            = apply baltree::hsize dptr;
+::null (WSet dptr _)        = apply baltree::null dptr;
+::members (WSet dptr _)     = apply baltree::hmembers dptr;
+::list m::wset = ::members m;
+
+// create an empty dict
+::emptywkdict   = wk_newdict  WKDict   baltree::hdeletek;
+::emptywkmdict  = wk_newdict  WKMDict  baltree::mhdeleteka;
+::emptywvdict   = wv_newdict  WVDict   baltree::deletekv;
+::emptywvmdict  = wv_newdict  WVMDict  baltree::mdeletekva;
+::emptywvhdict  = wv_newdict  WVHDict  baltree::hdeletekv;
+::emptywvhmdict = wv_newdict  WVHMDict baltree::mhdeletekva;
+
+// insert a member
+::insert (WKDict   dptr ws) (k=>v) = wk_insert baltree::hinsertk  dptr ws k v;
+::insert (WKMDict  dptr ws) (k=>v) = wk_insert baltree::mhinsertk dptr ws k v;
+::insert (WVDict   dptr ws) (k=>v) = wv_insert baltree::insertk   dptr ws k v;
+::insert (WVMDict  dptr ws) (k=>v) = wv_insert baltree::minsertk  dptr ws k v;
+::insert (WVHDict  dptr ws) (k=>v) = wv_insert baltree::hinsertk  dptr ws k v;
+::insert (WVHMDict dptr ws) (k=>v) = wv_insert baltree::mhinsertk dptr ws k v;
+
+// curried version of insert
+::update  w@(WKDict  _ _) k v | ::update  w@(WKMDict _ _) k v |
+::update  w@(WVDict  _ _) k v | ::update  w@(WVMDict _ _) k v |
+::update w@(WVHDict  _ _) k v | ::update w@(WVHMDict _ _) k v = ::insert w (k=>v);
+
+// delete a member by key, deletes older of duplicate keys in mdicts
+::delete (WKDict   dptr _) k = wk_delete  baltree::hdeletek   dptr k;
+::delete (WKMDict  dptr _) k = wk_delete  baltree::mhdeleteko dptr k;
+::delete (WVDict   dptr _) k = wv_delete  baltree::popk       dptr k;
+::delete (WVMDict  dptr _) k = wv_delete  baltree::mpopko     dptr k;
+::delete (WVHDict  dptr _) k = wv_delete  baltree::hpopk      dptr k;
+::delete (WVHMDict dptr _) k = wv_delete  baltree::mhpopko    dptr k;
+
+// deletes newer of duplicate keys in mdicts
+::delete_other (WKDict   dptr _) k = wk_delete  baltree::hdeletek   dptr k;
+::delete_other (WKMDict  dptr _) k = wk_delete  baltree::mhdeletekn dptr k;
+::delete_other (WVDict   dptr _) k = wv_delete  baltree::popk       dptr k;
+::delete_other (WVMDict  dptr _) k = wv_delete  baltree::mpopkn     dptr k;
+::delete_other (WVHDict  dptr _) k = wv_delete  baltree::hpopk      dptr k;
+::delete_other (WVHMDict dptr _) k = wv_delete  baltree::mhpopkn    dptr k;
+
+// delete all instances of a given key
+::delete_all (WKDict   dptr _) k = wk_delete  baltree::hdeletek   dptr k;
+::delete_all (WKMDict  dptr _) k = wk_delete  baltree::mhdeleteka dptr k;
+::delete_all (WVDict   dptr _) k = wv_delete  baltree::popk       dptr k;
+::delete_all (WVMDict  dptr _) k = wv_mdelete baltree::mpopka     dptr k;
+::delete_all (WVHDict  dptr _) k = wv_delete  baltree::hpopk      dptr k;
+::delete_all (WVHMDict dptr _) k = wv_mdelete baltree::mhpopka    dptr k;
+
+// delete a member by key=>val
+::delete_val (WKDict   dptr _) (k=>v) = wk_delete_val  baltree::hdeletekv   dptr k v;
+::delete_val (WKMDict  dptr _) (k=>v) = wk_delete_val  baltree::mhdeletekva dptr k v;
+::delete_val (WVDict   dptr _) (k=>v) = wv_delete_val  baltree::popkv    dptr k v;
+::delete_val (WVMDict  dptr _) (k=>v) = wv_mdelete_val baltree::mpopkva  dptr k v;
+::delete_val (WVHDict  dptr _) (k=>v) = wv_delete_val  baltree::hpopkv   dptr k v;
+::delete_val (WVHMDict dptr _) (k=>v) = wv_mdelete_val baltree::mhpopkva dptr k v;
+
+// membership test
+::member (WKDict   dptr _) k = wk_member  baltree::hmemberk dptr k;
+::member (WKMDict  dptr _) k = wk_member  baltree::hmemberk dptr k;
+::member (WVDict   dptr _) k = wv_member  baltree::getk     dptr k;
+::member (WVMDict  dptr _) k = wv_mmember baltree::mgetko   dptr k;
+::member (WVHDict  dptr _) k = wv_member  baltree::hgetk    dptr k;
+::member (WVHMDict dptr _) k = wv_mmember baltree::mhgetko  dptr k;
+
+// get a value by key
+(WKDict   dptr _)::!k = wk_get  baltree::hgetk   dptr k;
+(WKMDict  dptr _)::!k = wk_get  baltree::mhgetka dptr k;
+(WVDict   dptr _)::!k = wv_get  baltree::getk    dptr k;
+(WVMDict  dptr _)::!k = wv_mget baltree::mgetka  dptr k;
+(WVHDict  dptr _)::!k = wv_get  baltree::hgetk   dptr k;
+(WVHMDict dptr _)::!k = wv_mget baltree::mhgetka dptr k;
+
+// get oldest/newest value from mdicts
+::grob (WKDict   dptr _) k = wk_get  baltree::hgetk   dptr k;
+::grob (WKMDict  dptr _) k = wk_get  baltree::mhgetko dptr k;
+::grob (WVDict   dptr _) k = wv_get  baltree::getk    dptr k;
+::grob (WVMDict  dptr _) k = wv_get  baltree::mgetko  dptr k;
+::grob (WVHDict  dptr _) k = wv_get  baltree::hgetk   dptr k;
+::grob (WVHMDict dptr _) k = wv_get  baltree::mhgetko dptr k;
+
+::grob_other (WKDict   dptr _) k = wk_get  baltree::hgetk   dptr k;
+::grob_other (WKMDict  dptr _) k = wk_get  baltree::mhgetkn dptr k;
+::grob_other (WVDict   dptr _) k = wv_get  baltree::getk    dptr k;
+::grob_other (WVMDict  dptr _) k = wv_get  baltree::mgetkn  dptr k;
+::grob_other (WVHDict  dptr _) k = wv_get  baltree::hgetk   dptr k;
+::grob_other (WVHMDict dptr _) k = wv_get  baltree::mhgetkn dptr k;
+
+// TODO: I'm not sure the size and iteration methods should be exposed
+// Exposing them for now to help test.
+
+::#(WKDict   dptr _) = apply baltree::hsize dptr;
+::#(WKMDict  dptr _) = apply baltree::hsize dptr;
+::#(WVDict   dptr _) = apply baltree::size  dptr;
+::#(WVMDict  dptr _) = apply baltree::msize dptr;
+::#(WVHDict  dptr _) = apply baltree::hsize dptr;
+::#(WVHMDict dptr _) = apply baltree::hsize dptr;
+
+::null (WKDict   dptr _) = apply baltree::null dptr;
+::null (WKMDict  dptr _) = apply baltree::null dptr;
+::null (WVDict   dptr _) = apply baltree::null dptr;
+::null (WVMDict  dptr _) = apply baltree::null dptr;
+::null (WVHDict  dptr _) = apply baltree::null dptr;
+::null (WVHMDict dptr _) = apply baltree::null dptr;
+
+::members (WKDict   dptr _) = apply baltree::hmembers dptr;
+::members (WKMDict  dptr _) = apply baltree::hmembers dptr;
+::members (WVDict   dptr _) = apply baltree::members  dptr;
+::members (WVMDict  dptr _) = apply baltree::mmembers dptr;
+::members (WVHDict  dptr _) = apply baltree::hmembers dptr;
+::members (WVHMDict dptr _) = apply baltree::hmembers dptr;
+
+::list d::wkxdict = ::members d;
+::list d::wvxdict = ::members d;
+
+::keys (WKDict   dptr _) = apply baltree::hkeys dptr;
+::keys (WKMDict  dptr _) = apply baltree::hkeys dptr;
+::keys (WVDict   dptr _) = apply baltree::keys  dptr;
+::keys (WVMDict  dptr _) = apply baltree::mkeys dptr;
+::keys (WVHDict  dptr _) = apply baltree::hkeys dptr;
+::keys (WVHMDict dptr _) = apply baltree::hkeys dptr;
+
+::vals (WKDict   dptr _) = apply baltree::hvals dptr;
+::vals (WKMDict  dptr _) = apply baltree::hvals dptr;
+::vals (WVDict   dptr _) = apply baltree::vals  dptr;
+::vals (WVMDict  dptr _) = apply baltree::mvals dptr;
+::vals (WVHDict  dptr _) = apply baltree::hvals dptr;
+::vals (WVHMDict dptr _) = apply baltree::hvals dptr;
+
+
+
+// private functions
+
+apply f dptr = f (get dptr);
+
+// Value comparisons ignore expirers
+// In this implementation, the GC-triggered purges delete all === values from a
+// weak-value dict at the same time, even if they're physically distinct.
+(WVE r1 _) ::== (WVE r2 _) = r1 === r2;
+(WVE r1 _) ::== r2 | r1 ::== (WVE r2 _) = r1 === r2;
+
+// The weak sentries we register on keys themselves need to have a weakref `wd`
+// to the dictionary; this permits the keys, in principle, to outlive
+// the dictionary (though in typical use-cases the dictionary is never
+// collected). We store `wd` in a partial application to `wsentry`, which is
+// saved in the dictionary struct.
+wk_newdict K deleter = K dptr (wsentry wd) when
+    dptr = ref baltree::emptytree;
+    wd, _ = weakref dptr void;
+end with
+    wsentry wd wr = case weakget wd of
+        // when a key is collected, if the dictionary is still alive we
+        // update it to a new dict with that key's weakref deleted
+        {dptr} = put dptr (deleter (get dptr) wr);
+        _      = ();
+    end;
+end;
+
+// As with wkdicts, the weak sentries we register on values themselves need
+// to have a weakref `wd` to the dictionary; here they also need to have
+// a (regular) reference to the key that points to them. We store `wd` in a partial
+// application to `wsentry`, which is saved in the dictionary struct.
+wv_newdict K deleter = K dptr (wsentry wd) when
+    dptr = ref baltree::emptytree;
+    wd, _ = weakref dptr void;
+end with
+    wsentry wd k wr = case weakget wd of
+        // When a value is collected, if the dictionary is still alive we
+        // update it to a new dict with the k=>value entry deleted
+        // A different weak sentry will be registered on value for each k=>value entry
+        // inserted into the dict.
+        {dptr} = put dptr (deleter (get dptr) (k=>wr));
+        _      = ();
+    end;
+end;
+
+wk_insert inserter dptr ws k v = () when
+    d = get dptr;
+    wk, expirer = weakref k ws;
+    // Harmless to let weak sentry run after wk has been explicitly deleted from d
+    // so we don't bother keeping track of the expirer.
+    // The only disadvantage is a possible performace cost if many keys are collected
+    // after being explicitly deleted; but that has to be compared against the
+    // performance cost of keeping track of the expirers. In many use-cases,
+    // keys aren't ever explicitly deleted from a weak-keyed dictionary, anyway.
+    d = inserter d (wk=>v);
+    put dptr d;
+end;
+
+wv_insert inserter dptr ws k v = () when
+    d = get dptr;
+    wv, expirer = weakref v (ws k);
+    // Here we do have to keep track of the expirer. If k=>v is explicitly
+    // deleted from the dictionary, and subsequently k=>v2 is added (with the same k)
+    // and subsequently the original v is collected, we don't then want to delete
+    // k from the dictionary.
+    // Our raw values in this case are a WVE struct holding the weakref to the value
+    // and the expirer to unregister the weak sentry (ws k) that will delete k from the dict
+    // when v is collected.
+    d = inserter d (k=>WVE wv expirer);
+    put dptr d;
+end;
+
+wk_delete deleter dptr k = () when
+    d = get dptr;
+    case getweakref notfound k of
+        notfound  = (); // k has no sentrybox, so it won't be in dict
+        wk = put dptr (deleter d wk);
+    end;
+end;
+
+wv_delete popper dptr k = () when
+    d = get dptr;
+    case popper d k of
+        () = ();
+        d, WVE _ expirer = expirer () $$ put dptr d;
+    end;
+end;
+
+wv_mdelete popper dptr k = () when
+    d = get dptr;
+    case popper d k of
+        () = ();
+        d, vs = do (\(WVE _ expirer) -> expirer ()) vs $$ put dptr d;
+    end;
+end;
+
+wk_delete_val deleter dptr k v = () when
+    d = get dptr;
+    case getweakref notfound k of
+        notfound  = (); // k has no sentrybox, so it won't be in dict
+        wk = put dptr (deleter d (wk=>v));
+    end;
+end;
+
+wv_delete_val popper dptr k v = () when
+    d = get dptr;
+    case getweakref notfound v of
+        notfound  = (); // v has no sentrybox, so it won't be in dict
+        wv = case popper d (k=>wv) of
+                () = ();
+                d, WVE _ expirer = expirer () $$ put dptr d;
+             end;
+    end;
+end;
+
+// Given our implementation, when doing a delete_val we remove *all* entries with the
+// specified key and values === to the specified val.
+wv_mdelete_val popper dptr k v = () when
+    d = get dptr;
+    case getweakref notfound v of
+        notfound  = (); // v has no sentrybox, so it won't be in dict
+        wv = case popper d (k=>wv) of
+                () = ();
+                d, vs = do (\(WVE _ expirer) -> expirer ()) vs $$ put dptr d;
+             end;
+    end;
+end;
+
+// HERE//////////////////////////////////////////////////////////////////
+wk_member tester dptr k = case getweakref notfound k of
+    notfound  = 0; // k has no sentrybox, so it won't be in dict
+    wk = tester (get dptr) wk;
+end;
+
+wv_member getter dptr k =
+catch handler (case getter (get dptr) k of
+    WVE wv _ = case weakget wv of
+        {_} = 1;
+        _  = 0; // wv's original is dying, but the weak sentry for k=>that_value
+                // hasn't yet run (perhaps `member d k` was called from a weak sentry
+                // for another k2=>the_same_value)
+        end;
+end) with
+    handler out_of_bounds = 0; // k not in d
+    handler e = throw e;
+end;
+
+// special-case the wvm-dicts, check all members
+wv_mmember getter dptr k =
+catch handler (any f (getter (get dptr) k) with
+    f (WVE wv _) = case weakget wv of
+                       {_} = 1;
+                       _   = 0; // wv's original is dying, but the weak sentry for
+                                // k=>that_value hasn't yet run
+                   end;
+end) with
+    handler out_of_bounds = 0; // k not in d
+    handler e = throw e;
+end;
+
+wk_get getter dptr k = case getweakref notfound k of
+    notfound = throw out_of_bounds; // k has no sentrybox, so it won't be in dict
+    wk       = getter (get dptr) wk; // may also throw out_of_bounds
+end;
+
+wv_get getter dptr k = case weakget wv of
+    {v} = v;
+    _   = throw out_of_bounds; // wv's original is dying, but the weak sentry for
+                               // k=>that_value hasn't yet run
+end when
+    WVE wv _ = getter (get dptr) k; // may throw out_of_bounds
+end;
+
+// special-case the wvm-dicts when getting all members
+wv_mget getter dptr k = catmap f (getter (get dptr) k) with // may throw out_of_bounds
+    f (WVE wv _) = case weakget wv of
+                       {v} = [v];
+                       _   = []; // wv's original is dying, but the weak sentry for
+                                 // k=>that_value hasn't yet run
+                   end;
+end;
