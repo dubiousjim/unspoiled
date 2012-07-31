@@ -189,6 +189,20 @@
 
         mfoldl (\a xs -> ...) a m
 
+   .. function:: filter /set p m
+                 mfilter /set p m
+
+      these return a set or bag that contains all instances of ``x`` from ``m``
+      that satisfy the predicate ``p``; the first passes equivalent values to
+      ``p`` one-at-a-time (like ``foldl``), the second passes them all at
+      once (like ``mfoldl``)
+
+   .. function:: partition /set p m
+                 mpartition /set p m
+
+      these are equivalent to ``filter p m, filter ((~).p) m`` and
+      ``mfilter p m, mfilter ((~).p) m``, respectively, but more efficient
+
    .. note::
 
       The infix operators (:func:`+/set`, :func:`-/set`, :func:`*\/set`, as
@@ -462,6 +476,82 @@ many p (Set  m) = baltree::any  (p.(:[])) m;
 many p (HSet m) = baltree::hany (p.(:[])) m;
 many p (Bag  m) = baltree::any  (p.val)   m;
 many p (HBag m) = baltree::mhany p        m;
+
+filter  p (Set   m)
+  = Set (baltree::foldl id add baltree::emptytree m) with
+    add yes x = if p x then baltree::insert yes x else yes;
+end;
+filter  p (HSet  m)
+  = HSet (baltree::hfoldl id add baltree::emptytree m) with
+    add yes x = if p x then baltree::hinsert yes x else yes;
+end;
+filter  p (Bag  m)
+  = Bag (baltree::mfoldl add baltree::emptytree m) with
+    add yes x = if p x then baltree::minsert yes x else yes;
+end;
+filter  p (HBag m)
+  = HBag (baltree::hfoldl id add baltree::emptytree m) with
+    add yes x = if p x then baltree::mhinsert yes x else yes;
+end;
+
+mfilter  p (Set   m)
+  = Set (baltree::foldl id add baltree::emptytree m) with
+    add yes x = if p [x] then baltree::insert yes x else yes;
+end;
+mfilter  p (HSet  m)
+  = HSet (baltree::hfoldl id add baltree::emptytree m) with
+    add yes x = if p [x] then baltree::hinsert yes x else yes;
+end;
+mfilter  p (Bag  m)
+  = Bag (baltree::foldl val add baltree::emptytree m) with
+    add yes xs = if p xs then foldl baltree::minsert yes xs else yes;
+end;
+mfilter  p (HBag m)
+  = HBag (baltree::mhfoldl add baltree::emptytree m) with
+    add yes xs = if p xs then foldl baltree::mhinsert yes xs else yes;
+end;
+
+partition  p (Set   m) = Set yes, Set no when
+    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p x then baltree::insert yes x, no else yes, baltree::insert no x;
+end;
+partition  p (HSet  m) = HSet yes, HSet no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p x then baltree::hinsert yes x, no else yes, baltree::hinsert no x;
+end;
+partition  p (Bag  m) = Bag yes, Bag no when
+    yes, no = baltree::mfoldl add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p x then baltree::minsert yes x, no else yes, baltree::minsert no x;
+end;
+partition  p (HBag m) = HBag yes, HBag no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p x then baltree::mhinsert yes x, no else yes, baltree::mhinsert no x;
+end;
+
+mpartition  p (Set   m) = Set yes, Set no when
+    yes, no = baltree::foldl id add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p [x] then baltree::insert yes x, no else yes, baltree::insert no x;
+end;
+mpartition  p (HSet  m) = HSet yes, HSet no when
+    yes, no = baltree::hfoldl id add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) x = if p [x] then baltree::hinsert yes x, no else yes, baltree::hinsert no x;
+end;
+mpartition  p (Bag  m) = Bag yes, Bag no when
+    yes, no = baltree::foldl val add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) xs = if p xs then foldl baltree::minsert yes xs, no else yes, foldl baltree::minsert no xs;
+end;
+mpartition  p (HBag m) = HBag yes, HBag no when
+    yes, no = baltree::mhfoldl add (baltree::emptytree, baltree::emptytree) m;
+end with
+    add (yes, no) xs = if p xs then foldl baltree::mhinsert yes xs, no else yes, foldl baltree::mhinsert no xs;
+end;
 
 // comparisons
 m1@(Set _)  == m2@(Set _)  |
