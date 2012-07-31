@@ -35,7 +35,7 @@
 
 namespace avl;
 
-/* Tree constructors: 'nil' denotes an empty tree, 'bin x balance left right'
+/* Tree constructors: ``nil`` denotes an empty tree, ``bin x balance left right``
    an interior node with the given balance factor and left and right subtrees.
    These are shared by all variations of the data structure. Depending on the
    particular type of data structure, the data element may take the form of a
@@ -44,7 +44,7 @@ namespace avl;
    and multidicts where multiple elements may be stored under a single key.
    For hash trees no order of the key elements is assumed, and keys are only
    compared for syntactical equality. Keys in non-hash trees must be ordered,
-   i.e., at least the comparison predicate '<' must be defined in a consistent
+   i.e., at least the comparison predicate `<` must be defined in a consistent
    fashion on them. In this case keys a and b are considered equal if neither
    a<b nor b<a holds. */
 
@@ -102,7 +102,8 @@ vals t = vals t with
   vals (bin (k=>v) _ l r) = vals l + (v : vals r);
 end;
 
-// Get the first and the last member of a tree.
+// Get the first and the last member of a tree. Like head/last for [],
+// the following two functions just fail to reduce when applied to nil.
 
 first t = first t with
   first (bin x _ nil _) = x;
@@ -154,6 +155,9 @@ mvals t = vals t with
   vals (bin (k=>xs) _ l r) = vals l + [v | k=>v = xs] + vals r;
 end;
 
+// Get the first and the last mmember of a tree. Like head/last for [],
+// the following two functions just fail to reduce when applied to nil.
+
 mfirst t = first t with
   first (bin (k=>xs) _ nil _) = head xs;
   first (bin _ _ l _) = first l;
@@ -163,6 +167,8 @@ mlast t = last t with
   last (bin (k=>xs) _ _ nil) = ::last xs;
   last (bin _ _ _ r) = last r;
 end;
+
+// Remove the first and the last mmember from a tree.
 
 mrmfirst t = rmfirst t!0 with
   rmfirst nil = [nil, 0];
@@ -184,7 +190,7 @@ mrmlast t = rmlast t!0 with
     when [newr, rightHasChanged] = rmlast r end;
 end;
 
-/* The above also apply to all kinds of hash trees. For convenience and
+/* The mtree functions also apply to all kinds of hash trees. For convenience and
    clarity, we define some corresponding synonyms here. */
 
 public hsize hmembers hkeys hvals hfirst hlast hrmfirst hrmlast;
@@ -244,7 +250,7 @@ hmemberk t y = member t (hash y) y with
     = any (\(x=>_) -> same x y) xs;
 end;
 
-/* Indexing for ordered dictionaries. An out_of_bound exception is thrown if
+/* Indexing for ordered dictionaries. An out_of_bounds exception is thrown if
    the key doesn't exist in the tree. */
 
 public getk;
