@@ -791,8 +791,7 @@ d1@(Dict _)   == d2@(Dict _)   = cmp (members d1) (members d2) with
   cmp (x:xs) [] = 0;
   cmp [] (x:xs) = 0;
   cmp ((xk=>xv):xs) ((yk=>yv):ys) =
-    ~(xk<yk || yk<xk) && eq xv yv && cmp xs ys;
-  eq u v = case u==v of res::int = res; _ = u===v end;
+    ~(xk<yk || yk<xk) && xv==?yv && cmp xs ys;
 end;
 d1@(MDict _)  == d2@(MDict _)  |
 d1@(HDict _)  == d2@(HDict _)  |
@@ -814,8 +813,7 @@ d1@(Dict _)   <= d2@(Dict _)   = cmp (members d1) (members d2) with
   cmp xs1@((xk=>xv):xs) ((yk=>yv):ys)
   = 0 if xk<yk;
   = cmp xs1 ys if yk<xk;
-  = eq xv yv && cmp xs ys;
-  eq u v = case u==v of res::int = res; _ = u===v end;
+  = xv==?yv && cmp xs ys;
 end;
 d1@(MDict _)  <= d2@(MDict _)  |
 d1@(HDict _)  <= d2@(HDict _)  |
