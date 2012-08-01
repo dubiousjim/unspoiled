@@ -1197,6 +1197,12 @@ x::matrix ~=? y::smatrix = ~(x ==? y);
 (x:xs)==?(y:ys)	= x==?y && xs==?ys;
 (x:xs)~=?(y:ys)	= x~=?y || xs~=?ys;
 
+// we have to pre-declare these types, to allow them to provide their
+// own implementations of ==? and ~=?
+public array heap;
+typep array;
+typep heap;
+
 // the general cases
 
 x ==? y = case x == y of
@@ -1206,7 +1212,8 @@ x ==? y = case x == y of
                     x:x = true; // same x y
                     _ = false;
                 end;
-          end;
+          end if ~(typep array x && typep array y) &&
+                 ~(typep heap x && typep heap y);
 
 x ~=? y = case x == y of
             res::int = res == 0;
@@ -1215,7 +1222,8 @@ x ~=? y = case x == y of
                     x:x = false; // ~same x y
                     _ = true;
                 end;
-          end;
+          end if ~(typep array x && typep array y) &&
+                 ~(typep heap x && typep heap y);
 
 
 /* Add below any extra stuff which doesn't belong elsewhere, or needs to be

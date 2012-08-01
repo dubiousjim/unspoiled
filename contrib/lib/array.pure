@@ -475,6 +475,36 @@ with
 				= b1 ~= b2 || neq a1 a3 || neq a2 a4;
 end;
 
+// compare two arrays for coarse-grained equality
+Array a ::==? Array b		= eq a b
+with
+  eq nil nil			= 1;
+  eq nil (tip _)		= 0;
+  eq nil (bin _ _ _)		= 0;
+  eq (tip _) nil		= 0;
+  eq (tip x) (tip y)		= x ==? y;
+  eq (tip _) (bin _ _ _)	= 0;
+  eq (bin _ _ _) nil		= 0;
+  eq (bin _ _ _) (tip _)	= 0;
+  eq (bin b1::int a1 a2) (bin b2::int a3 a4)
+				= b1 ==? b2 && eq a1 a3 && eq a2 a4;
+end;
+
+// compare two arrays for coarse-grained inequality
+Array a ::~=? Array b		= neq a b
+with
+  neq nil nil			= 0;
+  neq nil (tip _)		= 1;
+  neq nil (bin _ _ _)		= 1;
+  neq (tip _) nil		= 1;
+  neq (tip x) (tip y)		= x ~=? y;
+  neq (tip _) (bin _ _ _)	= 1;
+  neq (bin _ _ _) nil		= 1;
+  neq (bin _ _ _) (tip _)	= 1;
+  neq (bin b1::int a1 a2) (bin b2::int a3 a4)
+				= b1 ~=? b2 || neq a1 a3 || neq a2 a4;
+end;
+
 // efficient reverse
 ::reverse (Array a) = Array (tick a) with
     tick nil = nil;
