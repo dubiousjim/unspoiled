@@ -1149,10 +1149,10 @@ end;
 tuple x@() | tuple x@(_,_) = x;
 
 list []		= [];
-list (x:xs)	= accum [x] xs with
-  accum ys (x:xs)	= accum (x:ys) xs;
-  accum ys []		= __std__::reverse_onto [] ys;
-  accum	ys xs		= throw (bad_list_value xs);
+list orig@(x:xs)	= check xs with
+  check (x:xs)	= check xs;
+  check []	= orig;
+  check	xs	= throw (bad_list_value xs);
 end;
 
 stream []	= [];
