@@ -1104,6 +1104,7 @@ cat (xs::list:yss) = aux xs with
     skip_ahead n::int (x:xs)   = skip_ahead (n+1) xs;
     skip_ahead n::int xs       = n (xs+cat yss);
 end;
+cat (xs:yss) = xs + cat yss;
 #! --endif
 
 /* Map a function to a list and concatenate the results. This is used by list
