@@ -85,7 +85,7 @@ autoprelude=0
 # if running all tests, or -f
 if test 0 -eq $#; then
   # if running all tests, or prelude has a *.diff
-  if test 0 -eq $failed || test -f "$outdir/prelude"*.diff; then
+  if test 0 -eq $failed || $(for f in "$outdir/prelude"*.diff; do test -f "$f"; exit; done); then
     tests="$srcdir/lib/prelude.pure"
     autoprelude=1
   else
