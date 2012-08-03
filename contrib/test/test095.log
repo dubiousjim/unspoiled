@@ -1,0 +1,4852 @@
+let e = e1:e2:e3:e4;
+let f = f1:f2:f3:f4;
+let g = g1:g2:g3:g4;
+let h1,h2,h3 = h11:h12:h13:h14,h21:h22:h23:h24,h31:h32:h33:h34;
+let i1,i2,i3 = i11:i12:i13:i14,i21:i22:i23:i24,i31:i32:i33:i34;
+let j1,j2,j3 = j11:j12:j13:j14,j21:j22:j23:j24,j31:j32:j33:j34;
+let h,i,j = h1:h2:h3:h4,i1:i2:i3:i4,j1:j2:j3:j4;
+fforce (h@_/*0:10*/ v/*0:11*/) = fforce h/*0:10*/ (fforce v/*0:11*/);
+fforce v/*0:1*/ = force v/*0:1*/;
+{
+  rule #0: fforce (h@_ v) = fforce h (fforce v)
+  rule #1: fforce v = force v
+  state 0: #0 #1
+	<var> state 1
+	<app> state 2
+  state 1: #1
+  state 2: #0 #1
+	<var> state 3
+  state 3: #0 #1
+	<var> state 4
+  state 4: #0 #1
+}
+a+b+c+d;
+a+b+c+d
+cat (a+b+c+d);
+cat (a+b+c+d)
+cat [a,b,c,d];
+a+(b+(c+(d+[])))
+a+b+c;
+a+b+c
+cat (a+b+c);
+cat (a+b+c)
+cat [a,b,c];
+a+(b+(c+[]))
+e+f+g;
+e1:e2:e3:e4+(f1:f2:f3:f4)+(g1:g2:g3:g4)
+cat (e+f+g);
+e1+(e2+(e3+cat (e4+(f1:f2:f3:f4)+(g1:g2:g3:g4))))
+cat [e,f,g];
+e1:e2:e3:e4+(f1:f2:f3:f4+(g1:g2:g3:g4+[]))
+h+i+j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+cat (h+i+j);
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+cat [h,i,j];
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map id a+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map id a+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map id a+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1:e2:e3:map id e4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1:e2:e3:map id e4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1:e2:e3:map id e4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):map id h4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):map id h4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):map id h4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map k a+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map k a+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map k a+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+k e1:k e2:k e3:map k e4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+k e1:k e2:k e3:map k e4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+k e1:k e2:k e3:map k e4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map id a+d)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map id a+(g1:g2:g3:g4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map id a+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+cat (map id e4+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1+(e2+(e3+cat (map id e4+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1+(e2+(e3+cat (map id e4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (map id h4+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (map id h4+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (map id h4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map k a+d)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map k a+(g1:g2:g3:g4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map k a+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+k e1+(k e2+(k e3+cat (map k e4+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+k e1+(k e2+(k e3+cat (map k e4+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+k e1+(k e2+(k e3+cat (map k e4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+k (h11:h12:h13:h14)+(k (h21:h22:h23:h24)+(k (h31:h32:h33:h34)+cat (map k h4+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+k (h11:h12:h13:h14)+(k (h21:h22:h23:h24)+(k (h31:h32:h33:h34)+cat (map k h4+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+k (h11:h12:h13:h14)+(k (h21:h22:h23:h24)+(k (h31:h32:h33:h34)+cat (map k h4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map k a+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map k a+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map k a+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+k e1:k e2:k e3:map k e4+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+k e1:k e2:k e3:map k e4+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+k e1:k e2:k e3:map k e4+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+k (h11:h12:h13:h14):k (h21:h22:h23:h24):k (h31:h32:h33:h34):map k h4+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+cat (map stream a+map stream b+map stream c+d)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+cat (map stream a+map stream b+map stream c+(g1:g2:g3:g4))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+cat (map stream a+map stream b+map stream c+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+stream e1+(stream e2+(stream e3+cat (map stream e4+(stream f1:stream f2:stream f3:map stream f4)+(stream g1:stream g2:stream g3:map stream g4)+d)))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+stream e1+(stream e2+(stream e3+cat (map stream e4+(stream f1:stream f2:stream f3:map stream f4)+(stream g1:stream g2:stream g3:map stream g4)+(g1:g2:g3:g4))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+stream e1+(stream e2+(stream e3+cat (map stream e4+(stream f1:stream f2:stream f3:map stream f4)+(stream g1:stream g2:stream g3:map stream g4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+cat (map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)+d)))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+cat (map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)+(g1:g2:g3:g4))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+cat (map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+map stream a+(map stream b+(map stream c+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+map stream a+(map stream b+(map stream c+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+map stream a+(map stream b+(map stream c+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4+(stream g1:stream g2:stream g3:map stream g4+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4+(stream g1:stream g2:stream g3:map stream g4+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4+(stream g1:stream g2:stream g3:map stream g4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(stream b+(stream c+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(stream b+(stream c+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(stream b+(stream c+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+(d+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+(g1:g2:g3:g4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4+[])))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(stream b+map stream c)+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(stream b+map stream c)+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(stream b+map stream c)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(stream g1:stream g2:stream g3:map stream g4))+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(stream g1:stream g2:stream g3:map stream g4))+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+e1:e2:e3:stream e4+(f1:f2:f3:stream f4+(stream g1:stream g2:stream g3:map stream g4))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4))+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4))+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(cat (map stream b)+map stream c)+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(cat (map stream b)+map stream c)+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(cat (map stream b)+map stream c)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+e1:e2:e3:stream e4+(stream f1+(stream f2+(stream f3+(cat (map stream f4)+(stream g1:stream g2:stream g3:map stream g4)))))+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+e1:e2:e3:stream e4+(stream f1+(stream f2+(stream f3+(cat (map stream f4)+(stream g1:stream g2:stream g3:map stream g4)))))+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+e1:e2:e3:stream e4+(stream f1+(stream f2+(stream f3+(cat (map stream f4)+(stream g1:stream g2:stream g3:map stream g4)))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+(i11:i12:i13:stream i14+(i21:i22:i23:stream i24+(i31:i32:i33:stream i34+(cat (map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)))))+d
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+(i11:i12:i13:stream i14+(i21:i22:i23:stream i24+(i31:i32:i33:stream i34+(cat (map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)))))+(g1:g2:g3:g4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+(i11:i12:i13:stream i14+(i21:i22:i23:stream i24+(i31:i32:i33:stream i34+(cat (map stream i4)+((j11:j12:j13:stream j14):(j21:j22:j23:stream j24):(j31:j32:j33:stream j34):map stream j4)))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+cat (map stream a)+(stream b+(stream c+d))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+cat (map stream a)+(stream b+(stream c+(g1:g2:g3:g4)))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+cat (map stream a)+(stream b+(stream c+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+d)))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+(g1:g2:g3:g4))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(f1:f2:f3:stream f4+(g1:g2:g3:stream g4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+d)))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+(g1:g2:g3:g4))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):stream j4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (stream a)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+cat (stream e4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (stream h4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (stream a)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (stream a)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (stream a)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+cat (stream e4)))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1+(e2+(e3+cat (stream e4)))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1+(e2+(e3+cat (stream e4)))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (stream h4)))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (stream h4)))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+h11:h12:h13:h14+(h21:h22:h23:h24+(h31:h32:h33:h34+cat (stream h4)))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream a+map stream b+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream a+map stream b+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream a+map stream b+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1:stream e2:stream e3:map stream e4+(stream f1:stream f2:stream f3:map stream f4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+stream a+map stream b+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+stream a+map stream b+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+stream a+map stream b+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1:e2:e3:stream e4+(stream f1:stream f2:stream f3:map stream f4)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1:e2:e3:stream e4+(stream f1:stream f2:stream f3:map stream f4)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1:e2:e3:stream e4+(stream f1:stream f2:stream f3:map stream f4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):stream h4+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+map stream b+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map stream a)+map stream b+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map stream a)+map stream b+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(stream f1:stream f2:stream f3:map stream f4))))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(stream f1:stream f2:stream f3:map stream f4))))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(stream f1:stream f2:stream f3:map stream f4))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4))))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4))))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream a+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream a+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream a+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1:stream e2:stream e3:map stream e4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1:stream e2:stream e3:map stream e4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1:stream e2:stream e3:map stream e4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(h11:h12:h13:stream h14):(h21:h22:h23:stream h24):(h31:h32:h33:stream h34):map stream h4+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map stream a)+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map stream a)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1+(stream e2+(stream e3+(cat (map stream e4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+d)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+(g1:g2:g3:g4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+b+(cat (map stream a)+d)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+b+(cat (map stream a)+(g1:g2:g3:g4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+b+(cat (map stream a)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+d))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+(g1:g2:g3:g4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+d))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+(g1:g2:g3:g4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+stream b+(cat (map stream a)+d)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+stream b+(cat (map stream a)+(g1:g2:g3:g4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+stream b+(cat (map stream a)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+d))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+(g1:g2:g3:g4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+d))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+(g1:g2:g3:g4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream b+(cat (map stream a)+[])+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream b+(cat (map stream a)+[])+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream b+(cat (map stream a)+[])+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream f1:stream f2:stream f3:map stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream f1:stream f2:stream f3:map stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream f1:stream f2:stream f3:map stream f4+(stream e1+(stream e2+(stream e3+(cat (map stream e4)+[]))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))+d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))+(g1:g2:g3:g4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(i11:i12:i13:stream i14):(i21:i22:i23:stream i24):(i31:i32:i33:stream i34):map stream i4+(h11:h12:h13:stream h14+(h21:h22:h23:stream h24+(h31:h32:h33:stream h34+(cat (map stream h4)+[]))))+((j11:j12:j13:j14):(j21:j22:j23:j24):(j31:j32:j33:j34):j4)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+a+b+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+a+b+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+a+b+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1:e2:e3:e4+(f1:f2:f3:f4)+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1:e2:e3:e4+(f1:f2:f3:f4)+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1:e2:e3:e4+(f1:f2:f3:f4)+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4)+cat d
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4)+(g1+(g2+(g3+cat g4)))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+(h11:h12:h13:h14):(h21:h22:h23:h24):(h31:h32:h33:h34):h4+((i11:i12:i13:i14):(i21:i22:i23:i24):(i31:i32:i33:i34):i4)+(j11:j12:j13:j14+(j21:j22:j23:j24+(j31:j32:j33:j34+cat j4)))
+let e4,f4,g4 = [],[],[];
+let h14,h24,h34,h4 = [],[],[],[];
+let i14,i24,i34,i4 = [],[],[],[];
+let j14,j24,j34,j4 = [],[],[],[];
+let d = [];
+let e = e1:e2:e3:e4;
+let f = f1:f2:f3:f4;
+let g = g1:g2:g3:g4;
+let h1,h2,h3 = h11:h12:h13:h14,h21:h22:h23:h24,h31:h32:h33:h34;
+let i1,i2,i3 = i11:i12:i13:i14,i21:i22:i23:i24,i31:i32:i33:i34;
+let j1,j2,j3 = j11:j12:j13:j14,j21:j22:j23:j24,j31:j32:j33:j34;
+let h,i,j = h1:h2:h3:h4,i1:i2:i3:i4,j1:j2:j3:j4;
+a+b+c+d;
+a+b+c+[]
+cat (a+b+c+d);
+cat (a+b+c+[])
+cat [a,b,c,d];
+a+(b+(c+[]))
+a+b+c;
+a+b+c
+cat (a+b+c);
+cat (a+b+c)
+cat [a,b,c];
+a+(b+(c+[]))
+e+f+g;
+[e1,e2,e3,f1,f2,f3,g1,g2,g3]
+cat (e+f+g);
+e1+(e2+(e3+(f1+(f2+(f3+(g1+(g2+(g3+[]))))))))
+cat [e,f,g];
+[e1,e2,e3,f1,f2,f3,g1,g2,g3]
+h+i+j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+cat (h+i+j);
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,i11,i12,i13,i21,i22,i23,i31,i32,i33,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+cat [h,i,j];
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map id a+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map id a+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map id a+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[e1,e2,e3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+[e1,e2,e3,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[e1,e2,e3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto id d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto id d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map k a+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map k a+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map k a+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[k e1,k e2,k e3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+[k e1,k e2,k e3,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[k e1,k e2,k e3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[k [h11,h12,h13],k [h21,h22,h23],k [h31,h32,h33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[k [h11,h12,h13],k [h21,h22,h23],k [h31,h32,h33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k d/*0:1*/ a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k d a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[k [h11,h12,h13],k [h21,h22,h23],k [h31,h32,h33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map id a+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map id a+[g1,g2,g3])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map id a+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1+(e2+(e3+(g1+(g2+(g3+[])))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1+(e2+(e3+[j11,j12,j13,j21,j22,j23,j31,j32,j33]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+h11:h12:h13:h21:h22:h23:h31:h32:h33:g1+(g2+(g3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto id d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto id d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map k a+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map k a+[g1,g2,g3])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map k a+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+k e1+(k e2+(k e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+k e1+(k e2+(k e3+(g1+(g2+(g3+[])))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+k e1+(k e2+(k e3+[j11,j12,j13,j21,j22,j23,j31,j32,j33]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+k [h11,h12,h13]+(k [h21,h22,h23]+(k [h31,h32,h33]+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+k [h11,h12,h13]+(k [h21,h22,h23]+(k [h31,h32,h33]+(g1+(g2+(g3+[])))))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> cat (__std__::map_onto k d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = cat (__std__::map_onto k d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+k [h11,h12,h13]+(k [h21,h22,h23]+(k [h31,h32,h33]+[j11,j12,j13,j21,j22,j23,j31,j32,j33]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map k a+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map k a+(g1+(g2+(g3+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map k a+[j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[k e1,k e2,k e3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+k e1:k e2:k e3:g1+(g2+(g3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[k e1,k e2,k e3,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[k [h11,h12,h13],k [h21,h22,h23],k [h31,h32,h33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+k [h11,h12,h13]:k [h21,h22,h23]:k [h31,h32,h33]:g1+(g2+(g3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> __std__::map_onto k (::cat d/*0:1*/) a/*0:001*/ {
+  rule #0: _ a b d = __std__::map_onto k (::cat d) a
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[k [h11,h12,h13],k [h21,h22,h23],k [h31,h32,h33],j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+cat (map stream a+map stream b+map stream c+[])
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+cat (map stream a+map stream b+map stream c+[g1,g2,g3])
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+cat (map stream a+map stream b+map stream c+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]])
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+stream e1+(stream e2+(stream e3+(stream f1+(stream f2+(stream f3+(stream g1+(stream g2+(stream g3+[]))))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+stream e1+(stream e2+(stream e3+(stream f1+(stream f2+(stream f3+(stream g1+(stream g2+(stream g3+(g1+(g2+(g3+[])))))))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+stream e1+(stream e2+(stream e3+(stream f1+(stream f2+(stream f3+(stream g1+(stream g2+(stream g3+[j11,j12,j13,j21,j22,j23,j31,j32,j33]))))))))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,i11,i12,i13,i21,i22,i23,i31,i32,i33,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+h11:h12:h13:h21:h22:h23:h31:h32:h33:i11:i12:i13:i21:i22:i23:i31:i32:i33:j11:j12:j13:j21:j22:j23:j31:j32:j33:g1+(g2+(g3+[]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (cat (__std__::map_onto stream (map stream b/*0:001*/) a/*0:0001*/+map stream c/*0:01*/+d/*0:1*/)) {
+  rule #0: _ a b c d = fforce (cat (__std__::map_onto stream (map stream b) a+map stream c+d))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,i11,i12,i13,i21,i22,i23,i31,i32,i33,j11,j12,j13,j21,j22,j23,j31,j32,j33,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+map stream a+(map stream b+(map stream c+[]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+map stream a+(map stream b+(map stream c+[g1,g2,g3]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+map stream a+(map stream b+(map stream c+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3,stream g1,stream g2,stream g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3,stream g1,stream g2,stream g3,g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3,stream g1,stream g2,stream g3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d/*0:1*/]) c/*0:01*/) b/*0:001*/) a/*0:0001*/) {
+  rule #0: _ a b c d = fforce (__std__::map_onto stream (__std__::map_onto stream (__std__::map_onto stream (cat [d]) c) b) a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(stream b+(stream c+[]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(stream b+(stream c+[g1,g2,g3]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(stream b+(stream c+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+[e1,e2,e3,f1,f2,f3,g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+[e1,e2,e3,f1,f2,f3,g1,g2,g3,g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+[e1,e2,e3,f1,f2,f3,g1,g2,g3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/],[c/*0:01*/]] (cat [d/*0:1*/])) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b],[c]] (cat [d]))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(stream b+map stream c)+[]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(stream b+map stream c)+[g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(stream b+map stream c)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+[e1,e2,e3,f1,f2,f3,stream g1,stream g2,stream g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+[e1,e2,e3,f1,f2,f3,stream g1,stream g2,stream g3,g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+[e1,e2,e3,f1,f2,f3,stream g1,stream g2,stream g3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],[b/*0:001*/]] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],[b]] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+stream a+(cat (map stream b)+map stream c)+[]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+stream a+(cat (map stream b)+map stream c)+[g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+stream a+(cat (map stream b)+map stream c)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+e1:e2:e3:stream f1+(stream f2+(stream f3+[stream g1,stream g2,stream g3]))+[]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+e1:e2:e3:stream f1+(stream f2+(stream f3+[stream g1,stream g2,stream g3]))+[g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+e1:e2:e3:stream f1+(stream f2+(stream f3+[stream g1,stream g2,stream g3]))+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],i11,i12,i13,i21,i22,i23,i31,i32,i33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],i11,i12,i13,i21,i22,i23,i31,i32,i33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:0001*/],b/*0:001*/] (map stream c/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [[a],b] (map stream c)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],i11,i12,i13,i21,i22,i23,i31,i32,i33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c d;
+cat (map stream a)+(stream b+(stream c+[]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c g;
+cat (map stream a)+(stream b+(stream c+[g1,g2,g3]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) a b c j;
+cat (map stream a)+(stream b+(stream c+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g d;
+stream e1+(stream e2+(stream e3+[f1,f2,f3,g1,g2,g3]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g g;
+stream e1+(stream e2+(stream e3+[f1,f2,f3,g1,g2,g3,g1,g2,g3]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) e f g j;
+stream e1+(stream e2+(stream e3+[f1,f2,f3,g1,g2,g3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j g;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],g1,g2,g3]
+(\a/*0:0001*/ b/*0:001*/ c/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:0001*/,[b/*0:001*/],[c/*0:01*/]] d/*0:1*/) {
+  rule #0: _ a b c d = fforce (__std__::catstream __std__::missing [a,[b],[c]] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+	<var> state 4
+  state 4: #0
+}) h i j j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (stream a)
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)) {
+  rule #0: _ a b d = fforce (cat (stream a))
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (stream a)+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (stream a)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+e1+(e2+(e3+[]))+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1+(e2+(e3+[]))+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+e1+(e2+(e3+[]))+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (cat (stream a/*0:001*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (cat (stream a)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream a+map stream b+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream a+map stream b+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream a+map stream b+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[stream e1,stream e2,stream e3,stream f1,stream f2,stream f3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (map stream b/*0:01*/) a/*0:001*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (map stream b) a+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+stream a+map stream b+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+stream a+map stream b+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+stream a+map stream b+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[e1,e2,e3,stream f1,stream f2,stream f3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+[e1,e2,e3,stream f1,stream f2,stream f3,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[e1,e2,e3,stream f1,stream f2,stream f3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[a/*0:001*/]] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[a]] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+map stream b+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map stream a)+map stream b+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map stream a)+map stream b+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+[stream f1,stream f2,stream f3]))+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1+(stream e2+(stream e3+[stream f1,stream f2,stream f3]))+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1+(stream e2+(stream e3+[stream f1,stream f2,stream f3]))+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] (map stream b/*0:01*/)+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] (map stream b)+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream a+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream a+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream a+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[stream e1,stream e2,stream e3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+[stream e1,stream e2,stream e3,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[stream e1,stream e2,stream e3,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream d/*0:1*/ a/*0:001*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream d a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (catmap stream a/*0:001*/) {
+  rule #0: _ a b d = fforce (catmap stream a)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+cat (map stream a)+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+cat (map stream a)+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+cat (map stream a)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream e1+(stream e2+(stream e3+[g1,g2,g3]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream e1+(stream e2+(stream e3+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[h11,h12,h13,h21,h22,h23,h31,h32,h33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] []) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] [])
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+b+(cat (map stream a)+[g1,g2,g3])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+b+(cat (map stream a)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[g1,g2,g3]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream b/*0:01*/ [a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream b [a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+stream b+(cat (map stream a)+[])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+stream b+(cat (map stream a)+[g1,g2,g3])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+stream b+(cat (map stream a)+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]])
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[g1,g2,g3]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+f1:f2:f3:stream e1+(stream e2+(stream e3+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::catstream __std__::missing [[b/*0:01*/],a/*0:001*/] d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::catstream __std__::missing [[b],a] d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+map stream b+(cat (map stream a)+[])+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+map stream b+(cat (map stream a)+[])+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+map stream b+(cat (map stream a)+[])+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+stream f1:stream f2:stream f3:stream e1+(stream e2+(stream e3+[]))+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+stream f1:stream f2:stream f3:stream e1+(stream e2+(stream e3+[]))+[g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+stream f1:stream f2:stream f3:stream e1+(stream e2+(stream e3+[]))+[[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,g1,g2,g3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> fforce (__std__::map_onto stream (catmap stream a/*0:001*/) b/*0:01*/+d/*0:1*/) {
+  rule #0: _ a b d = fforce (__std__::map_onto stream (catmap stream a) b+d)
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],h11,h12,h13,h21,h22,h23,h31,h32,h33,[j11,j12,j13],[j21,j22,j23],[j31,j32,j33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b d;
+a+b+[]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b g;
+a+b+(g1+(g2+(g3+[])))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) a b j;
+a+b+[j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f d;
+[e1,e2,e3,f1,f2,f3]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f g;
+e1:e2:e3:f1:f2:f3:g1+(g2+(g3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) e f j;
+[e1,e2,e3,f1,f2,f3,j11,j12,j13,j21,j22,j23,j31,j32,j33]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i d;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33]]
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i g;
+[h11,h12,h13]:[h21,h22,h23]:[h31,h32,h33]:[i11,i12,i13]:[i21,i22,i23]:[i31,i32,i33]:g1+(g2+(g3+[]))
+(\a/*0:001*/ b/*0:01*/ d/*0:1*/ -> a/*0:001*/+b/*0:01*/+cat d/*0:1*/ {
+  rule #0: _ a b d = a+b+cat d
+  state 0: #0
+	<var> state 1
+  state 1: #0
+	<var> state 2
+  state 2: #0
+	<var> state 3
+  state 3: #0
+}) h i j;
+[[h11,h12,h13],[h21,h22,h23],[h31,h32,h33],[i11,i12,i13],[i21,i22,i23],[i31,i32,i33],j11,j12,j13,j21,j22,j23,j31,j32,j33]
