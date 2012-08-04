@@ -556,10 +556,10 @@ namespace __std__ with
 /* Optimize ``reverse xs + base``. We have to handle the detection of base::string
    carefully; if that's left to the runtime rules for reverse_onto it will
    force any bases which might be thunks. */
-private nonfix notfound;
+private nonfix missing;
 public reverse_onto_stringbase reverse_onto;
 def reverse xs ::+ base = (if typep string b then reverse_onto_stringbase else reverse_onto) b xs when b = base end;
-def catwalk ws (reverse xs:base) = catwalk ((reverse_onto (::cat base) xs):ws) notfound;
+def catwalk ws (reverse xs:base) = catwalk ((reverse_onto (::cat base) xs):ws) missing;
 reverse_onto_stringbase b s::string = strcat (reverse_onto [b] (chars s));
 reverse_onto_stringbase b s = reverse_onto (chars b) s;
 // these rules can assume that b was not a string to begin with

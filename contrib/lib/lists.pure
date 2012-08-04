@@ -470,16 +470,16 @@ rmfirstby p ys@(_:_) = tick ys [] with
     tick xs ws = __std__::reverse_onto (rmfirstby p xs) ws;
 end;
 
-/* We have to juggle a bit to keep `notfound` private but let these methods access
+/* We have to juggle a bit to keep `missing` private but let these methods access
    it. All of `lastby`, `rmlastby`, and `picklastby` are inherently eager. */
 
 public lastby picklastby rmlastby;
 namespace __std__;
-private nonfix notfound;
+private nonfix missing;
 
 ::lastby p none [] = none;
-::lastby p none xs@(_:_) = tick xs notfound with
-    tick [] w = if w===notfound then none else w;
+::lastby p none xs@(_:_) = tick xs missing with
+    tick [] w = if w===missing then none else w;
     tick (x:xs) w = tick xs (if p x then x else w);
     tick xs w = throw (bad_list_value xs);
 end;
@@ -536,14 +536,14 @@ end;
 
 ::rmlastby p [] = [];
 ::rmlastby p ys@(_:_) = case aux ys of
-    notfound = ys; // no match
+    missing = ys; // no match
     ys = ys;
 end with
     aux xs = case skip_ahead 0 xs of
-        len_pre@_ notfound = pop_pre len_pre xs with
-            pop_pre 0 _ = notfound;
+        len_pre@_ missing = pop_pre len_pre xs with
+            pop_pre 0 _ = missing;
             pop_pre n::int (x:xs) = case pop_pre (n-1) xs of
-                                       notfound = if p x then xs else notfound;
+                                       missing = if p x then xs else missing;
                                        ys = x:ys;
                                     end;
         end;
@@ -551,7 +551,7 @@ end with
     end;
     append n::int [] ys | append 0 _ ys = ys;
     append n::int (x:xs) ys = x:append (n-1) xs ys;
-    skip_ahead n::int [] = n notfound;
+    skip_ahead n::int [] = n missing;
     skip_ahead n::int xs = n (aux xs) if n == __std__::SKIPSIZE;
     skip_ahead n::int (_:xs) = skip_ahead (n+1) xs;
     skip_ahead n::int xs = throw (bad_list_value xs);
@@ -765,7 +765,7 @@ end; // base::string and xs::string already defined
 map_onto f base xs = plus (map f xs) base;
 // optimize combinations of map, +, and cat
 def map f xs ::+ base = map_onto f base xs;
-def catwalk ws (map f xs:base) = catwalk ((map_onto f (::cat base) xs):ws) notfound;
+def catwalk ws (map f xs:base) = catwalk ((map_onto f (::cat base) xs):ws) missing;
 end; // namespace __std__
 
 map f xs@(_:_) = aux xs with
@@ -833,7 +833,7 @@ end; // base::string and xs::string already defined
 revmap_onto f base xs = plus (revmap f xs) base;
 // optimize combinations of revmap, +, and cat
 def revmap f xs ::+ base = revmap_onto f base xs;
-def catwalk ws (revmap f xs:base) = catwalk ((revmap_onto f (::cat base) xs):ws) notfound;
+def catwalk ws (revmap f xs:base) = catwalk ((revmap_onto f (::cat base) xs):ws) missing;
 end; // namespace __std__
 #! --endif
 
@@ -1151,29 +1151,29 @@ namespace __std__ with
    cataux ((x:vs):ys)         zs = plus (stream x) (cataux (vs:ys) zs);
    cataux ([]:ys)             zs = cataux ys zs;
    cataux (x:ys)              zs = plus (/* nonmacro */ cat (map stream x)) (cataux ys zs);
-   catstream notfound      ys zs =      cataux ys zs;
+   catstream missing      ys zs =      cataux ys zs;
    catstream xs            ys zs = xs + cataux ys zs;
 
-   def           stream ys ::+        stream zs = catstream notfound [[ys],[zs]]     [];
-   def    catmap stream ys ::+        stream zs = catstream notfound [ys,[zs]]       [];
-   def           stream ys ::+ catmap stream zs = catstream notfound [[ys],zs]       [];
-   def    catmap stream ys ::+ catmap stream zs = catstream notfound [ys,zs]         [];
-   def           stream zs ::+ catstream notfound yss ws = catstream notfound ([zs]:yss) ws;
-   def    catmap stream zs ::+ catstream notfound yss ws = catstream notfound (zs:yss)   ws;
-   def           stream ys ::+               zs = catstream notfound [[ys]]          zs;
-   def    catmap stream ys ::+               zs = catstream notfound [ys]            zs;
+   def           stream ys ::+        stream zs = catstream missing [[ys],[zs]]     [];
+   def    catmap stream ys ::+        stream zs = catstream missing [ys,[zs]]       [];
+   def           stream ys ::+ catmap stream zs = catstream missing [[ys],zs]       [];
+   def    catmap stream ys ::+ catmap stream zs = catstream missing [ys,zs]         [];
+   def           stream zs ::+ catstream missing yss ws = catstream missing ([zs]:yss) ws;
+   def    catmap stream zs ::+ catstream missing yss ws = catstream missing (zs:yss)   ws;
+   def           stream ys ::+               zs = catstream missing [[ys]]          zs;
+   def    catmap stream ys ::+               zs = catstream missing [ys]            zs;
    def catstream xs yss [] ::+        stream zs = catstream xs (__append__ yss [zs]) [];
    def catstream xs yss [] ::+ catmap stream zs = catstream xs (__append__ yss zs)   [];
    def catstream xs yss [] ::+               zs = catstream xs yss                   zs;
    def xs                  ::+        stream ys = catstream xs       [[ys]]          [];
    def xs                  ::+ catmap stream ys = catstream xs       [ys]            [];
    // provide function for case where catmap not preceded or followed by +
-   ::catmap stream ys = catstream notfound [ys] [];
+   ::catmap stream ys = catstream missing [ys] [];
    def catwalk [] (stream xs:base) = stream xs ::+ ::cat base;
    def catwalk ws (stream xs:base) = /* nonmacro */ cat (__unwind__ (:) [] ws) ::+ stream xs ::+ ::cat base;
    def ::cat (map f xs) = catmap f xs;
-   def ::cat (map_onto stream zs ys) = catstream notfound [ys] (::cat zs);
-   def ::cat (revmap_onto stream zs ys) = catstream notfound [reverse ys&] (::cat zs);
+   def ::cat (map_onto stream zs ys) = catstream missing [ys] (::cat zs);
+   def ::cat (revmap_onto stream zs ys) = catstream missing [reverse ys&] (::cat zs);
    def ::cat xs@(_:_)   = catwalk [] xs;
 end; // namespace __std__
 #! --endif
@@ -1466,24 +1466,24 @@ def zip xs ys ::+ base = zip_onto (,) base plusbase xs ys with plusbase xs ys = 
 def catwalk ws (zip xs ys:base)
    = catwalk ((zip_onto (,) catbase plusbase xs ys with
                   plusbase xs ys = plus (zip xs ys) catbase;
-               end when catbase = ::cat base end):ws) notfound;
+               end when catbase = ::cat base end):ws) missing;
 def zipwith f xs ys ::+ base = zip_onto f base plusbase xs ys with plusbase xs ys = plus (zipwith f xs ys) base end;
 def catwalk ws (zipwith f xs ys:base)
    = catwalk ((zip_onto f catbase plusbase xs ys with
                   plusbase xs ys = plus (zipwith f xs ys) catbase;
-               end when catbase = ::cat base end):ws) notfound;
+               end when catbase = ::cat base end):ws) missing;
 
 def zip3 xs ys zs ::+ base = zip3_onto comma base plusbase xs ys zs with comma x y z = x,y,z; plusbase xs ys zs = plus (zip3 xs ys zs) base end;
 def catwalk ws (zip3 xs ys zs:base)
    = catwalk ((zip3_onto comma catbase plusbase xs ys zs with
                   comma x y z = x,y,z;
                   plusbase xs ys zs = plus (zip3 xs ys zs) catbase;
-               end when catbase = ::cat base end):ws) notfound;
+               end when catbase = ::cat base end):ws) missing;
 def zipwith3 f xs ys zs ::+ base = zip3_onto f base plusbase xs ys zs with plusbase xs ys zs = plus (zipwith3 f xs ys zs) base end;
 def catwalk ws (zipwith3 f xs ys zs:base)
    = catwalk ((zip3_onto f catbase plusbase xs ys zs with
                   plusbase xs ys zs = plus (zipwith3 f xs ys zs) catbase;
-               end when catbase = ::cat base end):ws) notfound;
+               end when catbase = ::cat base end):ws) missing;
 #! --endif
 end; // namespace __std__
 
@@ -1542,7 +1542,7 @@ dowith3 f _ _ _		= () otherwise;
 #! --if list-opt
 namespace __std__ with
    def catwalk ws (default:base) = catwalk (default:ws) base;
-   def catwalk (w:ws) notfound   = __unwind__ (::+) w ws;
+   def catwalk (w:ws) missing   = __unwind__ (::+) w ws;
    def catwalk ws     base       = /* nonmacro */ cat (__unwind__ (:) base ws);
 end;
 #! --endif
