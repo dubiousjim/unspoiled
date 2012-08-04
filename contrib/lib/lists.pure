@@ -268,8 +268,8 @@ end;
    .. function:: listmap f xs
 
       convenience function which works like :func:`map`, but also deals with
-      matrix and string arguments while ensuring that the result is always a
-      list; this is primarily used to implement list comprehensions
+      matrix and string and collection arguments while ensuring that the result
+      is always a list; this is primarily used to implement list comprehensions
 
    .. function:: map f xs
 

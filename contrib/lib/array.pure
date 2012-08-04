@@ -254,7 +254,7 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public reverse pickfirst picklast rotate all any map stream revstream;
+public reverse pickfirst picklast rotate all any map stream revstream listmap catmap;
 
 namespace array;
 
@@ -332,6 +332,25 @@ with
 end;
 
 ::list x@(Array _)		= members x;
+
+::listmap f (Array a)	        = aux a
+with
+  aux nil                       = [];
+  aux (tip x)                   = [f x];
+  aux (bin _ a1 a2)             = merge (aux a1) (aux a2);
+  merge [] ys                   = ys;
+  merge (x:xs) ys               = x:merge ys xs;
+end;
+
+// cat (listmap f (Array a)), I don't think there's any shortcut
+::catmap f (Array a)	        = cat (aux a)
+with
+  aux nil                       = [];
+  aux (tip x)                   = [f x];
+  aux (bin _ a1 a2)             = merge (aux a1) (aux a2);
+  merge [] ys                   = ys;
+  merge (x:xs) ys               = x:merge ys xs;
+end;
 
 // get all array members in stream form
 ::stream (Array a)		= members a

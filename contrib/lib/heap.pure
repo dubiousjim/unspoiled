@@ -120,7 +120,7 @@ type heap (Heap _);
    below. */
 
 public heapp emptyheap heap null members list first rmfirst insert;
-public pickfirst stream;
+public pickfirst stream listmap catmap;
 
 namespace heap;
 
@@ -158,6 +158,20 @@ with
 end;
 
 ::list h@(Heap _)		= members h;
+
+::listmap f h@(Heap _)		= [] if null h;
+				= accum [f (first h)] (rmfirst h)
+with
+  accum ys h			= reverse ys if null h;
+				= accum (f (first h):ys) (rmfirst h)
+end;
+
+::catmap f h@(Heap _)		= [] if null h;
+				= accum (reverse (f (first h))) (rmfirst h)
+with
+  accum ys h			= reverse ys if null h;
+				= accum (reverse (f (first h))+ys) (rmfirst h)
+end;
 
 // get the first (smallest) member of a heap
 ::first (Heap (bin _ x _ _))	= x;

@@ -700,6 +700,10 @@ grob_other (HDict  d) k = baltree::hgetk   d k;
 grob_other (MDict  d) k = baltree::mgetkn  d k;
 grob_other (HMDict d) k = baltree::mhgetkn d k;
 
+listmap f d::xdict = foldr ((:).f) [] d;
+
+catmap  f d::xdict = foldr ((+).f) [] d;
+
 filter  p (Dict   d)
   = Dict (baltree::foldl id add baltree::emptytree d) with
     add yes x = if p x then baltree::insertk yes x else yes;

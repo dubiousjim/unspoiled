@@ -507,6 +507,10 @@ many p (HSet m) = baltree::hany (p.(:[])) m;
 many p (Bag  m) = baltree::any  (p.val)   m;
 many p (HBag m) = baltree::mhany p        m;
 
+listmap f m::xset = foldr ((:).f) [] m;
+
+catmap  f m::xset = foldr ((+).f) [] m;
+
 filter  p (Set   m)
   = Set (baltree::foldl id add baltree::emptytree m) with
     add yes x = if p x then baltree::insert yes x else yes;
