@@ -120,7 +120,10 @@ type heap (Heap _);
    below. */
 
 public heapp emptyheap heap null members list first rmfirst insert;
-public pickfirst stream listmap catmap;
+public pickfirst listmap catmap;
+#! --ifnot list-opt
+public stream;
+#! --endif
 
 namespace heap;
 
@@ -153,7 +156,7 @@ end;
 ::members h@(Heap _)		= [] if null h;
 				= accum [first h] (rmfirst h)
 with
-  accum ys h			= __std__::reverse_onto [] ys if null h;
+  accum ys h			= reverse ys if null h;
 				= accum ((first h):ys) (rmfirst h)
 end;
 

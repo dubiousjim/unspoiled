@@ -33,35 +33,12 @@
    disable the optimizations.
 */
 
+namespace __std__ with
+   public reverse_onto;
 #! --if list-opt
-namespace __std__ with const SKIPSIZE = 4096; end;
+   const SKIPSIZE = 4096;
 #! --endif
-
-
-/* List reversal. These are inherently eager operations, so they will loop on
-   an infinite final argument. Also, these are some of the few list operations
-   which throw an exception when that argument is an improper list, since in
-   that case there really isn't any meaningful value to return.
-
-   The stdlib needs a version that doesn't typecheck its base, so that the
-   toplevel API can present a (base::string)-friendly version that doesn't
-   mess up stdlib's handling of thunks. Functions should only
-   use this when they know that the second argument is a proper list. */
-
-namespace __std__;
-reverse_onto base [] = base;
-reverse_onto base (x:xs) = reverse_onto (x:base) xs;
-namespace;
-
-reverse_onto base []     = base;
-reverse_onto base (x:xs) = accum (x:base) xs with
-  accum ys (x:xs)	 = accum (x:ys) xs;
-  accum ys []		 = ys;
-  accum	ys xs		 = throw (bad_list_value xs);
 end;
-
-reverse []	         = [];
-reverse xs@(_:_)	 = reverse_onto [] xs;
 
 
 /* List concatenation. For a robust implementation which works with both
@@ -98,6 +75,35 @@ xs@(_:_)+ys = aux xs with
 end;
 #! --endif
 
+/* List reversal. This is an inherently eager operation, so it will loop on
+   an infinite final argument. Also, this is one of the few list operations
+   which throws an exception when that argument is an improper list, since in
+   that case there really isn't any meaningful value to return. */
+
+namespace __std__ with
+reverse_onto base []     = base;
+reverse_onto base (x:xs) = accum (x:base) xs with
+  accum ys (x:xs)	 = accum (x:ys) xs;
+  accum ys []		 = ys;
+  accum	ys xs		 = throw (bad_list_value xs);
+end;
+#! --if list-opt
+/* Placement of the __std__::plus and __std__::cat const definitions is tricky. They
+   must come after at least one rule for each of ::+ and ::cat, but also before the consts
+   are used in any runtime rules, because those won't track forward declarations of
+   consts. */
+const plus = (::+);
+/* We optimize ``reverse xs + base`` to ``reverse_onto base xs``, but the implementation
+   of this is in strings.pure, because it has to handle the detection/coercion
+   of string bases carefully. Here we just provide a runtime rule to
+   demote otherwise unreduced expressions. */
+reverse_onto base xs = plus (reverse xs) base; // xs::string already defined
+#! --endif
+end; // namespace __std__
+
+reverse []	         = [];
+reverse xs@(_:_)	 = __std__::reverse_onto [] xs;
+
 
 /* ..
 
@@ -114,7 +120,7 @@ end;
    eager: '\ :func:`do`\ ', '\ :func:`dowith`\ ', '\ :func:`dowith3`\ ',
    '\ :func:`foldl`\ ', '\ :func:`foldl1`\ ', '\ :func:`foldl2`\ ',
    '\ :func:`foldl3`\ ', '\ :func:`last`\ ', '\ :func:`lastby`\ ',
-   '\ :func:`picklastby`\ ', '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ',
+   '\ :func:`picklastby`\ ', '\ :func:`revmap`\ ',
    '\ :func:`rmlastby`\ ', and '\ :func:`rotate`\ '. The other list functions
    will force stream arguments only as far as necessary.
 
@@ -130,7 +136,7 @@ end;
    ``bad_list_value`` when given an improper list:
    '\ :func:`reverse`\ ', '\ :func:`reverse_onto`\ ',
    '\ :func:`lastby`\ ', '\ :func:`pickfirstby`\ ', '\ :func:`picklastby`\ ',
-   '\ :func:`revmap`\ ', '\ :func:`revmap_onto`\ ', '\ :func:`rmlastby`\ ',
+   '\ :func:`revmap`\ ', '\ :func:`rmlastby`\ ',
    '\ :func:`scanr`\ ', '\ :func:`scanr1`\ ', '\ :func:`unzip`\ ',
    '\ :func:`unzip3`\ '. The other list functions will simply return a
    not-further-reduced expression.
@@ -159,10 +165,6 @@ end;
 
       convenience function which combines '\ :func:`cat`\ ' and
       '\ :func:`map`\ '; this is also used to implement list comprehensions
-
-   .. function:: catmap_onto f base xs
-
-      '\ :func:`catmap`\ ' onto the specified base
 
    .. function:: delete xs y
 
@@ -275,10 +277,6 @@ end;
 
       apply ``f`` to each member of ``xs``
 
-   .. function:: map_onto f base xs
-
-      :func:`map` onto the specified base
-
    .. function:: member xs x
 
       return whether ``x`` is a member of ``xs``
@@ -305,10 +303,6 @@ end;
    .. function:: revmap f xs
 
       equivalent to ``reverse (map f xs)``, but more efficient than even plain :func:`map`
-
-   .. function:: revmap_onto f base xs
-
-      equivalent to ``reverse (map f xs) + base``, but more efficient
 
    .. function:: rmfirstby p xs
 
@@ -739,18 +733,9 @@ end;
 last [x]		= x;
 last (x:xs)		= last xs;
 
-map_onto f base []	= base;
 map f []		= [];
 #! --ifnot list-opt
 // reverse-based
-map_onto f base xs@(_:_) = tick [] xs
-with
-  tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
-			= tick (f x:zs) xs;
-  tick zs []		= __std__::reverse_onto base zs;
-  tick zs xs		= __std__::reverse_onto (map_onto f base xs) zs;
-end;
-
 map f xs@(_:_)		= tick [] xs
 with
   tick zs (x:xs)	= __std__::reverse_onto (tick [] xs&) (f x:zs) if thunkp xs;
@@ -761,6 +746,8 @@ end;
 
 #! --else
 // skip-ahead
+namespace __std__ with
+map_onto f base []	= base;
 map_onto f base xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
         map_pre 0 _            = mapped_tail;
@@ -773,7 +760,13 @@ map_onto f base xs@(_:_) = aux xs with
     skip_ahead n::int (x:xs)   = n (f x:aux xs&) if thunkp xs;
                                = skip_ahead (n+1) xs;
     skip_ahead n::int xs       = n (map_onto f base xs);
-end;
+end; // base::string and xs::string already defined
+// demote otherwise unreduced expressions
+map_onto f base xs = plus (map f xs) base;
+// optimize combinations of map, +, and cat
+def map f xs ::+ base = map_onto f base xs;
+def catwalk ws (map f xs:base) = catwalk ((map_onto f (::cat base) xs):ws) notfound;
+end; // namespace __std__
 
 map f xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
@@ -827,16 +820,29 @@ partition p xs@(_:_) = aux xs with
 end;
 #! --endif
 
+#! --if list-opt
+namespace __std__ with
 // inherently eager
 revmap_onto f base [] = base;
 revmap_onto f base xs@(_:_) = tick base xs with
     tick a [] = a;
     tick a (x:xs) = tick (f x:a) xs;
     tick _ xs = throw (bad_list_value xs);
-end;
+end; // base::string and xs::string already defined
+// demote otherwise unreduced expressions
+revmap_onto f base xs = plus (revmap f xs) base;
+// optimize combinations of revmap, +, and cat
+def revmap f xs ::+ base = revmap_onto f base xs;
+def catwalk ws (revmap f xs:base) = catwalk ((revmap_onto f (::cat base) xs):ws) notfound;
+end; // namespace __std__
+#! --endif
 
 revmap f [] = [];
-revmap f xs@(_:_) = revmap_onto f [] xs;
+revmap f xs@(_:_) = tick [] xs with
+    tick a [] = a;
+    tick a (x:xs) = tick (f x:a) xs;
+    tick _ xs = throw (bad_list_value xs);
+end;
 
 // inherently eager
 #! --ifnot list-opt
@@ -1107,15 +1113,77 @@ end;
 cat (xs:yss) = xs + cat yss;
 #! --endif
 
+#! --if list-opt
+// optimize combinations of map, +, cat, and stream
+
+// These optimizations assume that, even though (+) and (+[]) can't always be relied on to be
+// associative and a right-identity, when applied to list and stream arguments they can;
+// and moreover that expressions like ``stream xs``, ``map stream xs``, and ``catmap stream xs``
+// can be treated as conforming to that, even when these expressions are unreduced.
+// So, for example, we can count: ``cat(map stream xs) + cat ys`` as equivalent to
+// ``cat(map stream xs + ys)``, for any ``xs``.
+
+// We also count ``(stream xs + stream ys) + zs`` as equivalent to
+// ``stream xs + (stream ys + zs)``??? TODO: review test09[45].log_
+
+public catmap;
+public nonfix stream;
+namespace __std__ with
+   // macro utilities
+   def __append__ (w:x:y:ys) zs = w:x:y:(__append__ ys zs);
+   def __append__ (x:y:ys) zs = x:y:(__append__ ys zs);
+   def __append__ (y:ys) zs = y:(__append__ ys zs);
+   def __append__ [] zs = [zs];
+
+   def __unwind__ _  ws [] = ws;
+   def __unwind__ op ws (x:xs) = __unwind__ op (op x ws) xs;
+
+   // postfix (&) &;
+   // a& = thunk a;
+
+   // Placement of __std__::plus and __std__:cat const definitions is tricky.
+   const cat = ::cat;
+
+   cataux []                  zs = zs;
+   cataux ((x::string:vs):ys) zs = cataux ((chars x:vs):ys) zs;
+   cataux (((x:xs):vs):ys)    zs = x:cataux ((xs:vs):ys) zs&;
+   cataux (([]:vs):ys)        zs = cataux (vs:ys) zs;
+   cataux ((x:vs):ys)         zs = plus (stream x) (cataux (vs:ys) zs);
+   cataux ([]:ys)             zs = cataux ys zs;
+   cataux (x:ys)              zs = plus (/* nonmacro */ cat (map stream x)) (cataux ys zs);
+   catstream notfound      ys zs =      cataux ys zs;
+   catstream xs            ys zs = xs + cataux ys zs;
+
+   def           stream ys ::+        stream zs = catstream notfound [[ys],[zs]]     [];
+   def    catmap stream ys ::+        stream zs = catstream notfound [ys,[zs]]       [];
+   def           stream ys ::+ catmap stream zs = catstream notfound [[ys],zs]       [];
+   def    catmap stream ys ::+ catmap stream zs = catstream notfound [ys,zs]         [];
+   def           stream zs ::+ catstream notfound yss ws = catstream notfound ([zs]:yss) ws;
+   def    catmap stream zs ::+ catstream notfound yss ws = catstream notfound (zs:yss)   ws;
+   def           stream ys ::+               zs = catstream notfound [[ys]]          zs;
+   def    catmap stream ys ::+               zs = catstream notfound [ys]            zs;
+   def catstream xs yss [] ::+        stream zs = catstream xs (__append__ yss [zs]) [];
+   def catstream xs yss [] ::+ catmap stream zs = catstream xs (__append__ yss zs)   [];
+   def catstream xs yss [] ::+               zs = catstream xs yss                   zs;
+   def xs                  ::+        stream ys = catstream xs       [[ys]]          [];
+   def xs                  ::+ catmap stream ys = catstream xs       [ys]            [];
+   // provide function for case where catmap not preceded or followed by +
+   ::catmap stream ys = catstream notfound [ys] [];
+   def catwalk [] (stream xs:base) = stream xs ::+ ::cat base;
+   def catwalk ws (stream xs:base) = /* nonmacro */ cat (__unwind__ (:) [] ws) ::+ stream xs ::+ ::cat base;
+   def ::cat (map f xs) = catmap f xs;
+   def ::cat (map_onto stream zs ys) = catstream notfound [ys] (::cat zs);
+   def ::cat (revmap_onto stream zs ys) = catstream notfound [reverse ys&] (::cat zs);
+   def ::cat xs@(_:_)   = catwalk [] xs;
+end; // namespace __std__
+#! --endif
+
 /* Map a function to a list and concatenate the results. This is used by list
    comprehensions. */
 
-catmap_onto f base []	= base;
 catmap f []		= [];
 #! --ifnot list-opt
 // reverse-based
-catmap_onto f base xs@(_:_)	= cat (map_onto f base xs);
-
 catmap f xs@(_:_)	= cat (map f xs);
 
 /* NOTE: This definition (from the Haskell prelude) is better, but doesn't
@@ -1124,31 +1192,6 @@ catmap f xs@(_:_)	= cat (map f xs);
 
 #! --else
 // skip-ahead
-catmap_onto f base xs@(_:_) = aux xs with
-    aux xs = map_pre len_pre xs with
-        map_pre 0 _              = mapped_tail;
-        map_pre n::int (x:xs)    = lazy_cat (f x) (map_pre (n-1) xs);
-    end when
-        len_pre@_ mapped_tail    = skip_map 0 xs;
-    end;
-    skip_map n::int []           = n base;
-    skip_map n::int xs@(_:_)     = n (aux xs) if n == __std__::SKIPSIZE;
-    skip_map n::int (x:xs)       = n (lazy_cat (f x) (aux xs&)) if thunkp xs;
-                                 = skip_map (n+1) xs;
-    skip_map n::int xs           = n (catmap_onto f base xs);
-    lazy_cat xs yss              = cat_pre len_pre xs with
-        cat_pre 0 _              = catted_tail;
-        cat_pre n::int (x:xs)    = x:cat_pre (n-1) xs;
-    end when
-        len_pre@_ catted_tail    = skip_cat yss 0 xs;
-    end;
-    skip_cat yss n::int []       = n yss;
-    skip_cat yss n::int xs@(_:_) = n (aux xs) if n== __std__::SKIPSIZE;
-    skip_cat yss n::int (x:xs)   = n (x:lazy_cat xs yss&) if thunkp xs;
-    skip_cat yss n::int (x:xs)   = skip_cat yss (n+1) xs;
-    skip_cat yss n::int xs       = n (xs+yss);
-end;
-
 catmap f xs@(_:_) = aux xs with
     aux xs = map_pre len_pre xs with
         map_pre 0 _              = mapped_tail;
@@ -1316,14 +1359,6 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
       :func:`zip` with three lists, returns a list of triples
 
-   .. function:: zip_onto f base xs ys
-
-      :func:`zip` onto the specified base
-
-   .. function:: zip3_onto f base xs ys zs
-
-      :func:`zip3` onto the specified base
-
    .. function:: zipwith f xs ys
 
       apply the binary function ``f`` to corresponding elements of ``xs``
@@ -1333,14 +1368,6 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
       apply the ternary function ``f`` to corresponding elements of ``xs``,
       ``ys`` and ``zs``
-
-   .. function:: zipwith_onto f base xs ys
-
-      :func:`zipwith` onto the specified base
-
-   .. function:: zipwith3_onto f base xs ys zs
-
-      :func:`zipwith3` onto the specified base
 
    Pure also has the following variations of :func:`zipwith` and
    :func:`zipwith3` which throw away all intermediate results and return the
@@ -1359,35 +1386,16 @@ cyclen n::int (x:xs)	= [] if n<=0;
 
 */
 
-zip [] _		|
-zip _ []		|
-zipwith f [] _		|
-zipwith f _ []		= [];
-
-zip3 [] _ _		|
-zip3 _ [] _		|
-zip3 _ _ []		|
-zipwith3 f [] _ _	|
-zipwith3 f _ [] _	|
-zipwith3 f _ _ []	= [];
-
-zip_onto base [] _		|
-zip_onto base _ []		|
-zipwith_onto f base [] _	|
-zipwith_onto f base _ []	= base;
-
-zip3_onto base [] _ _		|
-zip3_onto base _ [] _		|
-zip3_onto base _ _ []		|
-zipwith3_onto f base [] _ _	|
-zipwith3_onto f base _ [] _	|
-zipwith3_onto f base _ _ []	= base;
-
-
 namespace __std__ with
+zip_onto  _ base _   [] _     |
+zip_onto  _ base _   _  []    = base;
+zip3_onto _ base _   [] _  _  |
+zip3_onto _ base _   _  [] _  |
+zip3_onto _ base _   _  _  [] = base;
+
 #! --ifnot list-opt
 // reverse-based
-zip f base improper xs@(_:_) ys@(_:_)
+zip_onto f base improper xs@(_:_) ys@(_:_)
 			= tick [] xs ys
 with
   tick us (x:xs) (y:ys)	= __std__::reverse_onto (tick [] xs ys&) (f x y:us)
@@ -1396,9 +1404,9 @@ with
   tick us [] _		|
   tick us _ []		= __std__::reverse_onto base us;
   tick us xs ys		= __std__::reverse_onto (improper xs ys) us;
-end;
+end; // base::string and xs::string already defined
 
-zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_)
+zip3_onto f base improper xs@(_:_) ys@(_:_) zs@(_:_)
 			= tick [] xs ys zs
 with
   tick us (x:xs) (y:ys) (z:zs)
@@ -1409,11 +1417,11 @@ with
   tick us _ [] _	|
   tick us _ _ []	= __std__::reverse_onto base us;
   tick us xs ys zs	= __std__::reverse_onto (improper xs ys zs) us;
-end;
+end; // base::string and xs::string already defined
 
 #! --else
 // skip-ahead
-zip f base improper xs@(_:_) ys@(_:_) = aux xs ys with
+zip_onto f base improper xs@(_:_) ys@(_:_) = aux xs ys with
     aux xs ys = zip_pre len_pre xs ys with
         zip_pre 0 _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) = f x y:zip_pre (n-1) xs ys;
@@ -1429,9 +1437,9 @@ zip f base improper xs@(_:_) ys@(_:_) = aux xs ys with
                               if thunkp xs || thunkp ys;
                             = skip_ahead (n+1) xs ys;
     skip_ahead n::int xs ys = n (improper xs ys);
-end;
+end; // base::string and xs::string already defined
 
-zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
+zip3_onto f base improper xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
     aux xs ys zs = zip_pre len_pre xs ys zs with
         zip_pre 0 _ _ _ = zipped_tail;
         zip_pre n::int (x:xs) (y:ys) (z:zs) = f x y z:zip_pre (n-1) xs ys zs;
@@ -1448,20 +1456,54 @@ zip3 f base improper xs@(_:_) ys@(_:_) zs@(_:_) = aux xs ys zs with
                                  if thunkp xs || thunkp ys || thunkp zs;
                                = skip_ahead (n+1) xs ys zs;
     skip_ahead n::int xs ys zs = n (improper xs ys zs);
-end;
+end; // base::string and xs::string already defined
+// demote otherwise unreduced expressions
+zip_onto  _ _ improper xs ys    = improper xs ys;
+zip3_onto _ _ improper xs ys zs = improper xs ys zs;
+
+// optimize combinations of zip, +, and cat
+def zip xs ys ::+ base = zip_onto (,) base plusbase xs ys with plusbase xs ys = plus (zip xs ys) base end;
+def catwalk ws (zip xs ys:base)
+   = catwalk ((zip_onto (,) catbase plusbase xs ys with
+                  plusbase xs ys = plus (zip xs ys) catbase;
+               end when catbase = ::cat base end):ws) notfound;
+def zipwith f xs ys ::+ base = zip_onto f base plusbase xs ys with plusbase xs ys = plus (zipwith f xs ys) base end;
+def catwalk ws (zipwith f xs ys:base)
+   = catwalk ((zip_onto f catbase plusbase xs ys with
+                  plusbase xs ys = plus (zipwith f xs ys) catbase;
+               end when catbase = ::cat base end):ws) notfound;
+
+def zip3 xs ys zs ::+ base = zip3_onto comma base plusbase xs ys zs with comma x y z = x,y,z; plusbase xs ys zs = plus (zip3 xs ys zs) base end;
+def catwalk ws (zip3 xs ys zs:base)
+   = catwalk ((zip3_onto comma catbase plusbase xs ys zs with
+                  comma x y z = x,y,z;
+                  plusbase xs ys zs = plus (zip3 xs ys zs) catbase;
+               end when catbase = ::cat base end):ws) notfound;
+def zipwith3 f xs ys zs ::+ base = zip3_onto f base plusbase xs ys zs with plusbase xs ys zs = plus (zipwith3 f xs ys zs) base end;
+def catwalk ws (zipwith3 f xs ys zs:base)
+   = catwalk ((zip3_onto f catbase plusbase xs ys zs with
+                  plusbase xs ys zs = plus (zipwith3 f xs ys zs) catbase;
+               end when catbase = ::cat base end):ws) notfound;
 #! --endif
-end;
+end; // namespace __std__
 
-zip xs@(_:_) ys@(_:_) = __std__::zip (,) [] (zip) xs ys;
-zipwith f xs@(_:_) ys@(_:_) = __std__::zip f [] (zipwith f) xs ys;
-zip_onto base xs@(_:_) ys@(_:_) = __std__::zip (,) base (zip_onto base) xs ys;
-zipwith_onto f base xs@(_:_) ys@(_:_) = __std__::zip f base (zipwith_onto f base) xs ys;
+zip [] _		|
+zip _ []		|
+zipwith f [] _		|
+zipwith f _ []		= [];
 
-zip3 xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 comma [] (zip3) xs ys zs with comma x y z = x,y,z end;
-zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 f [] (zipwith3 f) xs ys zs;
-zip3_onto base xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 comma base (zip3_onto base) xs ys zs with comma x y z = x,y,z end;
-zipwith3_onto f base xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3 f base (zipwith3_onto f base) xs ys zs;
+zip xs@(_:_) ys@(_:_) = __std__::zip_onto (,) [] (zip) xs ys;
+zipwith f xs@(_:_) ys@(_:_) = __std__::zip_onto f [] (zipwith f) xs ys;
 
+zip3 [] _ _		|
+zip3 _ [] _		|
+zip3 _ _ []		|
+zipwith3 f [] _ _	|
+zipwith3 f _ [] _	|
+zipwith3 f _ _ []	= [];
+
+zip3 xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3_onto comma [] (zip3) xs ys zs with comma x y z = x,y,z end;
+zipwith3 f xs@(_:_) ys@(_:_) zs@(_:_) = __std__::zip3_onto f [] (zipwith3 f) xs ys zs;
 
 unzip []		= [],[];
 unzip us@(_:_)		= foldr accum ([],[]) us
@@ -1495,3 +1537,12 @@ dowith f _ _		= () otherwise;
 dowith3 f (x:xs) (y:ys) (z:zs)
                         = f x y z $$ dowith3 f xs ys zs;
 dowith3 f _ _ _		= () otherwise;
+
+
+#! --if list-opt
+namespace __std__ with
+   def catwalk ws (default:base) = catwalk (default:ws) base;
+   def catwalk (w:ws) notfound   = __unwind__ (::+) w ws;
+   def catwalk ws     base       = /* nonmacro */ cat (__unwind__ (:) base ws);
+end;
+#! --endif

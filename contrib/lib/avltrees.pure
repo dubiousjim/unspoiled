@@ -119,14 +119,16 @@ end;
 any p nil = 0;
 any p (bin x _ l r) = p x || any p l || any p r;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 streamleft t = tick t with
     tick nil = []&;
-    tick (bin x _ l r) = catstream [tick l, x:tick r&];
+    tick (bin x _ l r) = catmap stream [tick l, x:tick r&];
 end;
 
 streamright t = tick t with
     tick nil = []&;
-    tick (bin x _ l r) = catstream [tick r, x:tick l&];
+    tick (bin x _ l r) = catmap stream [tick r, x:tick l&];
 end;
 
 // Compute the size of a tree.
@@ -217,14 +219,16 @@ end;
 many p nil = 0;
 many p (bin (_=>xs) _ l r) = ::any p xs || many p l || many p r;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mstreamleft t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = catstream [tick l, xs, tick r&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick l, xs, tick r&];
 end;
 
 mstreamright t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = catstream [tick r, reverse xs&, tick l&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick r, reverse xs&, tick l&];
 end;
 
 msize t = size t with
@@ -234,9 +238,9 @@ end;
 
 mmembers t = mfoldr (:) [] t;
 
-mkeys t = foldr ::val (flip (map_onto ::key)) [] t;
+mkeys t = foldr ::val (\xs base -> map ::key xs + base) [] t;
 
-mvals t = foldr ::val (flip (map_onto ::val)) [] t;
+mvals t = foldr ::val (\xs base -> map ::val xs + base) [] t;
 
 // Get the first and the last mmember of a tree. Like head/last for [],
 // the following two functions just fail to reduce when applied to nil.
@@ -419,9 +423,11 @@ mhany p t = tick t with
     end;
 end;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mhstreamleft t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = cat [tick l, aux xs&, tick r&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick l, aux xs&, tick r&];
     aux [] = [];
     aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
@@ -430,7 +436,7 @@ end;
 
 mhstreamright t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = cat [tick r, aux (reverse xs)&, tick l&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick r, aux (reverse xs)&, tick l&];
     aux [] = [];
     aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
@@ -513,9 +519,11 @@ mhanyk p t = tick t with
     end;
 end;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mhstreamleftk t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = cat [tick l, aux xs&, tick r&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick l, aux xs&, tick r&];
     aux [] = [];
     aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.(::key)) xs;
@@ -525,7 +533,7 @@ end;
 
 mhstreamrightk t = tick t with
     tick nil = []&;
-    tick (bin (_=>xs) _ l r) = cat [tick r, aux (reverse xs)&, tick l&];
+    tick (bin (_=>xs) _ l r) = catmap stream [tick r, aux (reverse xs)&, tick l&];
     aux [] = [];
     aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.(::key)) xs;

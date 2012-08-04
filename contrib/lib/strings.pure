@@ -551,15 +551,25 @@ s::string+xs@(_:_)	= chars s+xs;
 xs@(_:_)+s::string	= xs+chars s;
 
 reverse s::string	= strcat (reverse (chars s));
-reverse_onto b::string s::string = strcat (reverse_onto [b] (chars s));
-reverse_onto b::string s = reverse_onto (chars b) s;
+#! --if list-opt
+namespace __std__ with
+/* Optimize ``reverse xs + base``. We have to handle the detection of base::string
+   carefully; if that's left to the runtime rules for reverse_onto it will
+   force any bases which might be thunks. */
+private nonfix notfound;
+public reverse_onto_stringbase reverse_onto;
+def reverse xs ::+ base = (if typep string b then reverse_onto_stringbase else reverse_onto) b xs when b = base end;
+def catwalk ws (reverse xs:base) = catwalk ((reverse_onto (::cat base) xs):ws) notfound;
+reverse_onto_stringbase b s::string = strcat (reverse_onto [b] (chars s));
+reverse_onto_stringbase b s = reverse_onto (chars b) s;
+// these rules can assume that b was not a string to begin with
 reverse_onto b s::string
                 = strcat (reverse_onto [b] (chars s)) if stringp b when b = string_concat_list b end;
                 = reverse_onto b (chars s) otherwise;
+end; // namespace __std__
+#! --endif
+
 catmap f s::string	= catmap f (chars s);
-catmap_onto f b::string s::string = catmap_onto f (chars b) (chars s);
-catmap_onto f b         s::string = catmap_onto f b         (chars s);
-catmap_onto f b::string s         = catmap_onto f (chars b) s;
 rowcatmap f s::string	= rowcatmap f (chars s);
 colcatmap f s::string	= colcatmap f (chars s);
 listmap f s::string	= map f (chars s);
@@ -577,7 +587,6 @@ drop n::int s::string	= substr s n (2147483647);
 dropwhile p s::string	= strcat (dropwhile p (chars s));
 filter p s::string	= strcat (filter p (chars s));
 firstby p none s::string = firstby p none (chars s);
-// Is this plain ugly, or ugly in a lovely way?
 foldl f a s::string	= foldl f a (chars s);
 foldl1 f s::string	= foldl1 f (chars s);
 foldl2 f a s::string t::string           = foldl2 f a (chars s) (chars t);
@@ -607,9 +616,13 @@ init s::string		= substr s 0 (#s-1) if ~null s;
 last s::string		= s!(#s-1) if ~null s;
 lastby p none s::string = lastby p none (chars s);
 map f s::string		= map f (chars s);
+#! --if list-opt
+namespace __std__ with
 map_onto f b::string s::string = map_onto f (chars b) (chars s);
 map_onto f b s::string = map_onto f b (chars s);
 map_onto f b::string s = map_onto f (chars b) s;
+end; // namespace __std__
+#! --endif
 partition p s::string	= strcat yes, strcat no when
     yes, no = partition p (chars s);
 end;
@@ -622,9 +635,13 @@ picklastby p s::string = case picklastby p (chars s) of
     c,cs = c, strcat cs;
 end;
 revmap f s::string	= revmap f (chars s);
+#! --if list-opt
+namespace __std__ with
 revmap_onto f b::string s::string = revmap_onto f (chars b) (chars s);
 revmap_onto f b s::string = revmap_onto f b (chars s);
 revmap_onto f b::string s = revmap_onto f (chars b) s;
+end; // namespace __std__
+#! --endif
 rmfirstby p s::string   = strcat (rmfirstby p (chars s));
 rmlastby p s::string    = strcat (rmfirstby p (chars s));
 rotate n::int s::string = strcat (rotate n (chars s));
@@ -640,17 +657,9 @@ split n::int s::string  = substr s 0 n, substr s n (2147483647);
 take n::int s::string	= substr s 0 n;
 takewhile p s::string	= strcat (takewhile p (chars s));
 tail s::string		= substr s 1 (#s-1) if ~null s;
-// And how lovely is this?
 zip s::string t::string	= zip (chars s) (chars t);
 zip                       s         t::string           = zip s         (chars t);
 zip                       s::string t                   = zip (chars s) t;
-zip_onto b::string        s::string t::string           = zip_onto (chars b) (chars s) (chars t);
-zip_onto b::string        s::string t                   = zip_onto (chars b) (chars s) t;
-zip_onto b::string        s         t::string           = zip_onto (chars b) s         (chars t);
-zip_onto b::string        s         t                   = zip_onto (chars b) s         t;
-zip_onto b                s::string t::string           = zip_onto b         (chars s) (chars t);
-zip_onto b                s::string t                   = zip_onto b         (chars s) t;
-zip_onto b                s         t::string           = zip_onto b         s         (chars t);
 zip3                      s::string t::string u::string = zip3 (chars s) (chars t) (chars u);
 zip3                      s::string t::string u         = zip3 (chars s) (chars t) u;
 zip3                      s::string t         u::string = zip3 (chars s) t         (chars u);
@@ -658,31 +667,9 @@ zip3                      s::string t         u         = zip3 (chars s) t      
 zip3                      s         t::string u::string = zip3 s         (chars t) (chars u);
 zip3                      s         t::string u         = zip3 s         (chars t) u;
 zip3                      s         t         u::string = zip3 s         t         (chars u);
-zip3_onto b::string       s::string t::string u::string = zip3_onto (chars b) (chars s) (chars t) (chars u);
-zip3_onto b::string       s::string t::string u         = zip3_onto (chars b) (chars s) (chars t) u;
-zip3_onto b::string       s::string t         u::string = zip3_onto (chars b) (chars s) t         (chars u);
-zip3_onto b::string       s::string t         u         = zip3_onto (chars b) (chars s) t         u;
-zip3_onto b::string       s         t::string u::string = zip3_onto (chars b) s         (chars t) (chars u);
-zip3_onto b::string       s         t::string u         = zip3_onto (chars b) s         (chars t) u;
-zip3_onto b::string       s         t         u::string = zip3_onto (chars b) s         t         (chars u);
-zip3_onto b::string       s         t         u         = zip3_onto (chars b) s         t         u;
-zip3_onto b               s::string t::string u::string = zip3_onto b         (chars s) (chars t) (chars u);
-zip3_onto b               s::string t::string u         = zip3_onto b         (chars s) (chars t) u;
-zip3_onto b               s::string t         u::string = zip3_onto b         (chars s) t         (chars u);
-zip3_onto b               s::string t         u         = zip3_onto b         (chars s) t         u;
-zip3_onto b               s         t::string u::string = zip3_onto b         s         (chars t) (chars u);
-zip3_onto b               s         t::string u         = zip3_onto b         s         (chars t) u;
-zip3_onto b               s         t         u::string = zip3_onto b         s         t         (chars u);
 zipwith f                 s::string t::string           = zipwith f (chars s) (chars t);
 zipwith f                 s         t::string           = zipwith f s         (chars t);
 zipwith f                 s::string t                   = zipwith f (chars s) t;
-zipwith_onto f b::string  s::string t::string           = zipwith_onto f (chars b) (chars s) (chars t);
-zipwith_onto f b::string  s::string t                   = zipwith_onto f (chars b) (chars s) t;
-zipwith_onto f b::string  s         t::string           = zipwith_onto f (chars b) s         (chars t);
-zipwith_onto f b::string  s         t                   = zipwith_onto f (chars b) s         t;
-zipwith_onto f b          s::string t::string           = zipwith_onto f b         (chars s) (chars t);
-zipwith_onto f b          s::string t                   = zipwith_onto f b         (chars s) t;
-zipwith_onto f b          s         t::string           = zipwith_onto f b         s         (chars t);
 zipwith3 f                s::string t::string u::string = zipwith3 f (chars s) (chars t) (chars u);
 zipwith3 f                s::string t::string u         = zipwith3 f (chars s) (chars t) u;
 zipwith3 f                s::string t         u::string = zipwith3 f (chars s) t         (chars u);
@@ -690,21 +677,32 @@ zipwith3 f                s::string t         u         = zipwith3 f (chars s) t
 zipwith3 f                s         t::string u::string = zipwith3 f s         (chars t) (chars u);
 zipwith3 f                s         t::string u         = zipwith3 f s         (chars t) u;
 zipwith3 f                s         t         u::string = zipwith3 f s         t         (chars u);
-zipwith3_onto f b::string s::string t::string u::string = zipwith3_onto f (chars b) (chars s) (chars t) (chars u);
-zipwith3_onto f b::string s::string t::string u         = zipwith3_onto f (chars b) (chars s) (chars t) u;
-zipwith3_onto f b::string s::string t         u::string = zipwith3_onto f (chars b) (chars s) t         (chars u);
-zipwith3_onto f b::string s::string t         u         = zipwith3_onto f (chars b) (chars s) t         u;
-zipwith3_onto f b::string s         t::string u::string = zipwith3_onto f (chars b) s         (chars t) (chars u);
-zipwith3_onto f b::string s         t::string u         = zipwith3_onto f (chars b) s         (chars t) u;
-zipwith3_onto f b::string s         t         u::string = zipwith3_onto f (chars b) s         t         (chars u);
-zipwith3_onto f b::string s         t         u         = zipwith3_onto f (chars b) s         t         u;
-zipwith3_onto f b         s::string t::string u::string = zipwith3_onto f b         (chars s) (chars t) (chars u);
-zipwith3_onto f b         s::string t::string u         = zipwith3_onto f b         (chars s) (chars t) u;
-zipwith3_onto f b         s::string t         u::string = zipwith3_onto f b         (chars s) t         (chars u);
-zipwith3_onto f b         s::string t         u         = zipwith3_onto f b         (chars s) t         u;
-zipwith3_onto f b         s         t::string u::string = zipwith3_onto f b         s         (chars t) (chars u);
-zipwith3_onto f b         s         t::string u         = zipwith3_onto f b         s         (chars t) u;
-zipwith3_onto f b         s         t         u::string = zipwith3_onto f b         s         t         (chars u);
+#! --if list-opt
+namespace __std__ with
+zip_onto f b::string  i s::string t::string           = zip_onto f i (chars b) (chars s) (chars t);
+zip_onto f b::string  i s::string t                   = zip_onto f i (chars b) (chars s) t;
+zip_onto f b::string  i s         t::string           = zip_onto f i (chars b) s         (chars t);
+zip_onto f b::string  i s         t                   = zip_onto f i (chars b) s         t;
+zip_onto f b          i s::string t::string           = zip_onto f i b         (chars s) (chars t);
+zip_onto f b          i s::string t                   = zip_onto f i b         (chars s) t;
+zip_onto f b          i s         t::string           = zip_onto f i b         s         (chars t);
+zip3_onto f b::string i s::string t::string u::string = zip3_onto f i (chars b) (chars s) (chars t) (chars u);
+zip3_onto f b::string i s::string t::string u         = zip3_onto f i (chars b) (chars s) (chars t) u;
+zip3_onto f b::string i s::string t         u::string = zip3_onto f i (chars b) (chars s) t         (chars u);
+zip3_onto f b::string i s::string t         u         = zip3_onto f i (chars b) (chars s) t         u;
+zip3_onto f b::string i s         t::string u::string = zip3_onto f i (chars b) s         (chars t) (chars u);
+zip3_onto f b::string i s         t::string u         = zip3_onto f i (chars b) s         (chars t) u;
+zip3_onto f b::string i s         t         u::string = zip3_onto f i (chars b) s         t         (chars u);
+zip3_onto f b::string i s         t         u         = zip3_onto f i (chars b) s         t         u;
+zip3_onto f b         i s::string t::string u::string = zip3_onto f i b         (chars s) (chars t) (chars u);
+zip3_onto f b         i s::string t::string u         = zip3_onto f i b         (chars s) (chars t) u;
+zip3_onto f b         i s::string t         u::string = zip3_onto f i b         (chars s) t         (chars u);
+zip3_onto f b         i s::string t         u         = zip3_onto f i b         (chars s) t         u;
+zip3_onto f b         i s         t::string u::string = zip3_onto f i b         s         (chars t) (chars u);
+zip3_onto f b         i s         t::string u         = zip3_onto f i b         s         (chars t) u;
+zip3_onto f b         i s         t         u::string = zip3_onto f i b         s         t         (chars u);
+end; // namespace __std__
+#! --endif
 dowith  f s::string t::string = dowith f (chars s) (chars t);
 dowith  f s::string t         = dowith f (chars s) t;
 dowith  f s         t::string = dowith f s         (chars t);

@@ -158,16 +158,18 @@ any p nil = 0;
 any p (bin l x r) = p x || any p l || any p r;
 any p (tri l y c z r) = p y || p z || any p l || any p c || any p r;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 streamleft t = tick t with
     tick nil = []&;
-    tick (bin l x r) = catstream [tick l, x:tick r&];
-    tick (tri l y c z r) = catstream [tick l, y:tick c&, z:tick r&];
+    tick (bin l x r) = catmap stream [tick l, x:tick r&];
+    tick (tri l y c z r) = catmap stream [tick l, y:tick c&, z:tick r&];
 end;
 
 streamright t = tick t with
     tick nil = []&;
-    tick (bin l x r) = catstream [tick r, x:tick l&];
-    tick (tri l y c z r) = catstream [tick r, z:tick c&, y:tick l&];
+    tick (bin l x r) = catmap stream [tick r, x:tick l&];
+    tick (tri l y c z r) = catmap stream [tick r, z:tick c&, y:tick l&];
 end;
 
 // Compute the size of a tree.
@@ -251,18 +253,20 @@ many p nil = 0;
 many p (bin l (_=>xs) r) = ::any p xs || many p l || many p r;
 many p (tri l (_=>ys) c (_=>zs) r) = ::any p ys || ::any p zs || many p l || many p c || many p r;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mstreamleft t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = catstream [tick l, __std__::reverse_onto [] xs&, tick r&];
+    tick (bin l (_=>xs) r) = catmap stream [tick l, reverse xs&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = catstream [tick l, __std__::reverse_onto [] ys&, tick c&, __std__::reverse_onto [] zs&, tick r&];
+        = catmap stream [tick l, reverse ys&, tick c&, reverse zs&, tick r&];
 end;
 
 mstreamright t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = catstream [tick r, xs, tick l&];
+    tick (bin l (_=>xs) r) = catmap stream [tick r, xs, tick l&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = catstream [tick r, zs, tick c&, ys, tick l&];
+        = catmap stream [tick r, zs, tick c&, ys, tick l&];
 end;
 
 msize t = size t with
@@ -276,9 +280,13 @@ end;
 
 mmembers t = mfoldr (:) [] t;
 
-mkeys t = foldr val (flip (revmap_onto key)) [] t;
+mkeys t = foldr val (revmap_onto key) [] t with
+   revmap_onto f xs base = revmap f xs + base;
+end;
 
-mvals t = foldr val (flip (revmap_onto val)) [] t;
+mvals t = foldr val (revmap_onto val) [] t with
+   revmap_onto f xs base = revmap f xs + base;
+end;
 
 // Get the first and the last mmember of a tree. See comments for first/rmfirst
 // about behavior when applied to nil.
@@ -471,11 +479,13 @@ mhany p t = tick t with
     end;
 end;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mhstreamleft t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick l, aux (__std__::reverse_onto [] xs)&, tick r&];
+    tick (bin l (_=>xs) r) = catmap stream [tick l, aux (reverse xs)&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick l, aux (__std__::reverse_onto [] ys)&, tick c&, aux (__std__::reverse_onto [] zs)&, tick r&];
+        = catmap stream [tick l, aux (reverse ys)&, tick c&, aux (reverse zs)&, tick r&];
     aux [] = [];
     aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
@@ -484,9 +494,9 @@ end;
 
 mhstreamright t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick r, aux xs&, tick l&];
+    tick (bin l (_=>xs) r) = catmap stream [tick r, aux xs&, tick l&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick r, aux zs&, tick c&, aux ys&, tick l&];
+        = catmap stream [tick r, aux zs&, tick c&, aux ys&, tick l&];
     aux [] = [];
     aux (x:xs) = (x:xvs):aux xs& when
         xvs, xs = ::partition (x==?) xs;
@@ -503,7 +513,7 @@ mhfoldlk f a t = tick a t with
     aux f a [] = a;
     aux f a ((xk=>xv):xs) = f (aux f a xs) (xk=>xvs) when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end;
 
@@ -519,12 +529,12 @@ mhfoldl1k f t = tick fail t with
         _  = f (aux1 f xs) (xk=>xvs);
     end when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
     aux f a [] = a;
     aux f a ((xk=>xv):xs) = f (aux f a xs) (xk=>xvs) when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end if t~==nil;
 
@@ -536,19 +546,19 @@ mhfoldrk f a t = tick t a with
     aux f a [] = a;
     aux f a ((xk=>xv):xs) = aux f (f (xk=>xvs) a) xs when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end;
 
 mhfoldr1k f t = tick t fail with
     tick (bin nil (_=>((xk=>xv):xs)) nil) fail = aux f (xk=>xvs) xs when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
     tick (tri nil (_=>ys) nil (_=>((zk=>zv):zs)) nil) fail
         = aux f (aux f (zk=>zvs) zs) ys when
         zvs, zs = ::partition (same zk.key) zs;
-        zvs = revmap_onto val [zv] zvs;
+        zvs = revmap val zvs + [zv];
     end;
     tick nil a = a;
     tick (bin l (_=>xs) r) a = tick l (aux f (tick r a) xs);
@@ -557,7 +567,7 @@ mhfoldr1k f t = tick t fail with
     aux f a [] = a;
     aux f a ((xk=>xv):xs) = aux f (f (xk=>xvs) a) xs when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end if t~==nil;
 
@@ -572,7 +582,7 @@ mhallk p t  = tick t 1 with
     aux [] a = a;
     aux ((xk=>xv):xs) a = aux xs (a && p (xk=>xvs)) when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end;
 
@@ -585,15 +595,17 @@ mhanyk p t = tick t with
     aux [] = 0;
     aux ((xk=>xv):xs) = p (xk=>xvs) || aux xs when
         xvs, xs = ::partition (same xk.key) xs;
-        xvs = revmap_onto val [xv] xvs;
+        xvs = revmap val xvs + [xv];
     end;
 end;
 
+// we wrap all the operands with `stream` because that permits
+// a compile-time optimization for ``cat [..., stream(...), ...]``
 mhstreamleftk t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick l, aux (__std__::reverse_onto [] xs)&, tick r&];
+    tick (bin l (_=>xs) r) = catmap stream [tick l, aux (reverse xs)&, tick r&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick l, aux (__std__::reverse_onto [] ys)&, tick c&, aux (__std__::reverse_onto [] zs)&, tick r&];
+        = catmap stream [tick l, aux (reverse ys)&, tick c&, aux (reverse zs)&, tick r&];
     aux [] = [];
     aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.key) xs;
@@ -603,9 +615,9 @@ end;
 
 mhstreamrightk t = tick t with
     tick nil = []&;
-    tick (bin l (_=>xs) r) = cat [tick r, aux xs&, tick l&];
+    tick (bin l (_=>xs) r) = catmap stream [tick r, aux xs&, tick l&];
     tick (tri l (_=>ys) c (_=>zs) r)
-        = cat [tick r, aux zs&, tick c&, aux ys&, tick l&];
+        = catmap stream [tick r, aux zs&, tick c&, aux ys&, tick l&];
     aux [] = [];
     aux ((xk=>xv):xs) = (xk=>xvs):aux xs& when
         xvs, xs = ::partition (same xk.key) xs;
@@ -1404,7 +1416,7 @@ hinsertk t new@(k=>_) = catch (whenfail t) (head2 $ ins (hash k) new t) with
     // adding new to front of list is less pressure on GC
     add new ws [] = new:ws;
     add new@(u=>v) ws ((u=>uv):us) = if v==?uv then throw fail // keep existing
-                                     else new:__std__::reverse_onto us ws; // update
+                                     else new:reverse ws + us; // update
     add new ws (u:us) = add new (u:ws) us;
     ins h::int new nil = (bin nil (h=>[new]) nil) true;
     ins h::int new (bin l1 x1@(xh::int=>xs) r1) = case cmp h xh of
@@ -1447,7 +1459,7 @@ public hdeletekv hpopkv;
 hdelete t old = catch (whenfail t) (head3 $ pop (hash old) old t) with
     // custom version of rmfirstby, that doesn't tolerate failure
     del _ _ [] = throw fail;
-    del old ws (old:us) = __std__::reverse_onto us ws;
+    del old ws (old:us) = reverse ws + us;
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw fail;
     pop h::int old cur@(bin l x@(xh::int=>xs) r) = case cmp h xh of
@@ -1537,7 +1549,7 @@ private base_hpopkv;
 base_hpopkv k old t = pop (hash k) old t with
     // custom version of pickfirstby
     del _ _ [] = throw fail;
-    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:__std__::reverse_onto us ws
+    del (k=>v) ws (u@(k=>uv):us) = if v==?uv then u:reverse ws + us
                                    else throw fail; // (k=>v) not found
     del old ws (u:us) = del old (u:ws) us;
     pop h::int old nil = throw fail;
@@ -2068,7 +2080,7 @@ end;
 // throws fail when no hits, else leftmost p is rotated to head
 pickfirstby p xs = pop p xs [] with
     pop p [] _ = throw fail;
-    pop p (x:xs) ws = if p x then x:__std__::reverse_onto xs ws
+    pop p (x:xs) ws = if p x then x:reverse ws + xs
                          else pop p xs (x:ws);
 end;
 
@@ -2076,7 +2088,7 @@ end;
 // throws fail when no hits, else rightmost p is rotated to head
 picklastby p xs = pop p xs [] [] [] with
     pop p []     _  []     _   = throw fail;
-    pop p []     ms (h:hs) hss = h:aux (__std__::reverse_onto [] ms) hs hss;
+    pop p []     ms (h:hs) hss = h:aux (reverse ms) hs hss;
     pop p (x:xs) ms hs     hss = pop p xs [] (x:ms) (hs:hss) if p x;
                                = pop p xs (x:ms) hs hss otherwise;
     aux zs []     []       = zs;
@@ -2087,7 +2099,7 @@ end;
 // custom version of partition
 partition p ys = spl p ys [] [] with
     spl p []     _  [] = []:ys; // no hits, use original
-    spl p []     ms hs = hs:__std__::reverse_onto [] ms; // push reversed list of hits to front
+    spl p []     ms hs = hs:reverse ms; // push reversed list of hits to front
     spl p (x:xs) ms hs = spl p xs ms (x:hs) if p x;
                        = spl p xs (x:ms) hs otherwise;
 end;
@@ -2139,10 +2151,10 @@ end with
         a = spaces left_pos + label3 + spaces (right_width - right_pos);
         d = spaces left_pos + "/" + spaces (middle-2) +
                  "\\" + spaces (right_width - right_pos);
-        lines = zip_onto (\left_line right_line ->
+        lines = zip (\left_line right_line ->
                     left_line + spaces (width - left_width - right_width) +
                     right_line)
-                [d, a] left_lines right_lines;
+                left_lines right_lines + [d, a];
     end;
     recurse (tri left2 j2 center2 k2 right2) istop isleft =
     lines, pos, width when
@@ -2174,9 +2186,9 @@ end with
             spaces (right_width - right_pos);
         totalspace = width - left_width - center_width - right_width;
         spacer1 = totalspace div 2;
-        lines = zip3_onto (\left_line center_line right_line ->
+        lines = zip3 (\left_line center_line right_line ->
                     left_line + spaces spacer1 + center_line +
                     spaces (totalspace - spacer1) + right_line)
-                [d, a] left_lines center_lines right_lines;
+                left_lines center_lines right_lines + [d, a];
     end;
 end if 0; // disable pretty-printing of trees

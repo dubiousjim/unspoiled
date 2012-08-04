@@ -254,7 +254,10 @@ public arrayp emptyarray array array2 mkarray mkarray2 null
   members members2 list list2 first rmfirst last rmlast insert append
   update update2;
 
-public reverse pickfirst picklast rotate all any map stream revstream listmap catmap;
+public reverse pickfirst picklast rotate all any map revstream listmap catmap;
+#! --ifnot list-opt
+public stream;
+#! --endif
 
 namespace array;
 

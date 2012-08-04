@@ -758,14 +758,7 @@ def void [x] | void {x} = void x;
 	> reverse (a,b,c);
 	(c,b,a)
 
-   .. function:: reverse_onto base x
-
-      Reverse a list onto a specified base. ::
-
-        > reverse_onto [20,10] (3..5);
-        [5, 4, 3, 20, 10]
-
-      Note: This operation and '\ :func:`reverse`\ ' are both inherently eager.
+      Note: This operation is inherently eager.
 
    In addition, the prelude provides the following conversion operations.
 
@@ -806,27 +799,18 @@ def void [x] | void {x} = void x;
    to apply other functions to the list and have them evaluated in a lazy
    fashion.
 
-   The following gives a different way to build streams from lists.
+   For example, concatenating two lists with '\ :func:`+/list`\ ' or
+   '\ :func:`cat`\ ' is normally eager; but you might in many cases only
+   end up using part of the first list. In those cases, the time and space
+   given to building the concatenation was wasted. You might instead
+   convert the first list to a stream and *then* apply '\ :func:`+/list`\ ' or
+   '\ :func:`cat`\ '. In that case, performing the concatenation is
+   nearly instantaneous, and the result list will be forced as you need it.
 
-   .. function:: catstream xss
-
-      Lazily concatenates a list ``xss`` of lists or streams. Note that if all
-      the arguments are already streams, then '\ :func:`cat`\ ' gives the same
-      result. However, '\ :func:`cat`\ ' handles any list elements eagerly;
-      whereas '\ :func:`catstream`\ ' treats everything lazily. It is
-      equivalent to ``cat.(map stream)``, but more efficient.
-
-      There is some small overhead that makes '\ :func:`catstream`\ ' an
-      inappropriate *general* replacement for '\ :func:`cat`\ ' or
-      '\ :func:`+/list`\ ': catstreaming two lists and then converting the
-      resulting stream back to a list using the '\ :func:`list`\ ' function,
-      above, takes about 3-4x as long as using '\ :func:`+/list`\ ' on those
-      lists in the first place. However, catstreaming two lists and then
-      iterating through them (for example, with '\ :func:`last`\ ') takes about
-      the same time as if you had used '\ :func:`+/list`\ ' and iterated on the
-      result. For such purposes, and especially if you're not likely to
-      iterate through all of the first list, '\ :func:`catstream`\ ' may
-      be a good alternative to '\ :func:`cat`\ ' or '\ :func:`+/list`\ '.
+   Of course, there is some overhead to this: iterating through the whole
+   lazy result might take 60\% longer than building the result eagerly and
+   iterating through that. So in some cases you may prefer to build the
+   concatenation eagerly from the beginning.
 
    Slicing
    -------
@@ -1161,16 +1145,6 @@ stream (x:xs)	= x:xs if thunkp xs;
 
 stream ()	= [];
 stream xs@(_,_)	= stream (list xs);
-
-/* Lazy version of `cat`. Equivalent to `cat.(map stream)` but more efficient. */
-
-catstream [] = [];
-// the stdlib doesn't reduce `xs+[]` or `cat [xs]` when xs isn't a proper list
-// so we don't reduce `catstream (xs:[]) = xs` either.
-catstream ((x:xs):yss) = x:catstream (xs:yss)&;
-catstream ([]:yss) = catstream yss;
-catstream (xs::string:yss) = catstream (chars xs:yss);
-catstream (xs:yss) = xs + catstream yss;
 
 
 /* Coarse-grained equality. We optimize the definitions for native aggregates

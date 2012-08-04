@@ -907,12 +907,8 @@ transpose x::matrix	= matrix_transpose x;
       Reverse a matrix. :func:`rowrev` reverses the rows, :func:`colrev` the
       columns, :func:`reverse` both dimensions. */
 
-namespace __std__;
-public reverse_onto;
-namespace;
-
-rowrev x::matrix	= rowcat (__std__::reverse_onto [] (rows x));
-colrev x::matrix	= colcat (__std__::reverse_onto [] (cols x));
+rowrev x::matrix	= rowcat (reverse (rows x));
+colrev x::matrix	= colcat (reverse (cols x));
 reverse x::matrix	= rowrev (colrev x);
 
 /* catmap et al on matrices. This allows list and matrix comprehensions to
